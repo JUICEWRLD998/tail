@@ -1,0 +1,142 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { buildServer } from "../src/web/server.js";
+
+let calls: { fn: string; args: any[] }[];
+let connect: any;
+
+beforeEach(() => {
+  calls = [];
+  connect = {
+    info: (t: string) => (calls.push({ fn: "info", args: [t] }), t === "good" ? { ok: true, builderCode: "sigma", feeCapBps: 10, chains: ["ethereum", "solana", "cardano"] } : { ok: false, error: "This link is not valid. Send /connect to the bot for a new one." }),
+    challenge: async (t: string, b: any) => (calls.push({ fn: "challenge", args: [t, b] }), { ok: true, nonce: "n1", message: "sign me" }),
+    complete: async (t: string, b: any) => (calls.push({ fn: "complete", args: [t, b] }), { ok: true, address: "0x0C3a…741d" }),
+  };
+});
+
+const app = (over = {}) => buildServer({ connect, now: () => 1_000_000, rateLimit: { max: 5, windowMs: 60_000 }, ...over });
+const tok = "good";
+
+describe("health", () => {
+  it("answers without touching the connect service", async () => {
+    const r = await app().inject({ method: "GET", url: "/health" });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ ok: true });
+    expect(calls.length).toBe(0);
+  });
+});
+
+describe("GET /api/connect/:token", () => {
+  it("returns builder info for a valid token", async () => {
+    const r = await app().inject({ method: "GET", url: `/api/connect/${tok}` });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ ok: true, builderCode: "sigma", feeCapBps: 10, chains: ["ethereum", "solana", "cardano"] });
+  });
+  it("returns 404 with the plain message for a bad token", async () => {
+    const r = await app().inject({ method: "GET", url: "/api/connect/bad" });
+    expect(r.statusCode).toBe(404);
+    expect(r.json()).toEqual({ ok: false, error: "This link is not valid. Send /connect to the bot for a new one." });
+  });
+});
+
+describe("POST challenge and complete", () => {
+  it("passes the wallet address and chain to the service", async () => {
+    const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/challenge`, payload: { address: "0xabc", chain: "ethereum" } });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ ok: true, nonce: "n1", message: "sign me" });
+    expect(calls.at(-1)).toEqual({ fn: "challenge", args: [tok, { address: "0xabc", chain: "ethereum" }] });
+  });
+
+  it("passes the nonce and signature to complete", async () => {
+    const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/complete`, payload: { nonce: "n1", signature: "0xsig" } });
+    expect(r.json()).toEqual({ ok: true, address: "0x0C3a…741d" });
+    expect(calls.at(-1)).toEqual({ fn: "complete", args: [tok, { nonce: "n1", signature: "0xsig" }] });
+  });
+
+  it("maps a service failure to 400 with its message", async () => {
+    connect.challenge = async () => ({ ok: false, error: "That wallet address does not look right for the chosen network." });
+    const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/challenge`, payload: { address: "x", chain: "ethereum" } });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().error).toBe("That wallet address does not look right for the chosen network.");
+  });
+
+  it.each([
+    [{ address: 1, chain: "ethereum" }],
+    [{ address: "0xabc" }],
+    [{ address: "0xabc", chain: ["ethereum"] }],
+    [{ address: "a".repeat(300), chain: "ethereum" }],
+    ["not json"],
+  ])("rejects a malformed challenge body %j before the service", async (payload) => {
+    const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/challenge`, payload: payload as never, ...(typeof payload === "string" ? { headers: { "content-type": "application/json" } } : {}) });
+    expect(r.statusCode).toBe(400);
+    expect(calls.length).toBe(0);
+  });
+
+  it.each([[{ nonce: "n" }], [{ signature: "s" }], [{ nonce: 1, signature: "s" }], [{ nonce: "n", signature: "s".repeat(5000) }]])(
+    "rejects a malformed complete body %j", async (payload) => {
+      const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/complete`, payload });
+      expect(r.statusCode).toBe(400);
+      expect(calls.length).toBe(0);
+    },
+  );
+
+  it("accepts a CIP-30 signature, which is two hex strings joined by a colon", async () => {
+    const sig = `${"ab".repeat(200)}:${"cd".repeat(40)}`;
+    const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/complete`, payload: { nonce: "n1", signature: sig } });
+    expect(r.statusCode).toBe(200);
+  });
+
+  it("returns 500 with a generic message when the service throws, never the error text", async () => {
+    connect.challenge = async () => { throw new Error("db password is hunter2"); };
+    const r = await app().inject({ method: "POST", url: `/api/connect/${tok}/challenge`, payload: { address: "0xabc", chain: "ethereum" } });
+    expect(r.statusCode).toBe(500);
+    expect(r.body).not.toContain("hunter2");
+    expect(r.json()).toEqual({ ok: false, error: "Something went wrong. Try again." });
+  });
+});
+
+describe("rate limiting", () => {
+  it("limits attempts per token, then recovers after the window", async () => {
+    let now = 1_000_000;
+    const a = app({ now: () => now });
+    const hit = () => a.inject({ method: "POST", url: `/api/connect/${tok}/challenge`, payload: { address: "0xabc", chain: "ethereum" } });
+    for (let i = 0; i < 5; i++) expect((await hit()).statusCode).toBe(200);
+    const blocked = await hit();
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.json()).toEqual({ ok: false, error: "Too many attempts. Wait a minute and try again." });
+    now += 61_000;
+    expect((await hit()).statusCode).toBe(200);
+  });
+
+  it("does not let one token's attempts block another", async () => {
+    const a = app();
+    for (let i = 0; i < 6; i++) await a.inject({ method: "POST", url: `/api/connect/${tok}/challenge`, payload: { address: "0xabc", chain: "ethereum" } });
+    const other = await a.inject({ method: "POST", url: "/api/connect/other/challenge", payload: { address: "0xabc", chain: "ethereum" } });
+    expect(other.statusCode).toBe(200);
+  });
+});
+
+describe("headers", () => {
+  it("API responses are never cached and never leak the token through the referrer", async () => {
+    const r = await app().inject({ method: "GET", url: `/api/connect/${tok}` });
+    expect(r.headers["cache-control"]).toBe("no-store");
+    expect(r.headers["referrer-policy"]).toBe("no-referrer");
+    expect(r.headers["x-content-type-options"]).toBe("nosniff");
+    expect(r.headers["x-frame-options"]).toBe("DENY");
+  });
+});
+
+describe("telegram webhook route", () => {
+  it("is mounted only when configured, requires the secret header, and passes the update on", async () => {
+    const got: any[] = [];
+    const a = app({ webhook: { path: "/telegram/abc", secretToken: "s3cret", handle: async (u: unknown) => void got.push(u) } });
+    const ok = await a.inject({ method: "POST", url: "/telegram/abc", headers: { "x-telegram-bot-api-secret-token": "s3cret" }, payload: { update_id: 1 } });
+    expect(ok.statusCode).toBe(200);
+    expect(got).toEqual([{ update_id: 1 }]);
+    const bad = await a.inject({ method: "POST", url: "/telegram/abc", headers: { "x-telegram-bot-api-secret-token": "nope" }, payload: { update_id: 2 } });
+    expect(bad.statusCode).toBe(401);
+    const none = await a.inject({ method: "POST", url: "/telegram/abc", payload: { update_id: 3 } });
+    expect(none.statusCode).toBe(401);
+    expect(got.length).toBe(1);
+    expect((await app().inject({ method: "POST", url: "/telegram/abc", payload: {} })).statusCode).toBe(404);
+  });
+});
