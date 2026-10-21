@@ -2,6 +2,16 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 20:40 UTC: env landed; SPIKE_API_* not yet registered with Strike
+
+- All 8 variables are set in the session environment (lengths and the `.env` match checked; values not printed). VERIFIED.
+- `TELEGRAM_BOT_TOKEN` is `@lidevbot` (getMe ok, `can_read_all_group_messages` true, no webhook, 0 pending). VERIFIED live.
+- Spike A with the `SPIKE_API_*` pair returns `401 authentication failed`: the public key is not registered at
+  testnet.strikefinance.org/api-keys. Blocks Spikes A (Follower A), B, C. Waiting on him.
+- `getUpdates` returns 0 updates: `@lidevbot` is not yet an admin in the test channel or group. Blocks Spike D.
+- `scripts/spike-a.ts` now writes `docs/proof/spike-a.json` only on a 200, after a failed rerun overwrote the passing proof
+  (restored from git).
+
 ## 2026-10-21 20:05 UTC: builder code live; Spike E passed; signing accepted by Strike
 
 - **Spike E PASSED (live, testnet).** `BUILDER_CODE=sigma`, fee share 10 bps. `request-signature` 200 (message says "collect up
