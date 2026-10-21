@@ -1,0 +1,359 @@
+{
+  "checkedAt": "2026-10-21T22:19:09.171Z",
+  "network": "testnet",
+  "checks": [
+    {
+      "name": "A1 ready state lists MetaMask and the builder fee cap",
+      "pass": true
+    },
+    {
+      "name": "A2 the token is gone from the address bar",
+      "pass": true,
+      "detail": "http://localhost:3917/connect"
+    },
+    {
+      "name": "A3 user linked as a builder wallet on Ethereum",
+      "pass": true,
+      "detail": {
+        "chain": "ethereum",
+        "builderCode": "sigma"
+      }
+    },
+    {
+      "name": "A4 the stored address is the wallet's address",
+      "pass": true
+    },
+    {
+      "name": "A5 the new API wallet signs a real Strike request (GET /v2/account 200)",
+      "pass": true,
+      "detail": {
+        "account_id": "01a1608c-0271-7953-93a0-61f98c5793e0"
+      }
+    },
+    {
+      "name": "A6 the API key never appeared in the page",
+      "pass": true
+    },
+    {
+      "name": "A7 no console or page errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "B1 a signature from the wrong wallet is refused by Strike and shown plainly",
+      "pass": true,
+      "detail": "Strike said: wallet signature verification failed."
+    },
+    {
+      "name": "B2 nothing was linked",
+      "pass": true
+    },
+    {
+      "name": "B4 the fee line stays correct after an error (the builder info is kept)",
+      "pass": true
+    },
+    {
+      "name": "B3 the page offers a retry",
+      "pass": true
+    },
+    {
+      "name": "C1 a refused prompt shows one plain message and links nothing",
+      "pass": true
+    },
+    {
+      "name": "D1 an unknown token says the link cannot be used",
+      "pass": true
+    },
+    {
+      "name": "E1 with no wallet the page says what to do instead of showing dead buttons",
+      "pass": true
+    },
+    {
+      "name": "F1 a reload keeps working because the token moved to sessionStorage",
+      "pass": true
+    },
+    {
+      "name": "H1 the brand label sits above the heading, not after the content",
+      "pass": true
+    },
+    {
+      "name": "H2 the focused heading draws no focus ring (it is not a control)",
+      "pass": true,
+      "detail": "none 0px"
+    },
+    {
+      "name": "H3 body text does not use tabular figures (they widen punctuation)",
+      "pass": true,
+      "detail": "normal"
+    },
+    {
+      "name": "H4 a real control (the wallet button) does show a visible focus ring on Tab",
+      "pass": true,
+      "detail": {
+        "tag": "BUTTON",
+        "outline": "solid 2px"
+      }
+    },
+    {
+      "name": "G1 no horizontal overflow at any of 8 widths in both themes",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "G5 the brand label is above the heading at every width",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "G6 content uses the viewport: the shell fills at least viewport minus 40px (catches a phantom grid column)",
+      "pass": true,
+      "detail": [
+        "320:288",
+        "375:343",
+        "414:382",
+        "768:736",
+        "1024:992",
+        "1280:1088",
+        "1440:1088",
+        "1920:1088",
+        "320:288",
+        "375:343",
+        "414:382",
+        "768:736",
+        "1024:992",
+        "1280:1088",
+        "1440:1088",
+        "1920:1088"
+      ]
+    },
+    {
+      "name": "G7 the wallet button stays inside its panel at every width",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "G2 touch targets are at least 44px tall",
+      "pass": true,
+      "detail": [
+        49,
+        50,
+        51
+      ]
+    },
+    {
+      "name": "G3 the page uses Schibsted Grotesk, not a default face",
+      "pass": true,
+      "detail": "\"Schibsted Grotesk Variable\""
+    }
+  ],
+  "layout": [
+    {
+      "scheme": "dark",
+      "width": 320,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 49,
+      "h1Size": "32px",
+      "brandAbove": true,
+      "shellW": 288,
+      "panelW": 288,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 375,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 49,
+      "h1Size": "32.9px",
+      "brandAbove": true,
+      "shellW": 343,
+      "panelW": 343,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 414,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 49,
+      "h1Size": "33.992px",
+      "brandAbove": true,
+      "shellW": 382,
+      "panelW": 382,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 768,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 50,
+      "h1Size": "43.904px",
+      "brandAbove": true,
+      "shellW": 736,
+      "panelW": 310,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 1024,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "51.072px",
+      "brandAbove": true,
+      "shellW": 992,
+      "panelW": 425,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 1280,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "54.4px",
+      "brandAbove": true,
+      "shellW": 1088,
+      "panelW": 468,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 1440,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "54.4px",
+      "brandAbove": true,
+      "shellW": 1088,
+      "panelW": 468,
+      "btnInside": true
+    },
+    {
+      "scheme": "dark",
+      "width": 1920,
+      "overflowX": 0,
+      "bg": "oklch(0.18 0.022 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "54.4px",
+      "brandAbove": true,
+      "shellW": 1088,
+      "panelW": 468,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 320,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 49,
+      "h1Size": "32px",
+      "brandAbove": true,
+      "shellW": 288,
+      "panelW": 288,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 375,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 49,
+      "h1Size": "32.9px",
+      "brandAbove": true,
+      "shellW": 343,
+      "panelW": 343,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 414,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 49,
+      "h1Size": "33.992px",
+      "brandAbove": true,
+      "shellW": 382,
+      "panelW": 382,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 768,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 50,
+      "h1Size": "43.904px",
+      "brandAbove": true,
+      "shellW": 736,
+      "panelW": 310,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 1024,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "51.072px",
+      "brandAbove": true,
+      "shellW": 992,
+      "panelW": 425,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 1280,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "54.4px",
+      "brandAbove": true,
+      "shellW": 1088,
+      "panelW": 468,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 1440,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "54.4px",
+      "brandAbove": true,
+      "shellW": 1088,
+      "panelW": 468,
+      "btnInside": true
+    },
+    {
+      "scheme": "light",
+      "width": 1920,
+      "overflowX": 0,
+      "bg": "oklch(0.97 0.008 255)",
+      "font": "\"Schibsted Grotesk Variable\"",
+      "btnH": 51,
+      "h1Size": "54.4px",
+      "brandAbove": true,
+      "shellW": 1088,
+      "panelW": 468,
+      "btnInside": true
+    }
+  ]
+}
