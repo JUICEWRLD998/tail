@@ -2,6 +2,7 @@
 import { D, type Dec } from "./dec.js";
 import type { Side } from "./fade.js";
 import { normalizeSymbol } from "./symbols.js";
+import { decimalsOf, formatToTick } from "./tick.js";
 
 export interface ParseContext {
   /** Listed Strike markets with their price tick (from exchangeInfo). */
@@ -51,15 +52,6 @@ const ask = (reason: "ambiguous" | "incomplete" | "inconsistent", a: Ask): Parse
 function consume(work: string, m: RegExpMatchArray): string {
   const start = m.index ?? 0;
   return work.slice(0, start) + " ".repeat(m[0].length) + work.slice(start + m[0].length);
-}
-
-function decimalsOf(tick: string): number {
-  return D.str(D.of(tick)).split(".")[1]?.length ?? 0;
-}
-
-function formatToTick(value: Dec, tick: Dec, decimals: number): string {
-  const [int, frac = ""] = D.str(D.roundToStep(value, tick)).split(".");
-  return decimals === 0 ? (int as string) : `${int}.${frac.padEnd(decimals, "0")}`;
 }
 
 export function parseCall(text: string, ctx: ParseContext): ParseResult {

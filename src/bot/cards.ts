@@ -74,8 +74,9 @@ export function followerConfirmCard(i: FollowerCardInput): string {
   const cap = CAP_TEXT[i.sizing.binding];
   if (cap) lines.push(cap);
   if (i.rewardRisk !== null) {
+    const mine = withOneDecimal(i.rewardRisk);
     const theirs = i.mode === "fade" ? callRR(i.call) : null;
-    lines.push(theirs ? `R:R ${i.rewardRisk} (the caller's call is ${theirs})` : `R:R ${i.rewardRisk}`);
+    lines.push(theirs ? `R:R ${mine} (the caller's call is ${theirs})` : `R:R ${mine}`);
   }
   return lines.join("\n");
 }
