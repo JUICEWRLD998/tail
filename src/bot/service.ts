@@ -118,9 +118,9 @@ export function createService(d: ServiceDeps) {
       return { text: "Dropped." };
     },
 
-    async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string } | { ok: true; tailId: number; reply: Reply }> {
+    async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string; needsLink?: true } | { ok: true; tailId: number; reply: Reply }> {
       const user = store.getUser(i.tgId);
-      if (!user) return { ok: false, text: "Link your Strike account first with /link." };
+      if (!user) return { ok: false, text: "Link your Strike account first with /link.", needsLink: true };
       const call = store.getCall(i.callId);
       if (!call || call.status !== "open") return { ok: false, text: "This call is closed." };
       if (store.findLiveTail(call.id, i.tgId)) return { ok: false, text: "You already took this call." };
