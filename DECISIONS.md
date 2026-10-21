@@ -2,6 +2,32 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 17:20 UTC: P1 pure core done; P0 spikes written, waiting on keys
+
+Gate passed (17:01 UTC, after 15:00). Per his call, work continues without the keys; spikes run when they arrive.
+
+**P1 (exit check: `npm test` green, coverage for core and sign.ts): met, with one open item.**
+- 90 tests green, `src/core` 96% statements / 91% branches (`npm run test:cov`).
+- `src/core`: `dec.ts` (exact BigInt decimals), `symbols.ts`, `parser.ts`, `sizing.ts`, `fade.ts`. `src/strike/sign.ts`.
+- Planted controls: rounding sizes with round instead of floor fails 4 sizing tests; disabling the level-order check fails 4
+  parser tests. Both reverted, suite green.
+- OPEN: the `sign.ts` test vector is checked against RFC 8032 and the documented message format, **not** against a request
+  Strike accepted. UNVERIFIED until Spike A.
+- OPEN: parser fixtures are format examples written from the plan. Public-channel calls are not collected yet (P6 needs
+  20 unseen ones). They are labelled as such in each fixture header.
+- CORRECTED in `implementation.md` §0: the GET body hash is sha256 of the empty string, not an empty field.
+- `README.md` and `CLAIMS.md` written with LIVE / NEXT / NOT LIVE only.
+
+**P0:** `scripts/keygen.ts`, `scripts/spike-a.ts`, `scripts/spike-b.ts` written; they stop with `MISSING ENV` when keys are
+absent and refuse to run off testnet. Spikes A-E have **not** run, so P0's exit check has not passed. Spikes C, D, E are
+not written yet (C needs a funded account, D needs the bot token, E needs `BUILDER_CODE`).
+- VERIFIED from the spec: `DELETE /v2/order/cancel-all` needs a JSON body (`{}` for all symbols); `POST /v2/order/strategy`
+  rejects TP type not `take_profit*` and SL type not `stop*` (`invalid_secondary_order`).
+- VERIFIED live: `GET /price/v2/premiumIndex?symbol=ADA-USD` returns `markPrice`. On testnet ADA-USD last price 0.2337 vs
+  mark 0.2275 (about 2.7% apart); `limitTakeBound` is 0.05, so Spike B puts its limit 3% under mark.
+- VERIFIED (docs): builder fee share is capped at 100 bps (1%). His registration form shows a 1% fee rate; a $100 minimum
+  was reported on the registration page (not in the docs). Which site, testnet or mainnet, is still unconfirmed.
+
 ## 2026-10-21 13:40 UTC: P0 pre-flight (read-only; no product code written)
 
 Status: P0 NOT passed. P1 NOT started. Reasons below.
