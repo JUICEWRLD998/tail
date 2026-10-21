@@ -19,6 +19,20 @@ export interface BotOptions {
 
 const HTML = { parse_mode: "HTML" as const };
 const CODE_RE = /^TAIL-[A-Z2-9]{6}$/i;
+const POINTER = "Tail reads calls from a channel. Tap Tail or Fade on a call card, or send /help.";
+const HELP = [
+  "Followers",
+  "/me  your account and limits",
+  "/link  connect your Strike account",
+  "/risk 1  percent of equity risked per trade",
+  "/maxlev 5  leverage cap",
+  "/maxnotional 500  size cap in USD",
+  "/revoke  remove your key from Tail",
+  "",
+  "Callers",
+  "/addchannel  register a channel or group",
+  "/call ETH long 2480 tp 2560 sl 2420  draft a call",
+].join("\n");
 const WELCOME = "Tail turns a channel call into a Strike order in one tap.\nTap Tail or Fade on a call card to start.\n/me shows your account. /link connects it.";
 
 function keyboard(buttons: Button[] | undefined): InlineKeyboard | undefined {
@@ -75,6 +89,10 @@ export function createBot(o: BotOptions): Bot {
     await ctx.reply(q.reply.text, { ...HTML, reply_markup: keyboard(q.reply.buttons) });
   });
 
+  bot.command("help", async (ctx) => {
+    if (ctx.chat.type === "private") await ctx.reply(HELP);
+  });
+
   bot.command("addchannel", async (ctx) => {
     if (ctx.chat.type !== "private") return;
     const code = store.createChannelCode(ctx.from!.id, o.now());
@@ -128,6 +146,7 @@ export function createBot(o: BotOptions): Bot {
   // ---- chat text (after commands, so commands never reach here) ----
   bot.on("channel_post:text", (ctx) => handleChatText(ctx, ctx.channelPost.text, undefined));
   bot.on("message:text", async (ctx) => {
+    if (ctx.chat.type === "private") return void (await ctx.reply(POINTER));
     if (ctx.chat.type !== "group" && ctx.chat.type !== "supergroup") return;
     if (ctx.message.text.startsWith("/")) return;
     await handleChatText(ctx, ctx.message.text, ctx.from.id);
