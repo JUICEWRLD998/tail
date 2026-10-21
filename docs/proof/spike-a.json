@@ -1,0 +1,30 @@
+{
+  "account": {
+    "status": 200,
+    "json": {
+      "account_id": "01a1600d-e5d8-7be5-9446-0379b3f1bc4b",
+      "blockchain": "solana",
+      "blockchain_address": "8jZGYMi1UmQRdmCvfLpSFEyDiv6NBzL8CNQR95GkB1dZ",
+      "wallet_balance": "0",
+      "available_balance": "0",
+      "copy_reserved_balance": "0",
+      "copy_deployed_margin": "0",
+      "copy_profit_share_reserved": "0",
+      "unrealized_pnl": "0",
+      "margin_balance": "0",
+      "total_margin": "0",
+      "position_initial_margin": "0",
+      "maintenance_margin": "0",
+      "sub_accounts": [],
+      "default_margin_mode": "cross",
+      "default_leverage": 10
+    }
+  },
+  "positions": {
+    "status": 200,
+    "json": {
+      "count": 0,
+      "positions": []
+    }
+  }
+}

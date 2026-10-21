@@ -19,10 +19,10 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Call parser (compact, block, emoji, market entries) | LIVE | `npm test`. Asks a question instead of guessing |
 | Position sizing (risk, notional, leverage, lot step) | LIVE | `npm test`. Floors to the lot step, never rounds up |
 | Fade (flip side, swap TP and SL, show the inverted reward-to-risk) | LIVE | `npm test` |
-| Strike request signing (Ed25519) | LIVE | `npm test`, RFC 8032 vector. Not yet checked against a Strike-accepted request |
+| Strike request signing (Ed25519) | LIVE | `npm test` (RFC 8032 vector); Strike accepted a signed `GET /v2/account` on testnet, `docs/proof/spike-a.json` |
 | Strike client, bracket order from the CLI | NEXT | Waiting on a funded testnet API wallet |
 | Telegram bot, cards, Tail and Fade buttons | NEXT | Waiting on the dev bot token |
-| Builder Connect (wallet signs once), builder fees | NEXT | Waiting on a testnet builder code |
+| Builder Connect from a script (Solana wallet) | LIVE | `scripts/scripted-follower.ts`, testnet. Fees on orders: NEXT |
 | Caller record and earnings pages | NOT LIVE | |
 | Payout to callers | NOT LIVE | |
 

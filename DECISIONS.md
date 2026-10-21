@@ -2,6 +2,21 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 20:05 UTC: builder code live; Spike E passed; signing accepted by Strike
+
+- **Spike E PASSED (live, testnet).** `BUILDER_CODE=sigma`, fee share 10 bps. `request-signature` 200 (message says "collect up
+  to 0.1% fee": 10 bps = 0.1%, VERIFIED). `verify-signature` 200 for a throwaway Solana wallet: account created,
+  `api_wallet_id` 465, `api_wallet_expired_at` 9999-12-31 (the builder API wallet does not expire), `fee_share_bps` 10,
+  `referral.status` not_requested. Solana path via base58 and Ed25519 works with no browser. The test account is test
+  activity, not a user.
+- **Spike A PASSED (live), using that builder API wallet.** Signed `GET /v2/account` and `GET /v2/positions` return 200.
+  Equity field: `margin_balance` (also `wallet_balance`, `available_balance`) present, as the spec says; this account holds
+  0, so it proves the field exists, not a funded balance. Planted control: the same request signed by an unregistered key
+  returns `401 {"error":"authentication failed"}`. So `sign.ts` is accepted by Strike (closes the OPEN signing item).
+  Account also reports `default_leverage` 10, `default_margin_mode` cross. Raw output in `docs/proof/spike-a.json`.
+- Remaining P0: B (bracket) and C (fills) need a funded account; D (Telegram) needs the bot token in the environment.
+- The scripted follower's key is in `keys/` (git-ignored). `.env` (git-ignored, mode 600) holds the dev values.
+
 ## 2026-10-21 17:20 UTC: P1 pure core done; P0 spikes written, waiting on keys
 
 Gate passed (17:01 UTC, after 15:00). Per his call, work continues without the keys; spikes run when they arrive.
