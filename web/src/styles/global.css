@@ -17,7 +17,6 @@ body {
   font-family: var(--font);
   font-size: var(--step-0);
   line-height: 1.55;
-  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
 }
 

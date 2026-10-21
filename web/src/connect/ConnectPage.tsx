@@ -9,7 +9,7 @@ import { takeToken } from "./token.js";
 type View =
   | { kind: "loading" }
   | { kind: "invalid"; message: string }
-  | { kind: "ready"; info: Extract<Info, { ok: true }> }
+  | { kind: "ready" }
   | { kind: "working"; step: Step }
   | { kind: "done"; address: string }
   | { kind: "error"; message: string };
@@ -30,6 +30,8 @@ export function ConnectPage() {
   const heading = useRef<HTMLHeadingElement>(null);
   const reduce = useReducedMotion();
   const [view, setView] = useState<View>({ kind: "loading" });
+  // The builder info outlives the ready state, so the fee line stays correct after an error or a success.
+  const [info, setInfo] = useState<Extract<Info, { ok: true }> | undefined>(undefined);
   const [wallets, setWallets] = useState<WalletOption[]>([]);
 
   // Read the token once, then ask the server whether it is still good.
@@ -39,7 +41,10 @@ export function ConnectPage() {
       setView({ kind: "invalid", message: "This link is missing its code. Send /connect to the bot in Telegram for a new one." });
       return;
     }
-    void api.info(token.current).then((r) => setView(r.ok ? { kind: "ready", info: r } : { kind: "invalid", message: r.error }));
+    void api.info(token.current).then((r) => {
+      if (r.ok) setInfo(r);
+      setView(r.ok ? { kind: "ready" } : { kind: "invalid", message: r.error });
+    });
   }, [api]);
 
   // Wallet extensions inject late; look again shortly after load.
@@ -61,7 +66,6 @@ export function ConnectPage() {
     setView(r.ok ? { kind: "done", address: r.address } : { kind: "error", message: r.error });
   }
 
-  const info = view.kind === "ready" ? view.info : undefined;
   const fee = info ? percent(info.feeCapBps) : "a small fee";
   const move = reduce ? {} : { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0 } };
 
