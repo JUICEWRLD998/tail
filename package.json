@@ -12,7 +12,9 @@
     "test:cov": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "keygen": "tsx scripts/keygen.ts",
-    "spikes": "tsx scripts/spike-a.ts && tsx scripts/spike-b.ts"
+    "spikes": "tsx scripts/spike-a.ts && tsx scripts/spike-b.ts",
+    "start": "tsx src/main.ts",
+    "dev": "tsx watch src/main.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",

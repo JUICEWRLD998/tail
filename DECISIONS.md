@@ -2,6 +2,33 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 22:05 UTC: P3 built and running; exit check (live taps) pending
+
+- **Built, test first, 283 tests green:** `db/crypto.ts` (AES-256-GCM, TAIL_KEK), `db/store.ts` + `schema.sql` (users, channels,
+  registration codes, calls, tails, misses; one live tail per follower per call is a partial unique index), `bot/cards.ts`
+  (all Telegram text, pinned by tests), `bot/service.ts` (all decisions), `bot/bot.ts` (grammY wiring), `config.ts`
+  (fails closed; mainnet needs an explicit flag), `main.ts` (long polling, refuses a token that has a webhook).
+- **Design choices:**
+  - Channel posts carry no sender, so a channel is bound to its caller by a one-time code: the caller runs `/addchannel`
+    in a DM, posts `TAIL-XXXXXX` in the channel, the bot deletes the code message and DMs "Registered". In groups only the
+    registered caller's messages are read.
+  - A parsed call is DMed to the caller as a draft; nothing is posted until the caller taps Post.
+  - A follower's confirm card is sized from their own equity and settings. Confirm claims the quote atomically before any
+    network call, then reads the primary order's final status (a 201 is only "sequenced").
+  - A network failure after sending keeps the tail live as `unconfirmed`, so a blind retry cannot double up. P5's job must
+    reconcile these by `strategy_id` / `primary_client_order_id`.
+  - `/link` (dev only) installs the server-held `SPIKE_API_PRIV` for `TAIL_OWNER_TG_ID` only; with no owner set it tells the
+    sender their own Telegram id and links nothing. The key is never sent to Telegram. P4 replaces it with Builder Connect.
+  - URL buttons give no callback, so counters change when a follower confirms, not when they tap Tail.
+- **Mutation controls (each fails a named test):** no status read after the 201; no caller check on Post; no market-entry
+  order check; no double-send guard (both protections removed); no `/link` owner check; no card counter edit; no group
+  "/command" guard. One mutation survived (claim guard alone) because the early status check also blocks the second tap;
+  that is redundancy, not a gap.
+- **Live:** `npm start` ran `@lidevbot` on testnet (long polling, no webhook). Owner not set yet.
+- **OPEN, exit check:** in the test channel a caller post becomes a card, a tap leads to a confirm and a testnet order id in the
+  DM. Needs his taps. Screenshots in `docs/proof/` need a logged-in Telegram client, which is his side.
+- `OPENROUTER_API_KEY` is not in this session's environment yet (checked presence only).
+
 ## 2026-10-21 21:45 UTC: P0 and P2 exit checks PASSED
 
 - **P0 exit met:** five spike results with real responses are above (A signing + account, B bracket, C fill and fees,
