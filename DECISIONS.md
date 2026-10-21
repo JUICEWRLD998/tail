@@ -2,6 +2,14 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 23:40 UTC: bot was not running; OPENROUTER_API_KEY confirmed present
+
+- He reported that commands to the dev bot did nothing. Cause: the bot process was gone (my earlier `( npm start & )` job did not
+  survive) and Telegram held 3 undelivered updates. Restarted as a tracked background job; the queued updates were delivered.
+  Rule: long-lived processes run with the tool's background mode, never `( cmd & )`, so an exit is noticed.
+- `OPENROUTER_API_KEY` is present in the session environment (checked presence only, value never printed).
+- Added `/help` and a pointer reply for unrecognised DMs; silence read as a dead bot.
+
 ## 2026-10-21 23:10 UTC: P4 in progress (feat/p4-builder-connect); merged to main; Ethereum connect verified live
 
 - **Merged and pushed to `main`** at his request (fast-forward from `5dc8e3b`, no force). P3's live tap-through is still **not**
