@@ -140,3 +140,41 @@ describe("telegram webhook route", () => {
     expect((await app().inject({ method: "POST", url: "/telegram/abc", payload: {} })).statusCode).toBe(404);
   });
 });
+
+describe("static web app", () => {
+  it("serves index.html at /connect and assets from a RELATIVE staticDir, with the security headers", async () => {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join, relative } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "tail-web-"));
+    mkdirSync(join(dir, "assets"));
+    writeFileSync(join(dir, "index.html"), "<!doctype html><title>Connect wallet</title>");
+    writeFileSync(join(dir, "assets", "app.js"), "console.log(1)");
+    const a = app({ staticDir: relative(process.cwd(), dir) });
+    const page = await a.inject({ method: "GET", url: "/connect?t=whatever" });
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain("Connect wallet");
+    expect(page.headers["referrer-policy"]).toBe("no-referrer");
+    expect((await a.inject({ method: "GET", url: "/assets/app.js" })).body).toBe("console.log(1)");
+    expect((await a.inject({ method: "GET", url: "/assets/missing.js" })).statusCode).toBe(404);
+  });
+
+  it("does not serve files outside the static directory", async () => {
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "tail-web-"));
+    writeFileSync(join(dir, "index.html"), "ok");
+    const a = app({ staticDir: dir });
+    for (const url of ["/../package.json", "/%2e%2e/package.json", "/assets/../../package.json"]) {
+      const r = await a.inject({ method: "GET", url });
+      expect(r.body).not.toContain('"name": "tail"');
+    }
+  });
+
+  it("is skipped quietly when the directory does not exist (API-only runs)", async () => {
+    const a = app({ staticDir: "does/not/exist" });
+    expect((await a.inject({ method: "GET", url: "/health" })).statusCode).toBe(200);
+    expect((await a.inject({ method: "GET", url: "/connect" })).statusCode).toBe(404);
+  });
+});

@@ -12,3 +12,4 @@ docs/proof/*.raw
 *.db-shm
 *.db-wal
 data/
+web/dist/

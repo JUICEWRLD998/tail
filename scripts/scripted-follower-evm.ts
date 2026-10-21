@@ -11,13 +11,16 @@ import { BASE_URL, requireEnv } from "./env.js";
 const code = requireEnv("BUILDER_CODE").BUILDER_CODE as string;
 const feeBps = Number(process.env.BUILDER_FEE_BPS ?? "10");
 const strip0x = process.env.SIG_FORMAT === "no0x";
+// MetaMask returns lowercase addresses from eth_requestAccounts; ADDR_CASE=lower reproduces that.
+const lower = process.env.ADDR_CASE === "lower";
 
 const wallet = Wallet.createRandom();
 const apiPriv = Buffer.from(generateKeyPairSync("ed25519").privateKey.export({ format: "jwk" }).d as string, "base64url").toString("hex");
 const apiPub = derivePublicKeyHex(apiPriv);
 const client = new StrikeClient({ baseUrl: BASE_URL });
 
-const ch = await client.builderRequestSignature({ address: wallet.address, chain: "ethereum", code, feeShareBps: feeBps, publicKey: apiPub });
+const address = lower ? wallet.address.toLowerCase() : wallet.address;
+const ch = await client.builderRequestSignature({ address, chain: "ethereum", code, feeShareBps: feeBps, publicKey: apiPub });
 console.log("challenge ok; message starts:", JSON.stringify(ch.message_to_sign.slice(0, 60)));
 let sig = await wallet.signMessage(ch.message_to_sign); // EIP-191, 0x + 130 hex
 if (strip0x) sig = sig.slice(2);
