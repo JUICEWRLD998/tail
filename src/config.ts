@@ -48,11 +48,13 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     builderFeeBps = n;
   }
 
+  // Hosts publish their own URL; an explicit PUBLIC_URL always wins.
+  const hostUrl = env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : undefined);
   let publicUrl: string | undefined;
-  if (env.PUBLIC_URL) {
+  if (hostUrl) {
     let u: URL;
     try {
-      u = new URL(env.PUBLIC_URL);
+      u = new URL(hostUrl);
     } catch {
       throw new Error("PUBLIC_URL is not a valid URL");
     }
