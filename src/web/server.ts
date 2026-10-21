@@ -2,6 +2,7 @@
 // Errors that cross this boundary are generic; internals and secrets never reach a response.
 import { timingSafeEqual } from "node:crypto";
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import type { ConnectService } from "../connect/service.js";
@@ -108,8 +109,10 @@ export function buildServer(o: ServerOptions): FastifyInstance {
     });
   }
 
-  if (o.staticDir && existsSync(o.staticDir)) {
-    void app.register(fastifyStatic, { root: o.staticDir, wildcard: false });
+  // @fastify/static requires an absolute root; callers pass a path relative to the working directory.
+  const staticRoot = o.staticDir ? resolve(o.staticDir) : undefined;
+  if (staticRoot && existsSync(staticRoot)) {
+    void app.register(fastifyStatic, { root: staticRoot, wildcard: false });
     // The connect page is a single-page app; /connect?t=... serves index.html.
     app.get("/connect", async (_req, reply) => reply.sendFile("index.html"));
   }
