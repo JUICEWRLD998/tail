@@ -1,0 +1,54 @@
+{
+  "themes": {
+    "dark": {
+      "colors": {
+        "bg": "oklch(0.18 0.022 255)",
+        "surface": "oklch(0.225 0.024 255)",
+        "line": "oklch(0.52 0.04 255)",
+        "text": "oklch(0.95 0.012 255)",
+        "muted": "oklch(0.76 0.03 255)",
+        "accent": "oklch(0.82 0.11 178)",
+        "onAccent": "oklch(0.2 0.03 200)",
+        "warn": "oklch(0.82 0.13 80)",
+        "danger": "oklch(0.76 0.14 25)"
+      },
+      "pairs": [
+        { "fg": "text", "bg": "bg", "min": 4.5, "use": "body text" },
+        { "fg": "muted", "bg": "bg", "min": 4.5, "use": "secondary text" },
+        { "fg": "text", "bg": "surface", "min": 4.5, "use": "text on panel" },
+        { "fg": "muted", "bg": "surface", "min": 4.5, "use": "secondary text on panel" },
+        { "fg": "onAccent", "bg": "accent", "min": 4.5, "use": "primary button label" },
+        { "fg": "accent", "bg": "bg", "min": 3, "use": "focus ring, active step" },
+        { "fg": "line", "bg": "bg", "min": 3, "use": "control border" },
+        { "fg": "line", "bg": "surface", "min": 3, "use": "control border on panel" },
+        { "fg": "warn", "bg": "surface", "min": 4.5, "use": "notice text" },
+        { "fg": "danger", "bg": "surface", "min": 4.5, "use": "error text" }
+      ]
+    },
+    "light": {
+      "colors": {
+        "bg": "oklch(0.97 0.008 255)",
+        "surface": "oklch(0.985 0.004 255)",
+        "line": "oklch(0.55 0.04 255)",
+        "text": "oklch(0.22 0.03 255)",
+        "muted": "oklch(0.44 0.03 255)",
+        "accent": "oklch(0.46 0.07 190)",
+        "onAccent": "oklch(0.98 0.01 185)",
+        "warn": "oklch(0.47 0.1 70)",
+        "danger": "oklch(0.5 0.17 25)"
+      },
+      "pairs": [
+        { "fg": "text", "bg": "bg", "min": 4.5, "use": "body text" },
+        { "fg": "muted", "bg": "bg", "min": 4.5, "use": "secondary text" },
+        { "fg": "text", "bg": "surface", "min": 4.5, "use": "text on panel" },
+        { "fg": "muted", "bg": "surface", "min": 4.5, "use": "secondary text on panel" },
+        { "fg": "onAccent", "bg": "accent", "min": 4.5, "use": "primary button label" },
+        { "fg": "accent", "bg": "bg", "min": 3, "use": "focus ring, active step" },
+        { "fg": "line", "bg": "bg", "min": 3, "use": "control border" },
+        { "fg": "line", "bg": "surface", "min": 3, "use": "control border on panel" },
+        { "fg": "warn", "bg": "surface", "min": 4.5, "use": "notice text" },
+        { "fg": "danger", "bg": "surface", "min": 4.5, "use": "error text" }
+      ]
+    }
+  }
+}
