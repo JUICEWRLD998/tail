@@ -2,6 +2,65 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 23:55 UTC: P4 built except the deploy and real-wallet checks
+
+**Status:** P4's exit check is **not met**: it needs the service deployed and a follower signing in a real wallet. Everything
+that can be proven without those is proven below.
+
+- **Built (tests first, 441 unit tests):** connect tokens, connect service, HTTP server, `createApp` composition root with
+  dev (long polling) and prod (webhook) modes, `/connect` and a connect button for unlinked followers, wallet adapters
+  (Ethereum, Phantom, CIP-30), bech32 pinned to BIP-173 vectors, the connect page, Dockerfile, Render blueprint, `docs/DEPLOY.md`.
+- **Browser test (`scripts/e2e-connect.ts`, 25 checks, real server, real Strike testnet):** a stub MetaMask signs with a throwaway
+  `ethers` wallet. The page links the wallet as a builder wallet (`builder_code` sigma), and the new API key signs a real
+  `GET /v2/account` (200, same `account_id`). Controls that must fail do: wrong signer shows "Strike said: wallet signature
+  verification failed." and links nothing; a refused prompt links nothing; an unknown token says the link cannot be used.
+  Screenshots at 320, 375, 414, 768, 1024, 1280, 1440, 1920 px, dark and light, in `docs/proof/connect/`.
+- **Found by looking at renders, not by the checks:** the mobile grid had no area for the brand label, so it spilled into a
+  phantom third column and squeezed the page to 212 px at 320 px; the fee line fell back to "a small fee" after an error;
+  the focused heading drew a focus ring; tabular figures widened punctuation. All fixed, each with a check that fails on
+  the old behaviour (G5 to G7, B4, H1 to H4). The G6 control is the measured broken shell (212 px at 320 px) against a
+  280 px floor.
+- **Found by the browser run:** `@fastify/static` requires an absolute root; the server passed `web/dist` and would have
+  crashed on boot. Test added, fixed.
+- **Contrast, measured (WCAG, OKLCH to sRGB, `scripts/contrast.ts`; probe controls: black on white 21:1, same colour 1:1):**
+
+| Theme | Ratio | Needs | Pair |
+|---|---|---|---|
+| dark | 16.26:1 | 4.5 | text on bg (body text) |
+| dark | 8.77:1 | 4.5 | muted on bg (secondary text) |
+| dark | 14.78:1 | 4.5 | text on surface (text on panel) |
+| dark | 7.97:1 | 4.5 | muted on surface (secondary text on panel) |
+| dark | 10.78:1 | 4.5 | onAccent on accent (primary button label) |
+| dark | 11.28:1 | 3 | accent on bg (focus ring, active step) |
+| dark | 3.42:1 | 3 | line on bg (control border) |
+| dark | 3.11:1 | 3 | line on surface (control border on panel) |
+| dark | 9.68:1 | 4.5 | warn on surface (notice text) |
+| dark | 7.51:1 | 4.5 | danger on surface (error text) |
+| light | 15.88:1 | 4.5 | text on bg (body text) |
+| light | 7.11:1 | 4.5 | muted on bg (secondary text) |
+| light | 16.58:1 | 4.5 | text on surface (text on panel) |
+| light | 7.43:1 | 4.5 | muted on surface (secondary text on panel) |
+| light | 6.51:1 | 4.5 | onAccent on accent (primary button label) |
+| light | 6.30:1 | 3 | accent on bg (focus ring, active step) |
+| light | 4.44:1 | 3 | line on bg (control border) |
+| light | 4.64:1 | 3 | line on surface (control border on panel) |
+| light | 6.69:1 | 4.5 | warn on surface (notice text) |
+| light | 6.28:1 | 4.5 | danger on surface (error text) |
+
+- **Image layout verified without Docker:** a clean directory with `npm ci --omit=dev` (86 packages, no vitest, vite, ethers
+  or react) started by the container's command serves `/health`, `/connect` and its assets, and answers an unsigned
+  webhook with 401. `docker build` itself and the entrypoint's privilege drop are **UNVERIFIED** (no daemon).
+- **Hardening:** prod mode drops `SPIKE_API_PRIV` and `TAIL_OWNER_TG_ID`, so the dev `/link` shortcut cannot exist in
+  production. Ajv type coercion is off (a number was passing as a string). The token leaves the address bar and lives in
+  sessionStorage; the referrer policy is `no-referrer`.
+- **Design status:** the page is competent but plain (no signature moment, no real image, a lot of empty space on wide
+  screens). That is the P8 `ui-studio` pass; the full pipeline has not been run. Quick-pass tells checked: no eyebrow, no
+  gradient, no centred hero, one accent, named transitions, reduced-motion path.
+- **UNVERIFIED, needs him:** a real MetaMask signature; Phantom and Lace/Eternl (CIP-30) signatures; the prod bot token's
+  webhook registration; a builder fee on a real fill (a builder wallet needs margin; his personal account becomes a
+  builder wallet once he connects through the deployed page).
+- Branches this phase: `feat/p4-builder-connect`, `feat/p4-connect-link`, `feat/p4-connect-page`, `feat/p4-deploy`.
+
 ## 2026-10-21 22:05 UTC: P3 exit check PASSED (live, testnet)
 
 - He ran the whole flow from his phone: `/link`, `/risk 3`, `/addchannel`, the code posted in "Tail test channel" (consumed),
