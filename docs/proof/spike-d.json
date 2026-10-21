@@ -1,0 +1,46 @@
+{
+  "bot": "lidevbot",
+  "channelId": -1004446016960,
+  "cardMessageId": 3,
+  "outcome": "ok",
+  "updatesSeen": [
+    {
+      "type": "my_chat_member",
+      "chat": "supergroup"
+    },
+    {
+      "type": "message",
+      "chat": "supergroup"
+    },
+    {
+      "type": "my_chat_member",
+      "chat": "supergroup"
+    },
+    {
+      "type": "message",
+      "chat": "supergroup"
+    },
+    {
+      "type": "my_chat_member",
+      "chat": "supergroup"
+    },
+    {
+      "type": "my_chat_member",
+      "chat": "supergroup"
+    },
+    {
+      "type": "my_chat_member",
+      "chat": "channel"
+    },
+    {
+      "type": "channel_post",
+      "chat": "channel",
+      "text": "Hey"
+    },
+    {
+      "type": "message",
+      "chat": "private",
+      "text": "/start t_test"
+    }
+  ]
+}

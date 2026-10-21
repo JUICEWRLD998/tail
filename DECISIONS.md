@@ -2,6 +2,18 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 21:40 UTC: Spike D PASSED (Telegram, live)
+
+- Dev bot `@lidevbot`, long polling, no webhook. Test channel `-1004446016960`, test group `-1003697379035` (supergroup).
+- VERIFIED live: `channel_post` arrives when the bot is a channel admin (text "Hey"); group `message` updates arrive with
+  privacy off; `my_chat_member` fires on admin changes. Updates seen are in `docs/proof/spike-d.json`.
+- VERIFIED live: `sendMessage` with `parse_mode: HTML` and an inline keyboard of two **URL** buttons works in a channel;
+  the button opens `t.me/lidevbot?start=t_test`; the DM delivers `/start t_test` with `ctx.match === "t_test"`;
+  `editMessageText` on the channel card (message_id 3) with a new keyboard succeeds.
+- Note: URL buttons give no callback to the bot. The tap is only visible as the later `/start` DM. Card counters therefore
+  change only after the follower confirms, as planned.
+- Follower A balance still 0 at 21:40 UTC (`GET /v2/account` 200, `margin_balance` "0"). Spikes B and C stay blocked.
+
 ## 2026-10-21 21:05 UTC: Spike A passes on his own account; Telegram still silent
 
 - His registered API wallet (public key prefix `2517380c`, from the Strike page) signs `GET /v2/account` and
