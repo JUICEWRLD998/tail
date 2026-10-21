@@ -2,6 +2,14 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 23:05 UTC: 20 Sepolia USDC received; Strike deposit not yet made
+
+- Tx `0x83d6b21f…59af45d` on Ethereum Sepolia (block 11964956, 17 confirmations, success): `transfer` of 20 USDC on the
+  FiatTokenProxy `0x1c7D4B19…C7238` from `0x319dd63E…460F` (the faucet) to his own address `0x0C3a…741d`. VERIFIED
+  (eth-sepolia.blockscout.com tx API). This is the faucet payout, **not** a Strike deposit; Strike `margin_balance` is still 0.
+- The earlier hash `0x802b26ae…` is the same kind of faucet payout, on Arc Testnet.
+- Next step is his: send the USDC to Strike through the Deposit button on testnet.strikefinance.org (needs Sepolia ETH for gas).
+
 ## 2026-10-21 22:40 UTC: deposit route
 
 - His tx `0x802b26ae…8b7cbf` on explorer.testnet.arc.io is a faucet transfer of 20 USDC (Arc Testnet) to his own MetaMask
