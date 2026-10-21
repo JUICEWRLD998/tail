@@ -24,6 +24,9 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Telegram: read channel posts, post cards with deep-link buttons, edit them | LIVE (spike) | `docs/proof/spike-d.json` |
 | Telegram bot: register a channel, confirm a call, post the card, Tail and Fade quotes, place a bracket | LIVE | Ran end to end on testnet from real taps: Strike order 243140879. `docs/proof/p3-live.json` |
 | Builder Connect from a script (Solana wallet) | LIVE | `scripts/scripted-follower.ts`, testnet. Fees on orders: NEXT |
+| Connect page: one wallet signature links a follower (MetaMask, Rabby, Phantom, Lace, Eternl) | NEXT | Built; browser-tested locally against real Strike testnet with a scripted Ethereum wallet (`scripts/e2e-connect.ts`). Not deployed |
+| Deployment (Docker, Render blueprint, `docs/DEPLOY.md`) | NEXT | Files written; waiting on a host and the prod bot token |
+| Builder fee on orders | NEXT | Sent for builder wallets; not yet seen on a fill |
 | Caller record and earnings pages | NOT LIVE | |
 | Payout to callers | NOT LIVE | |
 

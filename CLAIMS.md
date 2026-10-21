@@ -16,8 +16,14 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | A market bracket fills and reports a fee | `npx tsx scripts/spike-c.ts` | primary `filled`, fill has `fee` and `fee_type`; `docs/proof/spike-c.json` |
 | Telegram card with deep-link buttons, DM `/start`, card edit | `npx tsx scripts/spike-d.ts` (needs a tap) | outcome ok; `docs/proof/spike-d.json` |
 | A channel post becomes a card; a tap becomes a Strike bracket | `npm start`, then follow the steps in `DECISIONS.md` (P3); `npx tsx scripts/p3-proof.ts` | tail `placed`, Strike order `open` with TP and SL `pending`; `docs/proof/p3-live.json` |
+| A wallet signature links a follower and the new API key signs a real Strike request | `npm run web:build && BUILDER_CODE=sigma npx tsx scripts/e2e-connect.ts` | 25 checks pass (A5 is the live `GET /v2/account`); `docs/proof/connect-e2e.json` |
+| A wrong or refused signature links nothing | same script, checks B and C | pass |
+| The connect page fits 8 widths in both themes with no overflow | same script, checks G1 to G7; screenshots in `docs/proof/connect/` | pass |
+| Text contrast meets WCAG AA in both themes | `npx tsx scripts/contrast.ts` | every pair above its bar; planted controls in `test/web/contrast.test.ts` |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |
 
 ## Not yet claimed
 
 - That a builder fee appears on a fill (needs a funded builder-code wallet).
+- That Cardano (Lace, Eternl) and Phantom signatures link in a real wallet. Ethereum is verified with a scripted wallet only.
+- That the Docker image builds and runs (no Docker daemon was available).
