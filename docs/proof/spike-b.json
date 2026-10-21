@@ -1,0 +1,179 @@
+{
+  "filters": {
+    "tick": 0.01,
+    "step": 0.001,
+    "minNotional": 10
+  },
+  "mark": 2494.61837146,
+  "last": 2498.28,
+  "body": {
+    "strategy_id": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+    "symbol": "ETH-USD",
+    "side": "buy",
+    "type": "limit",
+    "size": "0.006",
+    "price": "2482.15",
+    "time_in_force": "GTC",
+    "tp_order": {
+      "type": "take_profit",
+      "size": "0.006",
+      "stop_price": "2569.46"
+    },
+    "sl_order": {
+      "type": "stop",
+      "size": "0.006",
+      "stop_price": "2419.78"
+    }
+  },
+  "created": {
+    "status": 201,
+    "json": {
+      "strategy_id": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+      "primary_client_order_id": "01a16057-e127-7d83-928a-ada51b2a5278",
+      "tp_client_order_id": "01a16057-e127-7d92-ad6f-cd07f07d5134",
+      "sl_client_order_id": "01a16057-e127-7d97-8f12-31742162dc51",
+      "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+      "symbol": "ETH-USD",
+      "sequence_id": 93821741,
+      "message_id": "1792617734440-0"
+    }
+  },
+  "primary": {
+    "ID": 243140831,
+    "ClientOrderID": "01a16057-e127-7d83-928a-ada51b2a5278",
+    "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+    "Symbol": "ETH-USD",
+    "Strategy": {
+      "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+      "IsPrimary": true
+    },
+    "CloseReason": "",
+    "Side": "buy",
+    "Status": "open",
+    "Type": "limit",
+    "OriginType": "",
+    "AutoCloseType": "",
+    "TimeInForce": "GTC",
+    "WorkingType": "none",
+    "Size": "0.006",
+    "Filled": "0",
+    "Price": "2482.15",
+    "StopPrice": "0",
+    "BoundPrice": "0",
+    "PostOnly": false,
+    "ReduceOnly": false,
+    "ClosePosition": false,
+    "PriceProtect": false,
+    "CreateTimestamp": 1792617734439,
+    "EntryTimestamp": 1792617734441,
+    "EventTimestamp": 1792617734441
+  },
+  "open": {
+    "status": 200,
+    "json": {
+      "count": 3,
+      "orders": [
+        {
+          "ID": 243140831,
+          "ClientOrderID": "01a16057-e127-7d83-928a-ada51b2a5278",
+          "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+          "Symbol": "ETH-USD",
+          "Strategy": {
+            "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+            "IsPrimary": true
+          },
+          "CloseReason": "",
+          "Side": "buy",
+          "Status": "open",
+          "Type": "limit",
+          "OriginType": "",
+          "AutoCloseType": "",
+          "TimeInForce": "GTC",
+          "WorkingType": "none",
+          "Size": "0.006",
+          "Filled": "0",
+          "Price": "2482.15",
+          "StopPrice": "0",
+          "BoundPrice": "0",
+          "PostOnly": false,
+          "ReduceOnly": false,
+          "ClosePosition": false,
+          "PriceProtect": false,
+          "CreateTimestamp": 1792617734439,
+          "EntryTimestamp": 1792617734441,
+          "EventTimestamp": 1792617734441
+        },
+        {
+          "ID": 243140832,
+          "ClientOrderID": "01a16057-e127-7d92-ad6f-cd07f07d5134",
+          "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+          "Symbol": "ETH-USD",
+          "Strategy": {
+            "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+            "IsPrimary": false
+          },
+          "CloseReason": "",
+          "Side": "sell",
+          "Status": "pending",
+          "Type": "take_profit",
+          "OriginType": "",
+          "AutoCloseType": "",
+          "TimeInForce": "GTC",
+          "WorkingType": "mark_price",
+          "Size": "0.006",
+          "Filled": "0",
+          "Price": "0",
+          "StopPrice": "2569.46",
+          "BoundPrice": "0",
+          "PostOnly": false,
+          "ReduceOnly": true,
+          "ClosePosition": false,
+          "PriceProtect": false,
+          "CreateTimestamp": 1792617734439,
+          "EntryTimestamp": 1792617734441,
+          "EventTimestamp": 0
+        },
+        {
+          "ID": 243140833,
+          "ClientOrderID": "01a16057-e127-7d97-8f12-31742162dc51",
+          "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+          "Symbol": "ETH-USD",
+          "Strategy": {
+            "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+            "IsPrimary": false
+          },
+          "CloseReason": "",
+          "Side": "sell",
+          "Status": "pending",
+          "Type": "stop",
+          "OriginType": "",
+          "AutoCloseType": "",
+          "TimeInForce": "GTC",
+          "WorkingType": "mark_price",
+          "Size": "0.006",
+          "Filled": "0",
+          "Price": "0",
+          "StopPrice": "2419.78",
+          "BoundPrice": "0",
+          "PostOnly": false,
+          "ReduceOnly": true,
+          "ClosePosition": false,
+          "PriceProtect": false,
+          "CreateTimestamp": 1792617734439,
+          "EntryTimestamp": 1792617734441,
+          "EventTimestamp": 0
+        }
+      ]
+    }
+  },
+  "cancelled": {
+    "status": 200,
+    "json": {
+      "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+      "symbol": "ETH-USD",
+      "canceled_count": -1,
+      "sequence_id": 93821765,
+      "message_id": "1792617744885-0"
+    }
+  }
+}

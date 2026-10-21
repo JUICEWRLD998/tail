@@ -2,6 +2,29 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 21:30 UTC: deposit credited; Spike B PASSED on ETH-USD; three testnet facts that change the build
+
+- **Deposit credited.** Strike tx id 246976: 20 USDC from Sepolia (hash `0x05f8a81b…6688056`) credited as **19.996 USD**
+  (`wallet_balance` = `margin_balance` = 19.996). `GET /v2/history/transaction` shows `type: deposit, status: completed`.
+- **Spike B PASSED (live).** ETH-USD, buy limit 0.006 @ 2482.15, `take_profit` 2569.46, `stop` 2419.78. `POST
+  /v2/order/strategy` -> 201. The primary reads `open`; `GET /v2/openOrders` lists 3 orders: the primary, the TP (sell,
+  `take_profit`, `reduce_only` true, `pending`, `working_type` mark_price) and the SL. Cancelled with `DELETE
+  /v2/order/cancel-all`. Raw: `docs/proof/spike-b.json`.
+- **CORRECTION 1: HTTP 201 is not acceptance.** It means "sequenced". The same request can be **rejected afterwards**
+  (`status: rejected`, `close_reason: order_price_out_of_limit`). The first Spike B run read an empty `openOrders` and I
+  almost recorded it as a pass. Tail must read the primary's final status (`GET /v2/order?symbol=&client_order_id=`) before it
+  tells a follower "placed". `jobs/fills` and the confirm handler must treat `rejected` as a result.
+- **CORRECTION 2: `GET /v2/order` needs `symbol`** (400 "symbol parameter is required"), and its response keys are
+  PascalCase (`Status`, `CloseReason`, `Strategy.ID`), while `/v2/history/order` uses snake_case. Client updated and tested.
+- **FACT: testnet books are dislocated except ETH-USD.** ADA-USD book 0.2575/0.2622 vs mark 0.2287 (depth: no bids, one ask at
+  100); SOL-USD book 82.55/82.67 vs mark 107.96; BTC-USD bid 72247 / ask 82783 vs mark 84649 and a $100 minimum notional.
+  ETH-USD is coherent (bid 2489.59, ask 2499.57, mark 2494.6, min notional $10, lot 0.001). Every ADA-USD limit tried
+  (0.2215 to 0.2570, 0.999x to 1.03x mark) was rejected `order_price_out_of_limit`. **Testnet demos and spikes use ETH-USD.**
+  The reference price for the limit-bound check is UNVERIFIED (docs say "validated against the current mark price", no
+  number); it is not mark within 5%.
+- Docs gap: `exchangeInfo` PRICE_FILTER minPrice is 10 for ADA-USD and BTC-USD (looks like a generic default); not the
+  cause of the rejections as far as tested (ETH-USD minPrice 39.86 accepted).
+
 ## 2026-10-21 23:05 UTC: 20 Sepolia USDC received; Strike deposit not yet made
 
 - Tx `0x83d6b21f…59af45d` on Ethereum Sepolia (block 11964956, 17 confirmations, success): `transfer` of 20 USDC on the

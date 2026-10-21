@@ -163,9 +163,9 @@ describe("orders and fills", () => {
   });
 
   it("looks an order up by id", async () => {
-    const { client, calls } = mk({ "GET /v2/order?order_id=abc": { json: { status: "filled" } } });
-    expect(await client.order({ orderId: "abc" })).toEqual({ status: "filled" });
-    expect((calls[0] as Call).url).toContain("order_id=abc");
+    const { client, calls } = mk({ "GET /v2/order?symbol=ADA-USD&order_id=abc": { json: { status: "filled" } } });
+    expect(await client.order({ symbol: "ADA-USD", orderId: "abc" })).toEqual({ status: "filled" });
+    expect((calls[0] as Call).url).toContain("symbol=ADA-USD&order_id=abc");
   });
 
   it("reads fills, polling forward with since_trade_id", async () => {

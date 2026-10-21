@@ -173,8 +173,9 @@ export class StrikeClient {
     return this.send("DELETE", "/v2/order/cancel-all", { signed: true, body: JSON.stringify(symbol ? { symbol } : {}) });
   }
 
-  order(q: { orderId?: string; clientOrderId?: string }): Promise<any> {
-    const p = new URLSearchParams();
+  /** Strike requires `symbol` on this route (400 "symbol parameter is required" otherwise). */
+  order(q: { symbol: string; orderId?: string; clientOrderId?: string }): Promise<any> {
+    const p = new URLSearchParams({ symbol: q.symbol });
     if (q.orderId) p.set("order_id", q.orderId);
     if (q.clientOrderId) p.set("client_order_id", q.clientOrderId);
     return this.send("GET", `/v2/order?${p}`, { signed: true });
