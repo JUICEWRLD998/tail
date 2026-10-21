@@ -20,7 +20,7 @@ let placed: any[];
 let bot: ReturnType<typeof createBot>;
 let uid = 0;
 
-function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefined; equity?: string } = {}) {
+function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefined; equity?: string; publicUrl?: string | undefined } = {}) {
   store = openStore(":memory:");
   placed = [];
   calls = [];
@@ -37,7 +37,7 @@ function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefi
     now: () => T, uuid: () => `u${++uid}`, sleep: async () => {}, pollAttempts: 2,
   });
   bot = createBot({
-    token: "123:abc", service, store, ownerTgId: opts.ownerTgId, linkKey: opts.linkKey, now: () => T,
+    token: "123:abc", service, store, ownerTgId: opts.ownerTgId, linkKey: opts.linkKey, publicUrl: opts.publicUrl, now: () => T,
     botInfo: { id: 1, is_bot: true, first_name: "Tail", username: "tailbot", can_join_groups: true, can_read_all_group_messages: true, supports_inline_queries: false, can_connect_to_business: false, has_main_web_app: false } as never,
   });
   bot.api.config.use(async (_prev, method, payload) => {
@@ -241,10 +241,68 @@ describe("follower flow", () => {
   });
 });
 
+describe("connecting a wallet (when the service has a public URL)", () => {
+  const URL_BASE = "https://tail.example.test";
+  const tokenFrom = (c: ApiCall | undefined) => new URL(kbButtons(c)[0].url).searchParams.get("t") as string;
+
+  async function openCard() {
+    await bot.handleUpdate(channelPost("ETH long 2480 tp 2560 sl 2420") as never);
+    await bot.handleUpdate(tap("p:1", CALLER) as never);
+    calls.length = 0;
+  }
+
+  it("an unlinked follower who taps Tail gets a single-use connect button instead of /link", async () => {
+    setup({ publicUrl: URL_BASE });
+    await openCard();
+    await bot.handleUpdate(dm("/start t_1", 4444) as never);
+    expect(lastText()).toBe("Connect your wallet once to trade. It signs one message and cannot withdraw funds.");
+    const url = new URL(kbButtons(sent()[0])[0].url);
+    expect(url.origin + url.pathname).toBe(`${URL_BASE}/connect`);
+    expect(store.peekConnectToken(tokenFrom(sent()[0]), T)).toBe(4444);
+  });
+
+  it("without a public URL the old /link text is shown and no token is made", async () => {
+    await openCard();
+    await bot.handleUpdate(dm("/start t_1", 4444) as never);
+    expect(lastText()).toBe("Link your Strike account first with /link.");
+    expect(kbButtons(sent()[0])).toEqual([]);
+  });
+
+  it("/connect gives a fresh link, retiring the previous one", async () => {
+    setup({ publicUrl: URL_BASE });
+    await bot.handleUpdate(dm("/connect", 4444) as never);
+    const first = tokenFrom(sent()[0]);
+    await bot.handleUpdate(dm("/connect", 4444) as never);
+    const second = tokenFrom(sent()[1]);
+    expect(first).not.toBe(second);
+    expect(store.peekConnectToken(first, T)).toBeUndefined();
+    expect(store.peekConnectToken(second, T)).toBe(4444);
+  });
+
+  it("/connect without a public URL explains how to link", async () => {
+    await bot.handleUpdate(dm("/connect", 4444) as never);
+    expect(lastText()).toBe("Wallet connect is not set up on this server. Use /link.");
+  });
+
+  it("an already linked follower is not asked to connect", async () => {
+    setup({ publicUrl: URL_BASE });
+    await openCard();
+    linkFollower();
+    await bot.handleUpdate(dm("/start t_1", FOLLOWER) as never);
+    expect(lastText()).toContain("Size 0.009");
+  });
+
+  it("the connect link is only offered in a private chat", async () => {
+    setup({ publicUrl: URL_BASE });
+    await bot.handleUpdate(groupMsg("/connect", 4444) as never);
+    expect(calls.length).toBe(0);
+  });
+});
+
 describe("help and fallback", () => {
   it("/help lists the commands", async () => {
     await bot.handleUpdate(dm("/help", FOLLOWER) as never);
-    for (const c of ["/me", "/link", "/risk", "/maxlev", "/maxnotional", "/revoke", "/addchannel", "/call"]) expect(lastText()).toContain(c);
+    for (const c of ["/me", "/connect", "/link", "/risk", "/maxlev", "/maxnotional", "/revoke", "/addchannel", "/call"]) expect(lastText()).toContain(c);
   });
 
   it("a plain DM that is not a command gets a pointer, not silence", async () => {

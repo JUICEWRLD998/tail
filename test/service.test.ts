@@ -158,7 +158,7 @@ describe("posting a draft", () => {
 describe("quote", () => {
   it("tells an unlinked user to link first", async () => {
     const id = openCall();
-    expect(await svc.quote({ tgId: FOLLOWER, callId: id, mode: "tail" })).toMatchObject({ ok: false, text: expect.stringContaining("/link") });
+    expect(await svc.quote({ tgId: FOLLOWER, callId: id, mode: "tail" })).toMatchObject({ ok: false, needsLink: true, text: expect.stringContaining("/link") });
   });
 
   it("sizes from the follower's own equity and risk and stores a quote", async () => {
