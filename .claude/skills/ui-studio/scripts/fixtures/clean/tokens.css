@@ -1,0 +1,26 @@
+/* The token file owns every value. Nothing outside this file may state a colour literal. */
+:root {
+  --paper: #f8f7f4;
+  --paper-2: #efece5;
+  --ink: #292a26;
+  --ink-2: #57584f;
+  --line: #e2e1da;
+  --accent: #8fdccb;
+  --accent-ink: #0d332c;
+  --accent-line: #6fc2ad;
+  --accent-hover: #a3e7d8;
+  --teal-deep: #1f5b53;
+  --teal-hover: #16403a;
+  --quiet: #515248;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-body: "Source Sans 3", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --ease-out: cubic-bezier(.22, .61, .36, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --ease-rise: cubic-bezier(.16, 1, .3, 1);
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.75rem;
+  --space-4: 3rem;
+  --space-5: 5.5rem;
+}

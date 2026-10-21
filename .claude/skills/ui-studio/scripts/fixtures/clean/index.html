@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ridgeline Field Notes</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* macrostructure: Split Editorial · tone: editorial · anchor hue: 168 */
+  * { box-sizing: border-box; }
+  html { overflow-x: clip; }
+  body {
+    overflow-x: clip;
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 620;
+    line-height: 1.08;
+    letter-spacing: -0.021em;
+    margin: 0 0 var(--space-2);
+  }
+  h1 { font-size: 3.6rem; }
+  h2 { font-size: 2.1rem; }
+  .mono, .figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--ink-2);
+  }
+  .figure { font-size: 1.9rem; letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .site-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .wordmark { font-family: var(--font-display); font-weight: 700; margin-right: auto; }
+  .site-nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+    padding: 6px 4px;
+    border-radius: 6px;
+    transition: color .15s var(--ease-out), background-color .15s var(--ease-out);
+  }
+  .site-nav a:hover { color: var(--ink); background: var(--paper-2); }
+  .site-nav a:focus-visible { outline: 3px solid var(--teal-deep); outline-offset: 2px; }
+  /* on-accent ink is a dark brown-green of the accent's own hue, never white: white on a light
+     mint is 1.5:1 and silently deletes the button. */
+  .btn {
+    font: inherit;
+    font-weight: 620;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 1px solid var(--accent-line);
+    border-radius: 7px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background-color .15s var(--ease-out), transform .2s var(--ease-out);
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 3px solid var(--teal-deep); outline-offset: 3px; }
+  .btn:disabled { opacity: 0.5; background: var(--paper-2); color: var(--ink-2); cursor: not-allowed; }
+  .link { color: var(--teal-deep); text-underline-offset: 3px; }
+  .link:hover { color: var(--teal-hover); }
+  .link:focus-visible { outline: 3px solid var(--teal-deep); outline-offset: 2px; }
+  .field {
+    font: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px 11px;
+  }
+  .field:focus { outline: 2px solid var(--teal-deep); outline-offset: 0; }
+  main { max-width: 1080px; margin: 0 auto; padding: 0 var(--space-4); }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-5) 0 var(--space-4);
+  }
+  .hero-side { border-left: 1px solid var(--line); padding-left: var(--space-3); }
+  .eyebrow { display: block; margin-bottom: var(--space-1); }
+  .lede { font-size: 1.12rem; color: var(--ink-2); max-width: 52ch; }
+  .cta-row { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
+  .section { padding: var(--space-4) 0; border-top: 1px solid var(--line); }
+  .section:nth-of-type(2) { padding-top: var(--space-5); }
+  .section:nth-of-type(3) { padding-top: 2.6rem; padding-bottom: 4.4rem; }
+  .section-head {
+    display: grid;
+    grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+    gap: var(--space-3);
+    align-items: baseline;
+  }
+  .rows { list-style: none; margin: var(--space-3) 0 0; padding: 0; }
+  .rows li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 190px);
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .rows .quote { color: var(--ink-2); }
+  .note { color: var(--ink-2); max-width: 62ch; }
+  .quiet-mark { color: #515248; }
+  .reveal { opacity: 0; transform: translateY(8px); transition: opacity .5s var(--ease-rise), transform .5s var(--ease-rise); }
+  footer {
+    border-top: 1px solid var(--line);
+    margin-top: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    gap: var(--space-3);
+    color: var(--ink-2);
+    font-size: 0.9rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: opacity .15s linear; }
+    * { transition-duration: .01ms !important; }
+  }
+  @media (max-width: 720px) {
+    :root { --space-4: 1.5rem; --space-5: 3rem; }
+    h1 { font-size: 2.4rem; }
+    .hero { grid-template-columns: minmax(0, 1fr); }
+    .hero-side { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-top: var(--space-2); }
+    .section-head { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <header class="site-nav">
+    <span class="wordmark">Ridgeline</span>
+    <a href="#field">Field notes</a>
+    <a href="#method">Method</a>
+    <a href="#log">Log</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <span class="mono eyebrow">Transect 04 · Autumn</span>
+        <h1>What the ridge keeps, and what it gives back</h1>
+        <p class="lede">Six weeks of soil temperature, canopy cover and snowmelt timing, recorded by hand on a ridge that has been measured the same way since 1974.</p>
+        <div class="cta-row">
+          <button class="btn" type="button">Read the transect</button>
+          <a class="link" href="#method">How we measure</a>
+        </div>
+      </div>
+      <aside class="hero-side mono">
+        <p>Plot 04-B · elevation 1,410 m</p>
+        <p>Last reading 2026-09-27</p>
+        <p>Next reading 2026-10-04</p>
+      </aside>
+    </section>
+
+    <section class="section" id="field">
+      <div class="section-head">
+        <span class="mono">Field notes</span>
+        <div>
+          <h2>Three readings that disagreed with the model</h2>
+          <p class="note">The ridge dries from the top down, not the bottom up, in every year we have data for. The model had it the other way, which is why the 2019 forecast was eleven days early.</p>
+        </div>
+      </div>
+      <ul class="rows">
+        <li><span>Snowmelt, plot 04-A</span><span class="figure">11 days early</span></li>
+        <li><span>Snowmelt, plot 04-C</span><span class="figure">2 days late</span></li>
+        <li><span>Canopy cover change</span><span class="figure">metric to confirm</span></li>
+      </ul>
+    </section>
+
+    <section class="section reveal" id="method">
+      <div class="section-head">
+        <span class="mono">Method</span>
+        <div>
+          <h2>A thermometer and a notebook</h2>
+          <p class="note">The instrument has not changed on purpose. A consistent imperfect reading beats an inconsistent precise one across a fifty-year series, so the notebooks are transcribed rather than replaced.</p>
+          <ul class="rows">
+            <li><span>Probe depth</span><span class="figure">10 cm, 30 cm</span></li>
+            <li><span>Readings per week</span><span class="figure">2</span></li>
+            <li><span>Years in the series</span><span class="figure">52</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="log">
+      <h2>Log</h2>
+      <p class="note">Entries are typed the evening they are taken. <span class="quiet-mark">Unverified</span> entries have not been checked against the paper record.</p>
+      <div class="cta-row">
+        <button class="btn" type="button">New entry</button>
+        <button class="btn" type="button" disabled title="Requires the field account">Sign the record</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Ridgeline Field Station</span>
+    <span>Plot records are public</span>
+  </footer>
+
+  <script>
+    // deliberately late: the reveal class starts at opacity 0 and is removed with a delay, so a
+    // scorer that samples the first 200ms of network idle reads the block as held-invisible.
+    setTimeout(function () {
+      document.querySelectorAll('.reveal').forEach(function (n) { n.classList.remove('reveal') })
+    }, 1200)
+  </script>
+</body>
+</html>

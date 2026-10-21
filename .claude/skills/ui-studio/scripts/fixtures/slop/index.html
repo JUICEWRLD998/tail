@@ -1,0 +1,158 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>NexusAI — Ship faster with AI</title>
+<style>
+  :root {
+    --bg: #000000;
+    --panel: #0f0f12;
+    --panel-2: #17171c;
+    --text: #ffffff;
+    --muted: #8b8b93;
+    --primary: #8b5cf6;
+    --primary-2: #a78bfa;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  * { transition: all .3s ease; }
+  header {
+    position: sticky; top: 0; width: 100%;
+    display: flex; align-items: center; gap: 22px;
+    padding: 14px 40px;
+    background: rgba(0,0,0,.72);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1e1e24;
+  }
+  .logo { font-weight: 800; margin-right: auto; }
+  header a { color: var(--muted); text-decoration: none; }
+  header a:hover { color: #fff; }
+  .hero {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a0b3d 0%, #050510 60%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 0 24px;
+  }
+  .hero h1 {
+    font-size: 4.4rem; line-height: 1.02; margin: 0 0 18px; font-weight: 800;
+    background: linear-gradient(90deg, #a78bfa, #ec4899);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p { color: var(--muted); max-width: 620px; font-size: 1.15rem; margin: 0 auto 30px; }
+  .hero .eyebrow { letter-spacing: .28em; font-size: .72rem; color: var(--primary-2); margin-bottom: 20px; text-transform: uppercase; }
+  .cta {
+    background: var(--primary); color: #fff; border: 0; border-radius: 9999px;
+    padding: 14px 32px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    box-shadow: 0 0 40px rgba(139,92,246,.45);
+  }
+  .cta:hover { transform: scale(1.05); box-shadow: 0 0 60px rgba(167,139,250,.6); }
+  .cta:active { transform: scale(1.02) translateY(0); }
+  .stat-row { display: flex; gap: 64px; margin-top: 56px; }
+  .stat { text-align: center; }
+  .stat .n { font-size: 3rem; font-weight: 800; color: var(--primary-2); }
+  section { padding: 96px 40px; max-width: 1140px; margin: 0 auto; }
+  h2 { font-size: 2.4rem; text-align: center; margin: 0 0 12px; font-weight: 800; }
+  .sub { text-align: center; color: var(--muted); margin: 0 auto 48px; max-width: 540px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 22px; }
+  .card {
+    background: var(--panel); border: 1px solid #1e1e24; border-radius: var(--radius);
+    padding: 30px; border-left: 4px solid var(--primary);
+  }
+  .card .ico { font-size: 2rem; }
+  .card h3 { font-size: 1.15rem; margin: 14px 0 8px; }
+  .card p { color: var(--muted); font-size: .95rem; margin: 0; }
+  .quote-card {
+    background: var(--panel-2); border: 1px solid #1e1e24; border-radius: var(--radius);
+    padding: 30px; margin-top: 22px;
+  }
+  .quote-card .inner {
+    background: var(--panel); border: 1px solid #1e1e24; border-radius: var(--radius); padding: 22px;
+  }
+  .pricing-card { background: var(--primary); border-radius: var(--radius); padding: 34px; color: #fff; }
+  footer {
+    border-top: 1px solid #1e1e24; padding: 64px 40px; display: flex; gap: 56px; flex-wrap: wrap;
+    color: var(--muted); font-size: .9rem;
+  }
+  footer h4 { color: #fff; margin: 0 0 12px; font-size: .85rem; letter-spacing: .1em; text-transform: uppercase; }
+  footer ul { list-style: none; margin: 0; padding: 0; }
+  footer li { padding: 3px 0; }
+  .copy { width: 100%; border-top: 1px solid #1e1e24; padding-top: 20px; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="logo">NexusAI</span>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#docs">Docs</a>
+    <a href="#blog">Blog</a>
+    <a href="#login">Sign in</a>
+  </header>
+
+  <div class="hero">
+    <span class="eyebrow">Introducing NexusAI 3.0</span>
+    <h1>Ship faster with AI</h1>
+    <p>The AI-powered platform that helps teams build, deploy and scale their applications with unprecedented speed and reliability.</p>
+    <button class="cta">Get started free</button>
+    <div class="stat-row">
+      <div class="stat"><div class="n">10M+</div><div>developers</div></div>
+      <div class="stat"><div class="n">99.9%</div><div>uptime</div></div>
+      <div class="stat"><div class="n">3×</div><div>faster</div></div>
+    </div>
+  </div>
+
+  <section id="features">
+    <h2>Everything you need to ship</h2>
+    <p class="sub">A complete toolkit for modern development teams.</p>
+    <div class="grid">
+      <div class="card"><div class="ico">&#128640;</div><h3>Lightning deploys</h3><p>Push to production in seconds with zero configuration required.</p></div>
+      <div class="card"><div class="ico">&#129302;</div><h3>AI assistance</h3><p>Let the model write the boilerplate while you focus on the product.</p></div>
+      <div class="card"><div class="ico">&#128274;</div><h3>Enterprise security</h3><p>SOC 2 compliant with end to end encryption on every request.</p></div>
+    </div>
+    <div class="quote-card">
+      <div class="inner">
+        <p>&ldquo;NexusAI cut our deploy time in half. It is the single biggest productivity win we have had.&rdquo;</p>
+        <p>&mdash; Jane Doe, CTO at Acme Corp</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <h2>Simple pricing</h2>
+    <p class="sub">Start free, upgrade when you are ready.</p>
+    <div class="grid">
+      <div class="card"><h3>Starter</h3><p>$0 per month</p></div>
+      <div class="pricing-card"><h3>Pro</h3><p>$29 per month</p></div>
+      <div class="card"><h3>Enterprise</h3><p>Contact us</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>
+      <h4>Product</h4>
+      <ul><li>Features</li><li>Pricing</li><li>Changelog</li><li>Roadmap</li></ul>
+    </div>
+    <div>
+      <h4>Developers</h4>
+      <ul><li>Docs</li><li>API reference</li><li>SDKs</li><li>Status</li></ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul><li>About</li><li>Blog</li><li>Careers</li><li>Contact</li></ul>
+    </div>
+    <div>
+      <h4>Legal</h4>
+      <ul><li>Privacy</li><li>Terms</li><li>Security</li><li>DPA</li></ul>
+    </div>
+    <div class="copy">&copy; 2026 NexusAI Inc. All rights reserved.</div>
+  </footer>
+</body>
+</html>

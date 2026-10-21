@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>card</title>
+<!-- Rendered by record.mjs: window.render(data) fills the card, window.go() starts the motion.
+     Layout is 1440x810 CSS px, captured at DPR 4/3 = 1920x1080. -->
+<style>
+  :root {
+    --bg: #0b1014; --surface: #121a20; --fg: #eef4f2; --muted: #93a39f; --accent: #3ee0c0; --accent2: #7aa7ff;
+    --font: "Inter", system-ui, "Segoe UI", sans-serif; --display: var(--font);
+    --ease: cubic-bezier(.22, 1, .36, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1440px; height: 810px; overflow: hidden; background: var(--bg); color: var(--fg); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+  body::before { /* tinted light, never flat black */
+    content: ""; position: fixed; inset: -20%;
+    background:
+      radial-gradient(40% 50% at 18% 30%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 70%),
+      radial-gradient(45% 55% at 85% 80%, color-mix(in oklab, var(--accent2) 14%, transparent), transparent 70%);
+    opacity: 0; transition: opacity 1.6s var(--ease), transform 14s linear;
+  }
+  body.go::before { opacity: 1; transform: translate3d(-2%, 1%, 0) scale(1.04); }
+  .stage { position: relative; width: 100%; height: 100%; padding: 96px 112px; display: flex; align-items: center; gap: 72px; }
+  .copy { flex: 1 1 0; min-width: 0; }
+  /* Sentence case with an accent dot: tracked all-caps eyebrows are a generated-look tell. */
+  .kicker { display: inline-flex; align-items: center; gap: 12px; font-size: 24px; letter-spacing: .005em; color: var(--muted); font-weight: 600; margin-bottom: 26px; }
+  .kicker::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+  .center .kicker { justify-content: center; }
+  .name { font-family: var(--display); font-size: 132px; line-height: .95; letter-spacing: -.035em; font-weight: 750; }
+  .tagline { font-size: 38px; line-height: 1.25; color: var(--muted); margin-top: 30px; max-width: 18ch; text-wrap: balance; }
+  .lines { font-family: var(--display); font-size: 68px; line-height: 1.12; letter-spacing: -.025em; font-weight: 700; text-wrap: balance; }
+  .lines .line { display: block; }
+  .lines .line + .line { margin-top: 18px; }
+  .lines .line.dim { color: var(--muted); font-weight: 600; }
+  .sub { font-size: 30px; color: var(--muted); margin-top: 34px; max-width: 34ch; line-height: 1.35; }
+  em { font-style: normal; color: var(--accent); }
+  .stat { font-family: var(--display); font-size: 210px; font-weight: 800; letter-spacing: -.05em; line-height: .9; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .url { display: inline-flex; align-items: center; gap: 14px; margin-top: 44px; padding: 16px 26px; border-radius: 999px;
+    background: color-mix(in oklab, var(--accent) 14%, var(--surface)); color: var(--fg); font-size: 30px; font-weight: 600;
+    border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent); }
+  .url::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 22%, transparent); }
+  .credit { margin-top: 30px; color: var(--muted); font-size: 22px; letter-spacing: .02em; }
+
+  /* Product shot in a quiet browser frame. */
+  .shot { flex: 0 0 auto; width: 640px; border-radius: 18px; overflow: hidden; background: var(--surface);
+    box-shadow: 0 40px 90px -30px rgba(0,0,0,.6), 0 0 0 1px color-mix(in oklab, var(--fg) 10%, transparent);
+    transform: translate3d(40px, 30px, 0) rotate(-1.5deg) scale(.96); opacity: 0;
+    transition: transform 1.4s var(--ease) .35s, opacity .9s var(--ease) .35s; }
+  .shot .bar { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: color-mix(in oklab, var(--fg) 6%, var(--surface)); }
+  .shot .bar i { width: 11px; height: 11px; border-radius: 50%; background: color-mix(in oklab, var(--fg) 22%, transparent); }
+  .shot img { display: block; width: 100%; height: auto; }
+  body.go .shot { transform: none; opacity: 1; animation: drift 12s linear 1.8s forwards; }
+  @keyframes drift { to { transform: translate3d(-6px, -10px, 0) scale(1.025); } }
+  /* Solution card: the name, one sentence, up to three short "how" points, and the product big. */
+  .solution .name { font-size: 92px; }
+  .solution .one { font-family: var(--display); font-size: 46px; line-height: 1.16; letter-spacing: -.02em; font-weight: 650; margin-top: 22px; max-width: 17ch; text-wrap: balance; }
+  .points { list-style: none; margin-top: 34px; display: grid; gap: 14px; }
+  .points li { display: flex; align-items: baseline; gap: 14px; font-size: 28px; color: var(--muted); }
+  .points li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); transform: translateY(-4px); }
+  .solution .shot { width: 760px; transform: translate3d(60px, 0, 0) scale(.92); }
+  .center .stage { justify-content: center; text-align: center; }
+  .center .tagline, .center .sub { margin-left: auto; margin-right: auto; }
+
+  /* Word reveal: each word rises out of a mask, staggered. */
+  .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+  .w > span { display: inline-block; transform: translateY(105%); opacity: 0; transition: transform .9s var(--ease), opacity .6s var(--ease); transition-delay: var(--d, 0s); }
+  body.go .w > span { transform: none; opacity: 1; }
+  .fade { opacity: 0; transform: translateY(16px); transition: opacity .8s var(--ease), transform .9s var(--ease); transition-delay: var(--d, 0s); }
+  body.go .fade { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<script>
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  // "*word*" marks accent words. Splits into masked words with staggered delays.
+  function words(text, start, step) {
+    let i = 0;
+    // An accent span may cover several words ("*one signature*"), so track open/close across tokens.
+    let inAccent = false;
+    return esc(text).split(/(\s+)/).map((tok) => {
+      if (/^\s+$/.test(tok) || !tok) return tok;
+      let word = tok;
+      if (word.startsWith('*')) { inAccent = true; word = word.slice(1); }
+      const m = word.match(/^(.*?)\*([.,!?;:]*)$/);
+      const accent = inAccent;
+      let tail = '';
+      if (m) { word = m[1]; tail = m[2]; inAccent = false; }
+      const inner = accent ? `<em>${word}</em>${tail}` : word + tail;
+      return `<span class="w"><span style="--d:${(start + step * i++).toFixed(2)}s">${inner}</span></span>`;
+    }).join('');
+  }
+  const count = (s) => String(s || '').split(/\s+/).filter(Boolean).length;
+
+  window.render = (d) => {
+    const t = d.theme || {};
+    const root = document.documentElement.style;
+    for (const [k, v] of Object.entries({ bg: t.bg, surface: t.surface, fg: t.fg, muted: t.muted, accent: t.accent, accent2: t.accent2 })) if (v) root.setProperty('--' + k, v);
+    if (t.font) root.setProperty('--font', t.font);
+    if (t.display) root.setProperty('--display', t.display);
+    if (t.fontUrl) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = t.fontUrl; document.head.appendChild(l); }
+    const s = document.getElementById('stage');
+    const shot = d.image ? `<div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="${esc(d.image)}"></div>` : '';
+    let html = '';
+    if (d.template === 'title') {
+      html = `<div class="copy">
+          ${d.kicker ? `<div class="kicker fade" style="--d:.05s">${esc(d.kicker)}</div>` : ''}
+          <h1 class="name">${words(d.name, .15, .08)}</h1>
+          ${d.tagline ? `<p class="tagline">${words(d.tagline, .55, .045)}</p>` : ''}
+        </div>${shot}`;
+      if (!d.image) document.body.classList.add('center');
+    } else if (d.template === 'statement') {
+      let delay = .1;
+      const lines = (d.lines || []).map((l) => {
+        const txt = typeof l === 'string' ? l : l.text;
+        const dim = typeof l === 'object' && l.dim;
+        const at = typeof l === 'object' && l.at != null ? l.at : delay;
+        const out = `<span class="line${dim ? ' dim' : ''}">${words(txt, at, .06)}</span>`;
+        delay = at + count(txt) * .06 + .45;
+        return out;
+      }).join('');
+      html = `<div class="copy">
+          ${d.kicker ? `<div class="kicker fade" style="--d:0s">${esc(d.kicker)}</div>` : ''}
+          <div class="lines">${lines}</div>
+          ${d.sub ? `<p class="sub fade" style="--d:${(delay + .1).toFixed(2)}s">${esc(d.sub)}</p>` : ''}
+        </div>${shot}`;
+      if (d.center) document.body.classList.add('center');
+    } else if (d.template === 'stat') {
+      html = `<div class="copy">
+          ${d.kicker ? `<div class="kicker fade">${esc(d.kicker)}</div>` : ''}
+          <div class="stat" id="stat" data-to="${esc(d.value)}">${esc(d.value)}</div>
+          <p class="sub fade" style="--d:.5s">${esc(d.caption || '')}</p>
+          ${d.source ? `<p class="credit fade" style="--d:.9s">${esc(d.source)}</p>` : ''}
+        </div>${shot}`;
+    } else if (d.template === 'solution') {
+      document.body.classList.add('solution');
+      const one = d.line || d.tagline || '';
+      const at = .45 + count(d.name) * .08;
+      const pts = (d.points || []).slice(0, 3);
+      const after = at + count(one) * .05 + .35;
+      html = `<div class="copy">
+          ${d.kicker ? `<div class="kicker fade" style="--d:0s">${esc(d.kicker)}</div>` : ''}
+          <h1 class="name">${words(d.name, .1, .08)}</h1>
+          ${one ? `<p class="one">${words(one, at, .05)}</p>` : ''}
+          ${pts.length ? `<ul class="points">${pts.map((p, i) => `<li class="fade" style="--d:${(after + i * .35).toFixed(2)}s">${esc(p)}</li>`).join('')}</ul>` : ''}
+        </div>${shot}`;
+    } else if (d.template === 'end') {
+      document.body.classList.add('center');
+      html = `<div class="copy">
+          <h1 class="name">${words(d.name, .1, .08)}</h1>
+          ${d.tagline ? `<p class="tagline" style="max-width:26ch">${words(d.tagline, .45, .04)}</p>` : ''}
+          ${d.url ? `<div class="url fade" style="--d:1.0s">${esc(d.url)}</div>` : ''}
+          ${d.credit ? `<p class="credit fade" style="--d:1.4s">${esc(d.credit)}</p>` : ''}
+        </div>`;
+    }
+    s.innerHTML = html;
+    const imgs = [...document.images].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; }));
+    return Promise.all([...imgs, document.fonts.ready]).then(() => true);
+  };
+
+  window.go = () => {
+    document.body.classList.add('go');
+    const el = document.getElementById('stat');
+    if (!el) return;
+    // Count up the numeric part, keep prefix/suffix ("$4.2B", "73%").
+    const m = el.dataset.to.match(/^([^\d]*)([\d.,]+)(.*)$/);
+    if (!m) return;
+    const target = parseFloat(m[2].replace(/,/g, '')), dec = (m[2].split('.')[1] || '').length, t0 = performance.now();
+    el.textContent = m[1] + (0).toFixed(dec) + m[3];
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / 1400), e = 1 - Math.pow(1 - k, 4);
+      el.textContent = m[1] + (target * e).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + m[3];
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+</script>
+</body>
+</html>

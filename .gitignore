@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+*.db
+*.db-journal
+*.sqlite
+keys/
+coverage/
+.DS_Store
+docs/proof/*.raw

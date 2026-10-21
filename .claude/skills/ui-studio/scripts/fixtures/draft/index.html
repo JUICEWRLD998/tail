@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kilnworks</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #faf9f6;
+    color: #57584f;
+    font-family: Inter, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  h1, h2, h3 { font-family: Georgia, serif; font-weight: 700; line-height: 1.15; margin: 0 0 12px; }
+  h1 { font-size: 3.2rem; }
+  h2 { font-size: 2rem; }
+  a { color: #1d4ed8; }
+
+  header.bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 40px;
+    border-bottom: 1px solid #e6e5e0;
+  }
+  .wordmark { font-family: Georgia, serif; font-weight: 700; margin-right: auto; }
+  .bar a { text-decoration: none; color: #57584f; }
+  .bar a:focus-visible, a:focus-visible { outline: 3px solid #7c2d12; outline-offset: 2px; }
+
+  main { max-width: 1060px; margin: 0 auto; padding: 0 40px; }
+  section { padding: 48px 0; }
+
+  .eyebrow { letter-spacing: .18em; font-size: .72rem; text-transform: uppercase; color: #6b6c62; }
+  .lede { font-size: 1.1rem; max-width: 54ch; color: #6b6c62; }
+  .cta-row { display: flex; align-items: center; gap: 16px; margin-top: 24px; }
+
+  .btn {
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: #c2410c;
+    border: 0;
+    border-radius: 6px;
+    padding: 10px 18px;
+    cursor: pointer;
+  }
+  .btn:focus-visible { outline: 3px solid #7c2d12; outline-offset: 2px; }
+  .btn:disabled { opacity: .55; background: #efece5; color: #7e7f74; border: 1px solid #e6e5e0; cursor: not-allowed; }
+
+  .band {
+    background: #c2410c;
+    color: #fff;
+    padding: 40px;
+    border-radius: 8px;
+    margin: 48px 0;
+  }
+  .band h2 { color: #fff; }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr); gap: 32px; }
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .rows li { display: grid; grid-template-columns: minmax(0, 1fr) 160px; padding: 12px 0; border-bottom: 1px solid #e6e5e0; }
+  .note { color: #6b6c62; }
+  .stamp { color: #6b6c62; font-size: .85rem; }
+
+  footer {
+    border-top: 1px solid #e6e5e0;
+    padding: 24px 40px;
+    display: flex;
+    gap: 24px;
+    color: #6b6c62;
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <span class="wordmark">Kilnworks</span>
+    <a href="#what">What it does</a>
+    <a href="#how">How it works</a>
+  </header>
+
+  <main>
+    <section>
+      <span class="eyebrow">Ceramics studio software</span>
+      <h1>Track every firing without a paper log</h1>
+      <p class="lede">Kilnworks records cone, hold time and result for each firing, so a glaze that worked in March is reproducible in November.</p>
+      <div class="cta-row">
+        <button class="btn" type="button">Start a firings log</button>
+        <a href="#how">See a sample log</a>
+      </div>
+    </section>
+
+    <section id="what">
+      <div class="split">
+        <div>
+          <h2>One log per kiln</h2>
+          <p class="note">Each kiln keeps its own history. Records carry the cone, the hold, the result and the batch the glaze came from, so a bad result can be traced to a change rather than guessed at.</p>
+        </div>
+        <div>
+          <p class="stamp">Cone 6 · reduction</p>
+          <p class="stamp">Last firing 2026-09-24</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="band">
+      <h2>Bring your existing logbook</h2>
+      <p>Photograph the pages you already have. Entries are transcribed rather than replaced, and the original images stay attached to the record.</p>
+    </div>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <ul class="rows">
+        <li><span>Record a firing</span><span class="stamp">cone, hold, result</span></li>
+        <li><span>Attach the glaze batch</span><span class="stamp">supplier, lot, date</span></li>
+        <li><span>Compare two firings</span><span class="stamp">side by side</span></li>
+      </ul>
+      <div class="cta-row">
+        <button class="btn" type="button">New firing</button>
+        <button class="btn" type="button" disabled>Export log</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Kilnworks</span>
+    <span>Firing records stay private to the studio</span>
+  </footer>
+</body>
+</html>
