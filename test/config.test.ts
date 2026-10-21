@@ -105,3 +105,15 @@ describe("loadConfig: the dev-only /link key never reaches prod", () => {
     expect(c.ownerTgId).toBeUndefined();
   });
 });
+
+describe("loadConfig: PUBLIC_URL falls back to the host's own variable", () => {
+  it("uses RENDER_EXTERNAL_URL, then RAILWAY_PUBLIC_DOMAIN, but an explicit PUBLIC_URL wins", () => {
+    expect(loadConfig({ ...base, RENDER_EXTERNAL_URL: "https://tail.onrender.com" }).publicUrl).toBe("https://tail.onrender.com");
+    expect(loadConfig({ ...base, RAILWAY_PUBLIC_DOMAIN: "tail.up.railway.app" }).publicUrl).toBe("https://tail.up.railway.app");
+    expect(loadConfig({ ...base, PUBLIC_URL: "https://mine.example.test", RENDER_EXTERNAL_URL: "https://tail.onrender.com" }).publicUrl).toBe("https://mine.example.test");
+  });
+
+  it("a host variable that is not a valid https URL is rejected, not silently used", () => {
+    expect(() => loadConfig({ ...base, RENDER_EXTERNAL_URL: "http://tail.onrender.com" })).toThrow(/PUBLIC_URL/);
+  });
+});
