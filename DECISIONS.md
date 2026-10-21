@@ -2,6 +2,26 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 23:10 UTC: P4 in progress (feat/p4-builder-connect); merged to main; Ethereum connect verified live
+
+- **Merged and pushed to `main`** at his request (fast-forward from `5dc8e3b`, no force). P3's live tap-through is still **not**
+  done: it needs his Telegram id (`/link` to the dev bot, then `TAIL_OWNER_TG_ID`). README marks the bot NEXT.
+- **VERIFIED live (testnet): Builder Connect with an Ethereum wallet.** A throwaway `ethers` wallet signs Strike's
+  `message_to_sign` with EIP-191 (what MetaMask's `personal_sign` does). Strike accepts the signature **with or without the
+  `0x` prefix**; the page will send what the wallet returns (0x-prefixed). Negative control: a signature from a different
+  wallet returns `401 wallet signature verification failed`. Cardano (CIP-30) is still UNVERIFIED: it needs a real wallet.
+- Strike's verify-signature "revokes any existing API wallets for this account + builder code": connecting does not touch a
+  personal API wallet, only older builder wallets.
+- **Built (tests first, 339 green):** connect tokens (single use, 10 min), pending API keys (encrypted, bound to the token,
+  5 min), connect service (server generates the Ed25519 key; the browser only ever sees the nonce and the message to sign),
+  Fastify server (schema validation with Ajv coercion off, per-token rate limit, generic 500s, no-referrer, no-store,
+  constant-time webhook secret check).
+- **Still to build for P4:** the Vite/React connect page (EVM, Phantom, CIP-30), `/connect` in the bot and the link button on
+  the Tail flow, `PUBLIC_URL` and webhook wiring in `main.ts`, Dockerfile and host config. **Deploy is his step** (his Render or
+  Railway account); a cloud session has no inbound traffic, so the page cannot be opened until it is deployed.
+- Builder fee on orders: `strikeFor` already sends `X-Builder-Fee-Bps` for builder wallets; whether a builder fee shows on a
+  fill is UNVERIFIED until a funded builder wallet trades.
+
 ## 2026-10-21 22:25 UTC: git hygiene corrections (found by him and by a new check)
 
 - **Process change, at his request:** feature branch per phase or feature, cut from `claude/blissful-keller-tn6jzm`, merged back
