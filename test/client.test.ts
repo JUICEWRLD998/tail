@@ -198,3 +198,32 @@ describe("orders and fills", () => {
     expect((calls[0] as Call).url).toContain("since_trade_id=5");
   });
 });
+
+describe("Builder Connect calls (unsigned)", () => {
+  it("requests a signature challenge with the documented fields", async () => {
+    const { client, calls } = mk({ "POST /auth/builder/request-signature": { json: { nonce: "n1", message_to_sign: "msg" } } });
+    const r = await client.builderRequestSignature({ address: "0xabc", chain: "ethereum", code: "sigma", feeShareBps: 10, publicKey: "ab".repeat(32) });
+    expect(r).toEqual({ nonce: "n1", message_to_sign: "msg" });
+    const c = calls[0] as Call;
+    expect(JSON.parse(c.body as string)).toEqual({ address: "0xabc", chain: "ethereum", code: "sigma", fee_share_bps: 10, public_key: "ab".repeat(32) });
+    expect(c.headers).not.toHaveProperty("X-API-Wallet-Signature");
+  });
+
+  it("verifies a wallet signature", async () => {
+    const { client, calls } = mk({ "POST /auth/builder/verify-signature": { json: { account_id: "acc", api_wallet_public_key: "pub" } } });
+    expect(await client.builderVerifySignature({ nonce: "n1", walletSignature: "0xsig" })).toMatchObject({ account_id: "acc" });
+    expect(JSON.parse((calls[0] as Call).body as string)).toEqual({ nonce: "n1", wallet_signature: "0xsig" });
+  });
+
+  it("surfaces Strike's error string", async () => {
+    const { client } = mk({ "POST /auth/builder/request-signature": { status: 404, json: { error: "builder code not found" } } });
+    await expect(client.builderRequestSignature({ address: "a", chain: "solana", code: "x", feeShareBps: 10, publicKey: "ab".repeat(32) }))
+      .rejects.toMatchObject({ status: 404, strikeError: "builder code not found" });
+  });
+
+  it("refuses a fee share outside 0-100 before sending", async () => {
+    const { client, calls } = mk({});
+    await expect(client.builderRequestSignature({ address: "a", chain: "solana", code: "x", feeShareBps: 101, publicKey: "ab".repeat(32) })).rejects.toThrow(/0-100/);
+    expect(calls.length).toBe(0);
+  });
+});
