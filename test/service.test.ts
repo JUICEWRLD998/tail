@@ -357,7 +357,7 @@ describe("confirm", () => {
 });
 
 describe("link", () => {
-  const KEY = "828f85bc1c9c0e71ec408a7a9b6ca96c7eb9d75b83c658b8fbfcee36b4a07e3c";
+  const KEY = "ab".repeat(32);
 
   it("verifies the key with Strike, stores it encrypted, and never echoes it", async () => {
     const r = await svc.link(FOLLOWER, KEY);

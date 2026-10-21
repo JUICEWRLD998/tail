@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decryptSecret, encryptSecret, loadKek } from "../src/db/crypto.js";
 
 const kek = randomBytes(32);
-const SECRET = "828f85bc1c9c0e71ec408a7a9b6ca96c7eb9d75b83c658b8fbfcee36b4a07e3c";
+const SECRET = "ab".repeat(32);
 
 describe("loadKek", () => {
   it("accepts 32 bytes of base64", () => {
