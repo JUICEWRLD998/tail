@@ -46,3 +46,48 @@ describe("loadConfig", () => {
     }
   });
 });
+
+describe("loadConfig: service URL, port and webhook", () => {
+  it("reads PUBLIC_URL and PORT, defaulting the port", () => {
+    const c = loadConfig({ ...base, PUBLIC_URL: "https://tail.example.test/", PORT: "8080" });
+    expect(c).toMatchObject({ publicUrl: "https://tail.example.test", port: 8080 });
+    expect(loadConfig(base)).toMatchObject({ publicUrl: undefined, port: 3000 });
+  });
+
+  it("requires https for PUBLIC_URL outside localhost", () => {
+    expect(() => loadConfig({ ...base, PUBLIC_URL: "http://tail.example.test" })).toThrow(/PUBLIC_URL/);
+    expect(loadConfig({ ...base, PUBLIC_URL: "http://localhost:3000" }).publicUrl).toBe("http://localhost:3000");
+    expect(() => loadConfig({ ...base, PUBLIC_URL: "not a url" })).toThrow(/PUBLIC_URL/);
+  });
+
+  it("rejects a bad port", () => {
+    for (const p of ["0", "70000", "abc", "-1"]) expect(() => loadConfig({ ...base, PORT: p })).toThrow(/PORT/);
+  });
+
+  it("prod mode needs PUBLIC_URL, a webhook secret and a builder code", () => {
+    const prod = { ...base, TAIL_MODE: "prod" };
+    expect(() => loadConfig(prod)).toThrow(/PUBLIC_URL/);
+    expect(() => loadConfig({ ...prod, PUBLIC_URL: "https://t.example.test" })).toThrow(/WEBHOOK_SECRET/);
+    expect(() => loadConfig({ ...prod, PUBLIC_URL: "https://t.example.test", WEBHOOK_SECRET: "a".repeat(32) })).toThrow(/BUILDER_CODE/);
+    const ok = loadConfig({ ...prod, PUBLIC_URL: "https://t.example.test", WEBHOOK_SECRET: "a".repeat(32), BUILDER_CODE: "sigma", BUILDER_FEE_BPS: "10" });
+    expect(ok).toMatchObject({ mode: "prod", webhookSecret: "a".repeat(32) });
+  });
+
+  it("the webhook secret must be 32+ url-safe characters and never appears in errors", () => {
+    const prod = { ...base, TAIL_MODE: "prod", PUBLIC_URL: "https://t.example.test", BUILDER_CODE: "sigma", BUILDER_FEE_BPS: "10" };
+    try {
+      loadConfig({ ...prod, WEBHOOK_SECRET: "short secret!" });
+    } catch (e) {
+      expect((e as Error).message).toMatch(/WEBHOOK_SECRET/);
+      expect((e as Error).message).not.toContain("short secret!");
+    }
+    expect(() => loadConfig({ ...prod, WEBHOOK_SECRET: "short" })).toThrow(/WEBHOOK_SECRET/);
+  });
+
+  it("derives a webhook path that is not guessable from the bot token or the secret header", () => {
+    const c = loadConfig({ ...base, TAIL_MODE: "prod", PUBLIC_URL: "https://t.example.test", WEBHOOK_SECRET: "a".repeat(32), BUILDER_CODE: "sigma", BUILDER_FEE_BPS: "10" });
+    expect(c.webhookPath).toMatch(/^\/telegram\/[0-9a-f]{32}$/);
+    expect(c.webhookPath).not.toContain("a".repeat(32));
+    expect(c.webhookPath).not.toContain("123:abc");
+  });
+});

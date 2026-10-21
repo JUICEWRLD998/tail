@@ -14,6 +14,8 @@ export interface BotOptions {
   ownerTgId?: number | undefined;
   /** Dev-only API wallet key held by the server (SPIKE_API_PRIV). Never sent to Telegram. */
   linkKey?: string | undefined;
+  /** Public https origin of this service. When set, unlinked followers get a wallet-connect button. */
+  publicUrl?: string | undefined;
   now: () => string;
 }
 
@@ -23,7 +25,8 @@ const POINTER = "Tail reads calls from a channel. Tap Tail or Fade on a call car
 const HELP = [
   "Followers",
   "/me  your account and limits",
-  "/link  connect your Strike account",
+  "/connect  link your wallet",
+  "/link  link a dev key (server owner only)",
   "/risk 1  percent of equity risked per trade",
   "/maxlev 5  leverage cap",
   "/maxnotional 500  size cap in USD",
@@ -33,6 +36,7 @@ const HELP = [
   "/addchannel  register a channel or group",
   "/call ETH long 2480 tp 2560 sl 2420  draft a call",
 ].join("\n");
+const CONNECT_TEXT = "Connect your wallet once to trade. It signs one message and cannot withdraw funds.";
 const WELCOME = "Tail turns a channel call into a Strike order in one tap.\nTap Tail or Fade on a call card to start.\n/me shows your account. /link connects it.";
 
 function keyboard(buttons: Button[] | undefined): InlineKeyboard | undefined {
@@ -56,6 +60,12 @@ export function createBot(o: BotOptions): Bot {
       // The caller must have started the bot once before it can message them. Log without the message body.
       console.warn(`could not DM ${tgId}: ${(e as Error).message}`);
     }
+  };
+
+  const connectReply = async (ctx: { from?: { id: number }; reply: (t: string, o?: object) => Promise<unknown> }) => {
+    const token = store.createConnectToken(ctx.from!.id, o.now());
+    const url = `${(o.publicUrl as string).replace(/\/+$/, "")}/connect?t=${token}`;
+    await ctx.reply(CONNECT_TEXT, { reply_markup: new InlineKeyboard().url("Connect wallet", url) });
   };
 
   // ---- registration and calls: channel posts and group messages ----
@@ -85,12 +95,21 @@ export function createBot(o: BotOptions): Bot {
     const link = parseStartPayload(ctx.match.trim());
     if (!link) return void (await ctx.reply(WELCOME, HTML));
     const q = await service.quote({ tgId: ctx.from!.id, callId: link.callId, mode: link.mode });
-    if (!q.ok) return void (await ctx.reply(q.text, HTML));
+    if (!q.ok) {
+      if (q.needsLink && o.publicUrl) return void (await connectReply(ctx));
+      return void (await ctx.reply(q.text, HTML));
+    }
     await ctx.reply(q.reply.text, { ...HTML, reply_markup: keyboard(q.reply.buttons) });
   });
 
   bot.command("help", async (ctx) => {
     if (ctx.chat.type === "private") await ctx.reply(HELP);
+  });
+
+  bot.command("connect", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    if (!o.publicUrl) return void (await ctx.reply("Wallet connect is not set up on this server. Use /link."));
+    await connectReply(ctx);
   });
 
   bot.command("addchannel", async (ctx) => {
