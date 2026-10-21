@@ -2,6 +2,20 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 21:36 UTC: Spike C PASSED (fills and fees, live, ETH-USD)
+
+- Market bracket buy 0.006 ETH-USD (about $15 notional) with TP +3% and SL -3% of mark. Primary `Status: filled`,
+  `Filled 0.006`. Raw: `docs/proof/spike-c.json`.
+- **Fill fields (`GET /v2/history/fill`):** `id`, `trade_id`, `order_id`, `side`, `role` (taker), `price` 2499.57, `size`,
+  `realized_pnl`, `fee` **0.00749871**, `fee_type: commission`, `client_order_id`, `timestamp` (ms). The fee is 5 bps of
+  the notional (14.997 USD): the taker rate. **No builder-fee field on a personal-wallet fill.** Where a builder fee
+  shows for a builder-code wallet is still UNVERIFIED (the scripted account holds $0); P4 must check it.
+- After the fill the SL and TP legs go live: `openOrders` count 2. Position: `leverage` **20**, `margin_mode` cross, though
+  the account reports `default_leverage` 10. Why is UNVERIFIED (sizing must not assume the account default).
+- Closed with `cancel-all` then `POST /v2/order` market sell `reduce_only` -> positions 0. Account 19.996 -> 19.92115
+  (-0.075 USD: two taker fees plus crossing a 10 USD spread). Testnet money; not a result about any strategy.
+- Fills carry `client_order_id`, so `jobs/fills` can match a Tail row to its fill by the primary's client order id.
+
 ## 2026-10-21 21:30 UTC: deposit credited; Spike B PASSED on ETH-USD; three testnet facts that change the build
 
 - **Deposit credited.** Strike tx id 246976: 20 USDC from Sepolia (hash `0x05f8a81b…6688056`) credited as **19.996 USD**

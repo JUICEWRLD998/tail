@@ -1,0 +1,212 @@
+{
+  "symbol": "ETH-USD",
+  "mark": 2495.45270445,
+  "size": "0.006",
+  "created": {
+    "strategy_id": "34602c43-438c-4eef-9895-721d4157473d",
+    "primary_client_order_id": "01a16058-9f20-7cce-9065-c097715c3c5a",
+    "tp_client_order_id": "01a16058-9f20-7cd9-a246-f2564b90cacf",
+    "sl_client_order_id": "01a16058-9f20-7cea-b962-17d00a6827b8",
+    "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+    "symbol": "ETH-USD",
+    "sequence_id": 93821846,
+    "message_id": "1792617783073-0"
+  },
+  "primary": {
+    "ID": 243140834,
+    "ClientOrderID": "01a16058-9f20-7cce-9065-c097715c3c5a",
+    "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+    "Symbol": "ETH-USD",
+    "Strategy": {
+      "ID": "34602c43-438c-4eef-9895-721d4157473d",
+      "IsPrimary": true
+    },
+    "CloseReason": "",
+    "Side": "buy",
+    "Status": "filled",
+    "Type": "market",
+    "OriginType": "",
+    "AutoCloseType": "",
+    "TimeInForce": "GTC",
+    "WorkingType": "none",
+    "Size": "0.006000000000000000",
+    "Filled": "0.006000000000000000",
+    "Price": "2500.819785000000000",
+    "StopPrice": "0.000000000000000000",
+    "BoundPrice": "0",
+    "PostOnly": false,
+    "ReduceOnly": false,
+    "ClosePosition": false,
+    "PriceProtect": false,
+    "CreateTimestamp": 1792617783072,
+    "EntryTimestamp": 1792617783074,
+    "EventTimestamp": 1792617783074
+  },
+  "fills": {
+    "count": 1,
+    "fills": [
+      {
+        "id": 36099,
+        "trade_id": 18110,
+        "order_id": 243140834,
+        "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+        "symbol": "ETH-USD",
+        "side": "buy",
+        "role": "taker",
+        "price": "2499.570000000000000000",
+        "size": "0.006000000000000000",
+        "realized_pnl": "0.000000000000000000",
+        "fee": "0.007498710000000000",
+        "fee_type": "commission",
+        "timestamp": 1792617783074,
+        "auto_close_type": "",
+        "client_order_id": "01a16058-9f20-7cce-9065-c097715c3c5a"
+      }
+    ]
+  },
+  "positions": {
+    "count": 1,
+    "positions": [
+      {
+        "id": 3663,
+        "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+        "margin_mode": "cross",
+        "leverage": 20,
+        "size": "0.006",
+        "entry_price": "2499.57",
+        "iso_balance": "0",
+        "accumulated_funding_fees": "0",
+        "create_timestamp": 1792617783074,
+        "update_timestamp": 1792617783074,
+        "symbol": "ETH-USD",
+        "upnl": "-0.02473510",
+        "maintenance_margin": "0.59890740",
+        "bankruptcy_price": "0",
+        "liquidation_price": "0"
+      }
+    ]
+  },
+  "openLegs": {
+    "count": 2,
+    "orders": [
+      {
+        "ID": 243140835,
+        "ClientOrderID": "01a16058-9f20-7cd9-a246-f2564b90cacf",
+        "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+        "Symbol": "ETH-USD",
+        "Strategy": {
+          "ID": "34602c43-438c-4eef-9895-721d4157473d",
+          "IsPrimary": false
+        },
+        "CloseReason": "",
+        "Side": "sell",
+        "Status": "untriggered",
+        "Type": "take_profit",
+        "OriginType": "",
+        "AutoCloseType": "",
+        "TimeInForce": "GTC",
+        "WorkingType": "mark_price",
+        "Size": "0.006",
+        "Filled": "0",
+        "Price": "0",
+        "StopPrice": "2570.32",
+        "BoundPrice": "0",
+        "PostOnly": false,
+        "ReduceOnly": true,
+        "ClosePosition": false,
+        "PriceProtect": false,
+        "CreateTimestamp": 1792617783072,
+        "EntryTimestamp": 1792617783074,
+        "EventTimestamp": 1792617783074
+      },
+      {
+        "ID": 243140836,
+        "ClientOrderID": "01a16058-9f20-7cea-b962-17d00a6827b8",
+        "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+        "Symbol": "ETH-USD",
+        "Strategy": {
+          "ID": "34602c43-438c-4eef-9895-721d4157473d",
+          "IsPrimary": false
+        },
+        "CloseReason": "",
+        "Side": "sell",
+        "Status": "untriggered",
+        "Type": "stop",
+        "OriginType": "",
+        "AutoCloseType": "",
+        "TimeInForce": "GTC",
+        "WorkingType": "mark_price",
+        "Size": "0.006",
+        "Filled": "0",
+        "Price": "0",
+        "StopPrice": "2420.59",
+        "BoundPrice": "0",
+        "PostOnly": false,
+        "ReduceOnly": true,
+        "ClosePosition": false,
+        "PriceProtect": false,
+        "CreateTimestamp": 1792617783072,
+        "EntryTimestamp": 1792617783074,
+        "EventTimestamp": 1792617783074
+      }
+    ]
+  },
+  "closed": {
+    "client_order_id": "01a16058-ab93-734e-800a-a653296de4dc",
+    "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+    "symbol": "ETH-USD",
+    "status": "pending",
+    "sequence_id": 93821855,
+    "message_id": "1792617786259-0"
+  },
+  "fillsAfterClose": {
+    "count": 2,
+    "fills": [
+      {
+        "id": 36101,
+        "trade_id": 18111,
+        "order_id": 243140837,
+        "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+        "symbol": "ETH-USD",
+        "side": "sell",
+        "role": "taker",
+        "price": "2489.590000000000000000",
+        "size": "0.006000000000000000",
+        "realized_pnl": "-0.059880000000000000",
+        "fee": "0.007468770000000000",
+        "fee_type": "commission",
+        "entry_price": "2499.570000000000000000",
+        "close_price": "2489.590000000000000000",
+        "margin": "0.749871000000000000",
+        "roi_pct": "-7.985373484239289160",
+        "leverage": 20,
+        "timestamp": 1792617786260,
+        "auto_close_type": "",
+        "client_order_id": "01a16058-ab93-734e-800a-a653296de4dc"
+      },
+      {
+        "id": 36099,
+        "trade_id": 18110,
+        "order_id": 243140834,
+        "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+        "symbol": "ETH-USD",
+        "side": "buy",
+        "role": "taker",
+        "price": "2499.570000000000000000",
+        "size": "0.006000000000000000",
+        "realized_pnl": "0.000000000000000000",
+        "fee": "0.007498710000000000",
+        "fee_type": "commission",
+        "timestamp": 1792617783074,
+        "auto_close_type": "",
+        "client_order_id": "01a16058-9f20-7cce-9065-c097715c3c5a"
+      }
+    ]
+  },
+  "positionsAfterClose": {
+    "count": 0,
+    "positions": []
+  },
+  "balanceBefore": "19.9960",
+  "balanceAfter": "19.92115252"
+}
