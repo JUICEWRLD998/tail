@@ -2,6 +2,19 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 22:05 UTC: P3 exit check PASSED (live, testnet)
+
+- He ran the whole flow from his phone: `/link`, `/risk 3`, `/addchannel`, the code posted in "Tail test channel" (consumed),
+  the call `ETH long 2480 tp 2560 sl 2420 5x`, Post, Tail, Start, Confirm.
+- **Checked by me, not taken on trust:** the database (`scripts/db-report.ts`) holds the linked user (key stored as `v1:` ciphertext),
+  the registered channel, the open call with card message 7, and a `placed` tail with order id **243140879**. Strike
+  (`scripts/p3-proof.ts`, read by client order id) shows that order `open`: limit buy 0.009 ETH-USD at 2480, with the
+  `take_profit` (2560) and `stop` (2420) legs `pending`. That is what the confirm card showed. `docs/proof/p3-live.json`.
+- Cancelled afterwards: 0 open orders on ETH-USD. The `tails` row still says `placed` for a cancelled order. This is the drift
+  P5's reconciliation job exists to fix (status from Strike, not from our row).
+- Not captured: Telegram screenshots (need his logged-in client). The database and Strike readings above are the evidence.
+- Not yet exercised live: the Fade button, the duplicate guard ("You already took this call") and `/revoke`. Covered by tests only.
+
 ## 2026-10-21 23:40 UTC: bot was not running; OPENROUTER_API_KEY confirmed present
 
 - He reported that commands to the dev bot did nothing. Cause: the bot process was gone (my earlier `( npm start & )` job did not

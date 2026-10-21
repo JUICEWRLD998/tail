@@ -22,7 +22,7 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Strike request signing (Ed25519) | LIVE | `npm test` (RFC 8032 vector); Strike accepted a signed `GET /v2/account` on testnet, `docs/proof/spike-a.json` |
 | Strike client, bracket order from the CLI | LIVE | `scripts/tail-once.ts`, testnet, ETH-USD. Proof: `docs/proof/p2-tail-once.txt` |
 | Telegram: read channel posts, post cards with deep-link buttons, edit them | LIVE (spike) | `docs/proof/spike-d.json` |
-| Telegram bot: register a channel, confirm a call, post the card, Tail and Fade quotes, place a bracket | NEXT | Built and tested (`npm test`); the live tap-through on testnet is still to run |
+| Telegram bot: register a channel, confirm a call, post the card, Tail and Fade quotes, place a bracket | LIVE | Ran end to end on testnet from real taps: Strike order 243140879. `docs/proof/p3-live.json` |
 | Builder Connect from a script (Solana wallet) | LIVE | `scripts/scripted-follower.ts`, testnet. Fees on orders: NEXT |
 | Caller record and earnings pages | NOT LIVE | |
 | Payout to callers | NOT LIVE | |
