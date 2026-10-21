@@ -9,7 +9,7 @@ const CALLER = 900;
 const FOLLOWER = 111;
 const CHAT = -1001;
 const OWNER = 111;
-const KEY = "828f85bc1c9c0e71ec408a7a9b6ca96c7eb9d75b83c658b8fbfcee36b4a07e3c";
+const KEY = "ab".repeat(32);
 const T = "2026-10-21T12:00:00.000Z";
 
 interface ApiCall { method: string; payload: any }
