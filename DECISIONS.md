@@ -2,6 +2,18 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 22:25 UTC: git hygiene corrections (found by him and by a new check)
+
+- **Process change, at his request:** feature branch per phase or feature, cut from `claude/blissful-keller-tn6jzm`, merged back
+  with a merge commit; tests, implementation, docs and proof in separate commits. P0-P3 went onto one branch in coarse commits
+  (largest: service 754 lines, store 507, client 506, bot 469); history is not rewritten.
+- **CORRECTION: runtime SQLite files were tracked.** `data/tail.db-shm` and `-wal` were committed in `2e19013` (`.gitignore` had
+  `*.db` only). Tables were all empty at that point (schema pages), so no keys leaked. Untracked and ignored now.
+- **CORRECTION: a private key literal was in tests.** The throwaway pair generated at the start of the session
+  (`828f85bc…` private half, also printed in chat) was a test constant in three test files. It was never registered with Strike
+  (401), so it opens nothing. Replaced with a placeholder. It remains in earlier history.
+- New: `npm run check:push` (`scripts/prepush-check.sh`). It caught the key literal on its first run. Run before every push.
+
 ## 2026-10-21 22:05 UTC: P3 built and running; exit check (live taps) pending
 
 - **Built, test first, 283 tests green:** `db/crypto.ts` (AES-256-GCM, TAIL_KEK), `db/store.ts` + `schema.sql` (users, channels,
