@@ -145,6 +145,25 @@ export class StrikeClient {
     return r.markPrice as string;
   }
 
+  /** Builder Connect step 1. Public: no API wallet needed. VERIFIED: docs.strikefinance.org/api/builder-codes/builder-connect.md */
+  builderRequestSignature(i: { address: string; chain: "ethereum" | "solana" | "cardano"; code: string; feeShareBps: number; publicKey: string }): Promise<{ nonce: string; message_to_sign: string }> {
+    if (!Number.isInteger(i.feeShareBps) || i.feeShareBps < 0 || i.feeShareBps > 100) {
+      return Promise.reject(new Error("feeShareBps must be an integer 0-100"));
+    }
+    return this.send("POST", "/auth/builder/request-signature", {
+      signed: false,
+      body: JSON.stringify({ address: i.address, chain: i.chain, code: i.code, fee_share_bps: i.feeShareBps, public_key: i.publicKey }),
+    });
+  }
+
+  /** Builder Connect step 2. The nonce is single use. */
+  builderVerifySignature(i: { nonce: string; walletSignature: string }): Promise<{ account_id: string; api_wallet_public_key: string; fee_share_bps: number; builder_code: string }> {
+    return this.send("POST", "/auth/builder/verify-signature", {
+      signed: false,
+      body: JSON.stringify({ nonce: i.nonce, wallet_signature: i.walletSignature }),
+    });
+  }
+
   account(): Promise<any> {
     return this.send("GET", "/v2/account", { signed: true });
   }

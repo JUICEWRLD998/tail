@@ -1,11 +1,14 @@
 // SQLite persistence (better-sqlite3). All statements are parameterised; callers pass `now` explicitly so tests are exact.
 import Database from "better-sqlite3";
-import { randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 const SCHEMA = readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_TTL_MS = 10 * 60_000;
+const TOKEN_TTL_MS = 10 * 60_000;
+const PENDING_TTL_MS = 5 * 60_000;
+const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
 export interface User {
   tgId: number;
@@ -140,6 +143,15 @@ export function openStore(path: string) {
     counts: db.prepare(`
       SELECT mode, COUNT(*) n FROM tails WHERE call_id = ? AND status IN ('placed','filled','closed') GROUP BY mode`),
     liveCount: db.prepare("SELECT COUNT(*) n FROM tails WHERE tg_id = ? AND status IN ('placed','filled')"),
+    retireTokens: db.prepare("UPDATE connect_tokens SET used_at = ? WHERE tg_id = ? AND used_at IS NULL"),
+    newToken: db.prepare("INSERT INTO connect_tokens (token, tg_id, expires_at) VALUES (?, ?, ?)"),
+    getToken: db.prepare("SELECT tg_id FROM connect_tokens WHERE token = ? AND used_at IS NULL AND expires_at > ?"),
+    useToken: db.prepare("UPDATE connect_tokens SET used_at = ? WHERE token = ? AND used_at IS NULL"),
+    newPending: db.prepare(`
+      INSERT OR REPLACE INTO connect_pending (nonce, token, tg_id, address, chain, api_pub, api_priv_enc, expires_at)
+      VALUES (@nonce, @token, @tgId, @address, @chain, @apiPub, @apiPrivEnc, @expiresAt)`),
+    getPending: db.prepare("SELECT * FROM connect_pending WHERE nonce = ? AND token = ? AND expires_at > ?"),
+    delPending: db.prepare("DELETE FROM connect_pending WHERE nonce = ?"),
     miss: db.prepare(`
       INSERT INTO misses (symbol, chat_id, count) VALUES (?, ?, 1)
       ON CONFLICT(symbol, chat_id) DO UPDATE SET count = count + 1`),
@@ -243,6 +255,40 @@ export function openStore(path: string) {
       return { tailed: rows.find((r) => r.mode === "tail")?.n ?? 0, faded: rows.find((r) => r.mode === "fade")?.n ?? 0 };
     },
     countLiveTails: (tgId: number): number => (q.liveCount.get(tgId) as { n: number }).n,
+
+    createConnectToken(tgId: number, now: string): string {
+      const token = randomBytes(32).toString("base64url");
+      db.transaction(() => {
+        q.retireTokens.run(now, tgId);
+        q.newToken.run(token, tgId, new Date(Date.parse(now) + TOKEN_TTL_MS).toISOString());
+      })();
+      return token;
+    },
+    peekConnectToken(token: string, now: string): number | undefined {
+      if (!TOKEN_RE.test(token)) return undefined;
+      return (q.getToken.get(token, now) as { tg_id: number } | undefined)?.tg_id;
+    },
+    consumeConnectToken(token: string, now: string): number | undefined {
+      if (!TOKEN_RE.test(token)) return undefined;
+      return db.transaction(() => {
+        const row = q.getToken.get(token, now) as { tg_id: number } | undefined;
+        if (!row) return undefined;
+        q.useToken.run(now, token);
+        return row.tg_id;
+      })();
+    },
+
+    savePending(p: { nonce: string; token: string; tgId: number; address: string; chain: string; apiPub: string; apiPrivEnc: string; createdAt: string }) {
+      q.newPending.run({ ...p, expiresAt: new Date(Date.parse(p.createdAt) + PENDING_TTL_MS).toISOString() });
+    },
+    takePending(nonce: string, token: string, now: string) {
+      return db.transaction(() => {
+        const r = q.getPending.get(nonce, token, now) as any;
+        if (!r) return undefined;
+        q.delPending.run(nonce);
+        return { nonce: r.nonce as string, tgId: r.tg_id as number, address: r.address as string, chain: r.chain as string, apiPub: r.api_pub as string, apiPrivEnc: r.api_priv_enc as string };
+      })();
+    },
 
     recordMiss(symbol: string, chatId: number) {
       q.miss.run(symbol, chatId);

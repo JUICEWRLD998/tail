@@ -241,6 +241,29 @@ describe("follower flow", () => {
   });
 });
 
+describe("help and fallback", () => {
+  it("/help lists the commands", async () => {
+    await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    for (const c of ["/me", "/link", "/risk", "/maxlev", "/maxnotional", "/revoke", "/addchannel", "/call"]) expect(lastText()).toContain(c);
+  });
+
+  it("a plain DM that is not a command gets a pointer, not silence", async () => {
+    await bot.handleUpdate(dm("hello", FOLLOWER) as never);
+    expect(lastText()).toBe("Tail reads calls from a channel. Tap Tail or Fade on a call card, or send /help.");
+  });
+
+  it("an unknown command gets the same pointer", async () => {
+    await bot.handleUpdate(dm("/nope", FOLLOWER) as never);
+    expect(lastText()).toBe("Tail reads calls from a channel. Tap Tail or Fade on a call card, or send /help.");
+  });
+
+  it("channel and group chatter still gets no reply", async () => {
+    await bot.handleUpdate(channelPost("hello world") as never);
+    await bot.handleUpdate(groupMsg("hello world", FOLLOWER) as never);
+    expect(calls.length).toBe(0);
+  });
+});
+
 describe("account commands", () => {
   it("/link by the owner stores the server-held key and never echoes it", async () => {
     await bot.handleUpdate(dm("/link", OWNER) as never);

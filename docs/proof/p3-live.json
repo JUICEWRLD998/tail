@@ -1,0 +1,43 @@
+{
+  "tail": {
+    "id": 1,
+    "mode": "tail",
+    "size": "0.009",
+    "notionalUsd": "22.32",
+    "status": "placed",
+    "orderId": "243140879"
+  },
+  "strikeOrder": {
+    "id": 243140879,
+    "status": "open",
+    "type": "limit",
+    "side": "buy",
+    "size": "0.009",
+    "price": "2480.00",
+    "strategyId": "7b3fd2f4-112e-4369-9e11-d3b8842164a9"
+  },
+  "openOrdersOnSymbol": [
+    {
+      "id": 243140879,
+      "type": "limit",
+      "side": "buy",
+      "status": "open",
+      "stopPrice": "0"
+    },
+    {
+      "id": 243140880,
+      "type": "take_profit",
+      "side": "sell",
+      "status": "pending",
+      "stopPrice": "2560.00"
+    },
+    {
+      "id": 243140881,
+      "type": "stop",
+      "side": "sell",
+      "status": "pending",
+      "stopPrice": "2420.00"
+    }
+  ],
+  "checkedAt": "2026-10-21T22:03:34.392Z"
+}

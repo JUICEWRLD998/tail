@@ -2,6 +2,47 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 22:05 UTC: P3 exit check PASSED (live, testnet)
+
+- He ran the whole flow from his phone: `/link`, `/risk 3`, `/addchannel`, the code posted in "Tail test channel" (consumed),
+  the call `ETH long 2480 tp 2560 sl 2420 5x`, Post, Tail, Start, Confirm.
+- **Checked by me, not taken on trust:** the database (`scripts/db-report.ts`) holds the linked user (key stored as `v1:` ciphertext),
+  the registered channel, the open call with card message 7, and a `placed` tail with order id **243140879**. Strike
+  (`scripts/p3-proof.ts`, read by client order id) shows that order `open`: limit buy 0.009 ETH-USD at 2480, with the
+  `take_profit` (2560) and `stop` (2420) legs `pending`. That is what the confirm card showed. `docs/proof/p3-live.json`.
+- Cancelled afterwards: 0 open orders on ETH-USD. The `tails` row still says `placed` for a cancelled order. This is the drift
+  P5's reconciliation job exists to fix (status from Strike, not from our row).
+- Not captured: Telegram screenshots (need his logged-in client). The database and Strike readings above are the evidence.
+- Not yet exercised live: the Fade button, the duplicate guard ("You already took this call") and `/revoke`. Covered by tests only.
+
+## 2026-10-21 23:40 UTC: bot was not running; OPENROUTER_API_KEY confirmed present
+
+- He reported that commands to the dev bot did nothing. Cause: the bot process was gone (my earlier `( npm start & )` job did not
+  survive) and Telegram held 3 undelivered updates. Restarted as a tracked background job; the queued updates were delivered.
+  Rule: long-lived processes run with the tool's background mode, never `( cmd & )`, so an exit is noticed.
+- `OPENROUTER_API_KEY` is present in the session environment (checked presence only, value never printed).
+- Added `/help` and a pointer reply for unrecognised DMs; silence read as a dead bot.
+
+## 2026-10-21 23:10 UTC: P4 in progress (feat/p4-builder-connect); merged to main; Ethereum connect verified live
+
+- **Merged and pushed to `main`** at his request (fast-forward from `5dc8e3b`, no force). P3's live tap-through is still **not**
+  done: it needs his Telegram id (`/link` to the dev bot, then `TAIL_OWNER_TG_ID`). README marks the bot NEXT.
+- **VERIFIED live (testnet): Builder Connect with an Ethereum wallet.** A throwaway `ethers` wallet signs Strike's
+  `message_to_sign` with EIP-191 (what MetaMask's `personal_sign` does). Strike accepts the signature **with or without the
+  `0x` prefix**; the page will send what the wallet returns (0x-prefixed). Negative control: a signature from a different
+  wallet returns `401 wallet signature verification failed`. Cardano (CIP-30) is still UNVERIFIED: it needs a real wallet.
+- Strike's verify-signature "revokes any existing API wallets for this account + builder code": connecting does not touch a
+  personal API wallet, only older builder wallets.
+- **Built (tests first, 339 green):** connect tokens (single use, 10 min), pending API keys (encrypted, bound to the token,
+  5 min), connect service (server generates the Ed25519 key; the browser only ever sees the nonce and the message to sign),
+  Fastify server (schema validation with Ajv coercion off, per-token rate limit, generic 500s, no-referrer, no-store,
+  constant-time webhook secret check).
+- **Still to build for P4:** the Vite/React connect page (EVM, Phantom, CIP-30), `/connect` in the bot and the link button on
+  the Tail flow, `PUBLIC_URL` and webhook wiring in `main.ts`, Dockerfile and host config. **Deploy is his step** (his Render or
+  Railway account); a cloud session has no inbound traffic, so the page cannot be opened until it is deployed.
+- Builder fee on orders: `strikeFor` already sends `X-Builder-Fee-Bps` for builder wallets; whether a builder fee shows on a
+  fill is UNVERIFIED until a funded builder wallet trades.
+
 ## 2026-10-21 22:25 UTC: git hygiene corrections (found by him and by a new check)
 
 - **Process change, at his request:** feature branch per phase or feature, cut from `claude/blissful-keller-tn6jzm`, merged back
