@@ -1,0 +1,2 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+Buy SOL @ 150 TP 165 SL 142 10x

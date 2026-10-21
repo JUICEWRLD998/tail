@@ -1,0 +1,2 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+ADA long 0.62345 tp 0.70001 sl 0.58

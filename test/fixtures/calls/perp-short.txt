@@ -1,0 +1,2 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+ADA-PERP short 0.62 tp 0.55 sl 0.66

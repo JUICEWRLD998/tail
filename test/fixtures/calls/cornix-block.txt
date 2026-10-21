@@ -1,0 +1,7 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+#ADA/USDT
+Long
+Entry: 0.61 - 0.63
+Targets: 0.66 0.70
+Stop: 0.58
+Leverage: Cross 5x

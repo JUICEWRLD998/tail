@@ -1,0 +1,2 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+XAU long entry 2650-2660 tp 2700 sl 2630

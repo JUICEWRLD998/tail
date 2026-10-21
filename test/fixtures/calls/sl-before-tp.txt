@@ -1,0 +1,2 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+$ETH long 3200 sl 3100 tp 3500 3x

@@ -1,0 +1,2 @@
+#! source: format example from implementation.md (parser contract); written for Tail, not copied from a public channel
+🟢 LONG $ADA Entry 0.62 TP1 0.66 TP2 0.70 SL 0.58
