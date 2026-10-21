@@ -1,0 +1,139 @@
+{
+ "_note": "live testnet /price/v2/exchangeInfo 2026-10-21, trimmed to ADA-USD and SOL-USD",
+ "timezone": "UTC",
+ "serverTime": 1792614664562,
+ "rateLimits": [
+  {
+   "rateLimitType": "REQUEST_WEIGHT",
+   "interval": "MINUTE",
+   "intervalNum": 1,
+   "limit": 2400
+  },
+  {
+   "rateLimitType": "ORDERS",
+   "interval": "MINUTE",
+   "intervalNum": 1,
+   "limit": 1200
+  }
+ ],
+ "symbols": [
+  {
+   "symbol": "ADA-USD",
+   "pair": "ADA-USD",
+   "contractType": "PERPETUAL",
+   "status": "trading",
+   "baseAsset": "ADA",
+   "quoteAsset": "USDT",
+   "marginAsset": "USDT",
+   "pricePrecision": 8,
+   "quantityPrecision": 8,
+   "baseAssetPrecision": 8,
+   "quotePrecision": 8,
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "ADA"
+   ],
+   "settlePlan": 0,
+   "triggerProtect": "0.05",
+   "liquidationFee": "0.0125",
+   "limitTakeBound": "0.05",
+   "marketTakeBound": "0.05",
+   "filters": [
+    {
+     "filterType": "PRICE_FILTER",
+     "maxPrice": "20000",
+     "minPrice": "10",
+     "tickSize": "0.00010"
+    },
+    {
+     "filterType": "LOT_SIZE",
+     "maxQty": "6000000",
+     "minQty": "1",
+     "stepSize": "1"
+    },
+    {
+     "filterType": "MARKET_LOT_SIZE",
+     "maxQty": "2000000",
+     "minQty": "1",
+     "stepSize": "1"
+    },
+    {
+     "filterType": "MIN_NOTIONAL",
+     "notional": "5"
+    }
+   ],
+   "orderType": [
+    "LIMIT",
+    "MARKET",
+    "STOP",
+    "STOP_MARKET",
+    "TAKE_PROFIT",
+    "TAKE_PROFIT_MARKET"
+   ],
+   "timeInForce": [
+    "GTC",
+    "IOC",
+    "FOK"
+   ]
+  },
+  {
+   "symbol": "SOL-USD",
+   "pair": "SOL-USD",
+   "contractType": "PERPETUAL",
+   "status": "trading",
+   "baseAsset": "SOL",
+   "quoteAsset": "USDT",
+   "marginAsset": "USDT",
+   "pricePrecision": 8,
+   "quantityPrecision": 8,
+   "baseAssetPrecision": 8,
+   "quotePrecision": 8,
+   "underlyingType": "COIN",
+   "underlyingSubType": [
+    "SOL"
+   ],
+   "settlePlan": 0,
+   "triggerProtect": "0.05",
+   "liquidationFee": "0.0125",
+   "limitTakeBound": "0.05",
+   "marketTakeBound": "0.05",
+   "filters": [
+    {
+     "filterType": "PRICE_FILTER",
+     "maxPrice": "6857",
+     "minPrice": "0.42",
+     "tickSize": "0.01"
+    },
+    {
+     "filterType": "LOT_SIZE",
+     "maxQty": "1000000",
+     "minQty": "0.01",
+     "stepSize": "0.01"
+    },
+    {
+     "filterType": "MARKET_LOT_SIZE",
+     "maxQty": "6000",
+     "minQty": "0.01",
+     "stepSize": "0.01"
+    },
+    {
+     "filterType": "MIN_NOTIONAL",
+     "notional": "10"
+    }
+   ],
+   "orderType": [
+    "LIMIT",
+    "MARKET",
+    "STOP",
+    "STOP_MARKET",
+    "TAKE_PROFIT",
+    "TAKE_PROFIT_MARKET"
+   ],
+   "timeInForce": [
+    "GTC",
+    "IOC",
+    "FOK"
+   ]
+  }
+ ]
+}
