@@ -25,6 +25,10 @@ not written yet (C needs a funded account, D needs the bot token, E needs `BUILD
   rejects TP type not `take_profit*` and SL type not `stop*` (`invalid_secondary_order`).
 - VERIFIED live: `GET /price/v2/premiumIndex?symbol=ADA-USD` returns `markPrice`. On testnet ADA-USD last price 0.2337 vs
   mark 0.2275 (about 2.7% apart); `limitTakeBound` is 0.05, so Spike B puts its limit 3% under mark.
+- Spike E, step 1 (partial, live, 2026-10-21 17:30 UTC): `POST /auth/builder/request-signature` on testnet with
+  `code: sigma` returns `404 {"error":"builder code not found"}`, identical to a bogus code. So `sigma` is **not
+  registered on testnet** (VERIFIED). The 404 shape and the endpoint are confirmed. verify-signature not reached.
+  `scripts/scripted-follower.ts` is written and stops with `MISSING ENV: BUILDER_CODE` when unset.
 - VERIFIED (docs): builder fee share is capped at 100 bps (1%). His registration form shows a 1% fee rate; a $100 minimum
   was reported on the registration page (not in the docs). Which site, testnet or mainnet, is still unconfirmed.
 
