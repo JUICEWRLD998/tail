@@ -1,0 +1,16 @@
+node_modules
+web/dist
+data
+keys
+.env
+.env.*
+!.env.example
+.git
+.claude
+coverage
+docs/proof
+test
+scripts
+*.db
+*.db-shm
+*.db-wal

@@ -91,3 +91,29 @@ describe("loadConfig: service URL, port and webhook", () => {
     expect(c.webhookPath).not.toContain("123:abc");
   });
 });
+
+describe("loadConfig: the dev-only /link key never reaches prod", () => {
+  const prod = { ...base, TAIL_MODE: "prod", PUBLIC_URL: "https://t.example.test", WEBHOOK_SECRET: "a".repeat(32), BUILDER_CODE: "sigma", BUILDER_FEE_BPS: "10" };
+
+  it("keeps SPIKE_API_PRIV in dev mode", () => {
+    expect(loadConfig({ ...base, SPIKE_API_PRIV: "ab".repeat(32) }).linkKey).toBe("ab".repeat(32));
+  });
+
+  it("drops SPIKE_API_PRIV and the owner id in prod mode, even if they are set", () => {
+    const c = loadConfig({ ...prod, SPIKE_API_PRIV: "ab".repeat(32), TAIL_OWNER_TG_ID: "5150" });
+    expect(c.linkKey).toBeUndefined();
+    expect(c.ownerTgId).toBeUndefined();
+  });
+});
+
+describe("loadConfig: PUBLIC_URL falls back to the host's own variable", () => {
+  it("uses RENDER_EXTERNAL_URL, then RAILWAY_PUBLIC_DOMAIN, but an explicit PUBLIC_URL wins", () => {
+    expect(loadConfig({ ...base, RENDER_EXTERNAL_URL: "https://tail.onrender.com" }).publicUrl).toBe("https://tail.onrender.com");
+    expect(loadConfig({ ...base, RAILWAY_PUBLIC_DOMAIN: "tail.up.railway.app" }).publicUrl).toBe("https://tail.up.railway.app");
+    expect(loadConfig({ ...base, PUBLIC_URL: "https://mine.example.test", RENDER_EXTERNAL_URL: "https://tail.onrender.com" }).publicUrl).toBe("https://mine.example.test");
+  });
+
+  it("a host variable that is not a valid https URL is rejected, not silently used", () => {
+    expect(() => loadConfig({ ...base, RENDER_EXTERNAL_URL: "http://tail.onrender.com" })).toThrow(/PUBLIC_URL/);
+  });
+});

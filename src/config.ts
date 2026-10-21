@@ -48,11 +48,13 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     builderFeeBps = n;
   }
 
+  // Hosts publish their own URL; an explicit PUBLIC_URL always wins.
+  const hostUrl = env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : undefined);
   let publicUrl: string | undefined;
-  if (env.PUBLIC_URL) {
+  if (hostUrl) {
     let u: URL;
     try {
-      u = new URL(env.PUBLIC_URL);
+      u = new URL(hostUrl);
     } catch {
       throw new Error("PUBLIC_URL is not a valid URL");
     }
@@ -83,7 +85,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 
   return {
     network, baseUrl: BASE_URLS[network], mode, token: env.TELEGRAM_BOT_TOKEN, kek,
-    dbPath: env.TAIL_DB ?? "data/tail.db", ownerTgId, linkKey: env.SPIKE_API_PRIV || undefined,
+    dbPath: env.TAIL_DB ?? "data/tail.db",
+    // /link is a dev convenience that installs a server-held key. Production wallets arrive only through Builder Connect.
+    ownerTgId: mode === "prod" ? undefined : ownerTgId,
+    linkKey: mode === "prod" ? undefined : env.SPIKE_API_PRIV || undefined,
     builderCode: env.BUILDER_CODE || undefined, builderFeeBps, publicUrl, port, webhookSecret, webhookPath,
   };
 }
