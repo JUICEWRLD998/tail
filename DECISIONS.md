@@ -2,6 +2,15 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 21:05 UTC: Spike A passes on his own account; Telegram still silent
+
+- His registered API wallet (public key prefix `2517380c`, from the Strike page) signs `GET /v2/account` and
+  `GET /v2/positions`: both **200**. Account is `ethereum`, the MetaMask address, `wallet_balance` / `margin_balance` **0**,
+  `default_leverage` 10, `default_margin_mode` cross. So the deposit has not been credited yet. Blocks B and C (need margin).
+  `docs/proof/spike-a.json` now holds this run (replaces the scripted-account run; that result stays recorded above).
+- `getUpdates` still returns **0 updates**: no `my_chat_member`, no `channel_post`. Spike D cannot start until `@lidevbot`
+  is admin in the channel and group and a message is posted in each.
+
 ## 2026-10-21 20:40 UTC: env landed; SPIKE_API_* not yet registered with Strike
 
 - All 8 variables are set in the session environment (lengths and the `.env` match checked; values not printed). VERIFIED.

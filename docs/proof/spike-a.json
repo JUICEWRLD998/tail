@@ -2,9 +2,9 @@
   "account": {
     "status": 200,
     "json": {
-      "account_id": "01a1600d-e5d8-7be5-9446-0379b3f1bc4b",
-      "blockchain": "solana",
-      "blockchain_address": "8jZGYMi1UmQRdmCvfLpSFEyDiv6NBzL8CNQR95GkB1dZ",
+      "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
+      "blockchain": "ethereum",
+      "blockchain_address": "0x0c3ad0348879998c97106feb1d0ae9406a6a741d",
       "wallet_balance": "0",
       "available_balance": "0",
       "copy_reserved_balance": "0",
