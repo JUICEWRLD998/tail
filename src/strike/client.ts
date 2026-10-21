@@ -36,7 +36,11 @@ export interface ClientOptions {
   nowMs?: () => number;
   nonce?: () => string;
   marketsTtlMs?: number;
+  /** Sync the clock with /v2/time before the first signed call and every 10 minutes after. Off in unit tests. */
+  autoSync?: boolean;
 }
+
+const SYNC_INTERVAL_MS = 10 * 60_000;
 
 export interface BracketInput {
   symbol: string;
@@ -56,6 +60,7 @@ export class StrikeClient {
   private readonly nonce: () => string;
   private readonly ttl: number;
   private offsetSeconds = 0;
+  private syncedAt: number | undefined;
   private marketsCache: { at: number; value: Record<string, MarketInfo> } | undefined;
 
   constructor(private readonly o: ClientOptions) {
@@ -73,6 +78,7 @@ export class StrikeClient {
     let headers: Record<string, string> = { ...(opts.headers ?? {}) };
     if (opts.signed) {
       if (!this.o.privateKeyHex) throw new Error("private key not configured for a signed call");
+      if (this.o.autoSync && (this.syncedAt === undefined || this.now() - this.syncedAt > SYNC_INTERVAL_MS)) await this.syncClock();
       headers = {
         ...headers,
         ...signRequest({
@@ -105,6 +111,7 @@ export class StrikeClient {
   async syncClock(): Promise<number> {
     const { serverTime } = await this.send("GET", "/v2/time", { signed: false });
     this.offsetSeconds = Math.round((Number(serverTime) - this.now()) / 1000);
+    this.syncedAt = this.now();
     return this.offsetSeconds;
   }
 

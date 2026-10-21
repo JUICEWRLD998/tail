@@ -85,6 +85,11 @@ const mapUser = (r: any): User => ({
   maxNotionalUsd: r.max_notional_usd, linkedAt: r.linked_at,
 });
 
+const mapChannel = (r: any): Channel => ({
+  chatId: r.chat_id, title: r.title, kind: r.kind, callerTgId: r.caller_tg_id, builderCode: r.builder_code,
+  feeBps: r.fee_bps, createdAt: r.created_at,
+});
+
 const mapCall = (r: any): Call => ({
   id: r.id, chatId: r.chat_id, messageId: r.message_id, cardMessageId: r.card_message_id, rawText: r.raw_text,
   symbol: r.symbol, side: r.side, entryKind: r.entry_kind, entry: r.entry, tp: r.tp, sl: r.sl,
@@ -120,6 +125,7 @@ export function openStore(path: string) {
       INSERT INTO channels (chat_id, title, kind, caller_tg_id, created_at) VALUES (@chatId, @title, @kind, @callerTgId, @createdAt)
       ON CONFLICT(chat_id) DO UPDATE SET title = excluded.title, kind = excluded.kind, caller_tg_id = excluded.caller_tg_id`),
     getChannel: db.prepare("SELECT * FROM channels WHERE chat_id = ?"),
+    channelsOf: db.prepare("SELECT * FROM channels WHERE caller_tg_id = ?"),
     newCall: db.prepare(`
       INSERT INTO calls (chat_id, message_id, raw_text, symbol, side, entry_kind, entry, tp, sl, leverage_hint, status, created_at)
       VALUES (@chatId, @messageId, @rawText, @symbol, @side, @entryKind, @entry, @tp, @sl, @leverageHint, 'draft', @createdAt)`),
@@ -185,9 +191,10 @@ export function openStore(path: string) {
       q.upsertChannel.run(c);
     },
     getChannel: (chatId: number): Channel | undefined => {
-      const r = q.getChannel.get(chatId) as any;
-      return r && { chatId: r.chat_id, title: r.title, kind: r.kind, callerTgId: r.caller_tg_id, builderCode: r.builder_code, feeBps: r.fee_bps, createdAt: r.created_at };
+      const r = q.getChannel.get(chatId);
+      return r ? mapChannel(r) : undefined;
     },
+    channelsOf: (tgId: number): Channel[] => q.channelsOf.all(tgId).map(mapChannel),
 
     createDraftCall: (c: Omit<Call, "id" | "cardMessageId" | "status" | "closedAt">): number =>
       Number(q.newCall.run({ ...c, messageId: c.messageId ?? null }).lastInsertRowid),

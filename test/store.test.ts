@@ -99,6 +99,17 @@ describe("channels", () => {
   });
 });
 
+describe("channelsOf", () => {
+  it("lists the channels a caller registered", () => {
+    const s = fresh();
+    s.registerChannel({ chatId: -1, title: "A", kind: "channel", callerTgId: 111, createdAt: T0 });
+    s.registerChannel({ chatId: -2, title: "B", kind: "group", callerTgId: 111, createdAt: T0 });
+    s.registerChannel({ chatId: -3, title: "C", kind: "group", callerTgId: 222, createdAt: T0 });
+    expect(s.channelsOf(111).map((c) => c.chatId).sort((a, b) => a - b)).toEqual([-2, -1]);
+    expect(s.channelsOf(999)).toEqual([]);
+  });
+});
+
 describe("calls", () => {
   it("creates a draft, opens it with a card, and reads it back", () => {
     const s = fresh();

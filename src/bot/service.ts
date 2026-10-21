@@ -10,7 +10,7 @@ import type { SettingKey, Store, User } from "../db/store.js";
 import { StrikeError, type StrikeClient } from "../strike/client.js";
 import { derivePublicKeyHex } from "../strike/sign.js";
 import {
-  callbackData, callCard, callerConfirmCard, followerConfirmCard, refusalText, rejectionText, tailButtons,
+  escapeHtml, callbackData, callCard, callerConfirmCard, followerConfirmCard, refusalText, rejectionText, tailButtons,
 } from "./cards.js";
 
 export type StrikeLike = Pick<StrikeClient, "syncClock" | "markets" | "markPrice" | "account" | "placeBracket" | "order">;
@@ -48,7 +48,7 @@ const short = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}
 function strikeMessage(e: unknown): { text: string; strike: boolean } {
   if (e instanceof StrikeError) {
     const relink = e.status === 401 || e.status === 403 ? " Relink with /link." : "";
-    return { text: `Strike said: ${e.strikeError}.${relink}`, strike: true };
+    return { text: `Strike said: ${escapeHtml(e.strikeError)}.${relink}`, strike: true };
   }
   return { text: "Could not reach Strike. Try again.", strike: false };
 }
@@ -63,9 +63,11 @@ export function createService(d: ServiceDeps) {
   };
 
   return {
-    async onCallerPost(i: { chatId: number; messageId: number; text: string }) {
+    /** `senderTgId` is set for group messages, where anyone can type; channel posts have no sender and are admin-only. */
+    async onCallerPost(i: { chatId: number; messageId: number; text: string; senderTgId?: number }) {
       const channel = store.getChannel(i.chatId);
       if (!channel) return { type: "ignore" as const };
+      if (i.senderTgId !== undefined && i.senderTgId !== channel.callerTgId) return { type: "ignore" as const };
       const r = parseCall(i.text, { markets: await marketMap() });
       if (!r.ok) {
         if (r.reason === "not_a_call") return { type: "ignore" as const };
@@ -260,7 +262,7 @@ export function createService(d: ServiceDeps) {
         await client.syncClock();
         acct = await client.account();
       } catch (e) {
-        return { ok: false, text: e instanceof StrikeError ? `Strike did not accept that key: ${e.strikeError}.` : "Could not reach Strike. Try again." };
+        return { ok: false, text: e instanceof StrikeError ? `Strike did not accept that key: ${escapeHtml(e.strikeError)}.` : "Could not reach Strike. Try again." };
       }
       store.linkUser({
         tgId, chain: acct.blockchain, address: acct.blockchain_address, strikeAccountId: acct.account_id,

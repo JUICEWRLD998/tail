@@ -104,6 +104,30 @@ describe("signing on the wire", () => {
   });
 });
 
+describe("autoSync", () => {
+  it("syncs the clock once before the first signed request, then not again within the interval", async () => {
+    const f = fakeFetch({
+      "GET /v2/time": { json: { serverTime: 1_700_000_100_000 } },
+      "GET /v2/account": { json: { margin_balance: "1" } },
+    });
+    const c = new StrikeClient({ baseUrl: BASE, privateKeyHex: SEED, fetch: f.fn, nowMs: () => 1_700_000_000_000, nonce: () => "n", autoSync: true });
+    await c.account();
+    await c.account();
+    expect(f.calls.filter((x) => x.url.endsWith("/v2/time")).length).toBe(1);
+    expect((f.calls.find((x) => x.url.endsWith("/v2/account")) as Call).headers["X-API-Wallet-Timestamp"]).toBe("1700000100");
+  });
+
+  it("re-syncs after the interval", async () => {
+    let now = 1_700_000_000_000;
+    const f = fakeFetch({ "GET /v2/time": { json: { serverTime: now } }, "GET /v2/account": { json: {} } });
+    const c = new StrikeClient({ baseUrl: BASE, privateKeyHex: SEED, fetch: f.fn, nowMs: () => now, nonce: () => "n", autoSync: true });
+    await c.account();
+    now += 11 * 60_000;
+    await c.account();
+    expect(f.calls.filter((x) => x.url.endsWith("/v2/time")).length).toBe(2);
+  });
+});
+
 describe("bracket order", () => {
   it("builds the documented strategy body with TP and SL legs sized to the primary", async () => {
     const { client, calls } = mk({ "POST /v2/order/strategy": { status: 201, json: { strategy_id: "s1" } } });

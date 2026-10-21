@@ -81,6 +81,16 @@ describe("caller posts", () => {
     expect(await post("ETH long 2480 tp 2560 sl 2420", -999)).toEqual({ type: "ignore" });
   });
 
+  it("in a group, ignores a call posted by someone who is not the registered caller", async () => {
+    expect(await svc.onCallerPost({ chatId: CHAT, messageId: 9, text: "ETH long 2480 tp 2560 sl 2420", senderTgId: 4242 })).toEqual({ type: "ignore" });
+    expect(store.getCall(1)).toBeUndefined();
+  });
+
+  it("in a group, accepts a call from the registered caller", async () => {
+    const r = await svc.onCallerPost({ chatId: CHAT, messageId: 9, text: "ETH long 2480 tp 2560 sl 2420", senderTgId: CALLER });
+    expect(r).toMatchObject({ type: "dm", tgId: CALLER });
+  });
+
   it("ignores chatter", async () => {
     expect(await post("gm everyone")).toEqual({ type: "ignore" });
   });
@@ -221,6 +231,13 @@ describe("quote", () => {
     const draft = store.createDraftCall({ chatId: CHAT, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: "t" } as never);
     expect(await svc.quote({ tgId: FOLLOWER, callId: draft, mode: "tail" })).toEqual({ ok: false, text: "This call is closed." });
     expect(await svc.quote({ tgId: FOLLOWER, callId: 999, mode: "tail" })).toEqual({ ok: false, text: "This call is closed." });
+  });
+
+  it("HTML-escapes Strike's error text before it reaches Telegram", async () => {
+    build({ accountThrows: new StrikeError(400, "GET", "/v2/account", "bad <b>input</b> & more") });
+    linkFollower();
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    expect(r).toEqual({ ok: false, text: "Strike said: bad &lt;b&gt;input&lt;/b&gt; &amp; more." });
   });
 
   it("surfaces a Strike error from the equity read without leaking internals", async () => {
