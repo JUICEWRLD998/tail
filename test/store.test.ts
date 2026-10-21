@@ -155,6 +155,23 @@ describe("tails", () => {
     expect(s.findLiveTail(call, 111)?.id).toBe(b);
   });
 
+  it("claimTail moves a quote to placed exactly once", () => {
+    const s = fresh();
+    const call = s.createDraftCall(callDraft);
+    const id = s.createTail(tail(call));
+    expect(s.claimTail(id)).toBe(true);
+    expect(s.claimTail(id)).toBe(false);
+    expect(s.getTail(id)?.status).toBe("placed");
+  });
+
+  it("claimTail refuses a quote whose call already has a live tail by that user", () => {
+    const s = fresh();
+    const call = s.createDraftCall(callDraft);
+    s.updateTail(s.createTail(tail(call)), { status: "placed" });
+    const second = s.createTail(tail(call, { strategyId: "s2" }));
+    expect(s.claimTail(second)).toBe(false);
+  });
+
   it("counts tailed and faded, ignoring quotes and rejections", () => {
     const s = fresh();
     const call = s.createDraftCall(callDraft);

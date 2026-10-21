@@ -218,6 +218,15 @@ export function openStore(path: string) {
       });
       db.prepare(`UPDATE tails SET ${sets.join(", ")} WHERE id = ?`).run(...entries.map(([, v]) => v), id);
     },
+    /** Atomically moves a quote to `placed` before anything is sent to Strike. False if already claimed or a live tail exists. */
+    claimTail(id: number): boolean {
+      try {
+        return db.prepare("UPDATE tails SET status = 'placed' WHERE id = ? AND status = 'quoted'").run(id).changes === 1;
+      } catch (e) {
+        if ((e as { code?: string }).code === "SQLITE_CONSTRAINT_UNIQUE") return false;
+        throw e;
+      }
+    },
     findLiveTail: (callId: number, tgId: number): Tail | undefined => {
       const r = q.liveTail.get(callId, tgId);
       return r ? mapTail(r) : undefined;
