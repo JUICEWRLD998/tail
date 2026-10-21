@@ -2,6 +2,15 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 22:40 UTC: deposit route
+
+- His tx `0x802b26ae…8b7cbf` on explorer.testnet.arc.io is a faucet transfer of 20 USDC (Arc Testnet) to his own MetaMask
+  address, not a Strike deposit. Strike balance stayed 0. VERIFIED (explorer API + `GET /v2/account`).
+- VERIFIED live: `POST /v2/deposit/quote` (blockchain `ethereum`, `USDC`, 20000000 = 20 USDC) returns `usd_value` 19.99275
+  (rate 0.9996375), `confirmations_required` 12, quote valid 10 minutes, and a Strike deposit address. No funds moved;
+  the quote was requested only to learn the route. Which EVM testnet "ethereum" means (Sepolia) is UNVERIFIED by the quote.
+- Sepolia USDC source: faucet.circle.com answers 200; that it issues Sepolia USDC is from memory, UNVERIFIED.
+
 ## 2026-10-21 22:10 UTC: P2 built; exit check NOT met (needs margin)
 
 - `src/strike/client.ts`: exchangeInfo (cached 60 s), mark price, account, positions, strategy order (optional
