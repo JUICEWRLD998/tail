@@ -2,6 +2,20 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 22:10 UTC: P2 built; exit check NOT met (needs margin)
+
+- `src/strike/client.ts`: exchangeInfo (cached 60 s), mark price, account, positions, strategy order (optional
+  `X-Builder-Fee-Bps`), open orders, cancel-all (DELETE with body), order lookup, fills, clock sync from `/v2/time`,
+  `StrikeError` carrying status and Strike's `error` string. `src/core/order.ts`: draft to bracket, with Fade.
+- 118 tests green. Planted control: signing without the body fails the Ed25519 verification test.
+- `scripts/tail-once.ts` runs live on testnet: parse (against live exchangeInfo), account, mark price, sizing, bracket.
+  Dry run by default; `--place` sends. Run on `ADA long 0.62 tp 0.70 sl 0.58 5x`: parses, reads `margin_balance` 0,
+  sizing refuses `no_equity`. So the refusal path is VERIFIED live; **no order has been placed**.
+- P2 exit ("places a real testnet bracket, `GET /v2/openOrders` shows it") is **not met**: Follower A has no margin.
+  Spikes B and C are blocked for the same reason.
+- UNVERIFIED until the first real order: that `take_profit` and `stop` legs are accepted as built, the response field names
+  of `/v2/order/strategy`, and whether the builder-wallet header is accepted on the scripted account.
+
 ## 2026-10-21 21:40 UTC: Spike D PASSED (Telegram, live)
 
 - Dev bot `@lidevbot`, long polling, no webhook. Test channel `-1004446016960`, test group `-1003697379035` (supergroup).
