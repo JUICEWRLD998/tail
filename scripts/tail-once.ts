@@ -66,6 +66,18 @@ if (!place) {
   process.exit(0);
 }
 const created = await client.placeBracket(bracket);
-console.log("PLACED:", JSON.stringify(created));
+console.log("sequenced (201 is not acceptance):", JSON.stringify(created));
+// Read the primary's final status; Strike can still reject it after the 201 (e.g. order_price_out_of_limit).
+let primary: any;
+for (let i = 0; i < 20; i++) {
+  primary = await client.order({ symbol: draft.symbol, clientOrderId: created.primary_client_order_id });
+  if (primary.Status !== "pending") break;
+  await new Promise((r) => setTimeout(r, 500));
+}
+console.log(`primary: order id ${primary.ID}, status ${primary.Status}${primary.CloseReason ? ` (${primary.CloseReason})` : ""}`);
+if (primary.Status === "rejected") {
+  console.log("REJECTED by Strike.");
+  process.exit(1);
+}
 const open = await client.openOrders(draft.symbol);
-console.log("openOrders:", JSON.stringify(open).slice(0, 600));
+console.log(`openOrders: ${open.count} orders: ${(open.orders as any[]).map((o) => `${o.ID} ${o.Type} ${o.Side} ${o.Status}`).join("; ")}`);

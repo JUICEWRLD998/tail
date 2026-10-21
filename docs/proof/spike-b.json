@@ -4,47 +4,47 @@
     "step": 0.001,
     "minNotional": 10
   },
-  "mark": 2494.61837146,
-  "last": 2498.28,
+  "mark": 2495.98419139,
+  "last": 2489.59,
   "body": {
-    "strategy_id": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+    "strategy_id": "49fb4166-80e8-4e7b-a0ca-580ddc74e91f",
     "symbol": "ETH-USD",
     "side": "buy",
     "type": "limit",
     "size": "0.006",
-    "price": "2482.15",
+    "price": "2477.14",
     "time_in_force": "GTC",
     "tp_order": {
       "type": "take_profit",
       "size": "0.006",
-      "stop_price": "2569.46"
+      "stop_price": "2564.28"
     },
     "sl_order": {
       "type": "stop",
       "size": "0.006",
-      "stop_price": "2419.78"
+      "stop_price": "2414.90"
     }
   },
   "created": {
     "status": 201,
     "json": {
-      "strategy_id": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
-      "primary_client_order_id": "01a16057-e127-7d83-928a-ada51b2a5278",
-      "tp_client_order_id": "01a16057-e127-7d92-ad6f-cd07f07d5134",
-      "sl_client_order_id": "01a16057-e127-7d97-8f12-31742162dc51",
+      "strategy_id": "49fb4166-80e8-4e7b-a0ca-580ddc74e91f",
+      "primary_client_order_id": "01a16059-8e82-73d4-9d4f-c891f8862e5f",
+      "tp_client_order_id": "01a16059-8e82-73df-849f-9aadc79772a0",
+      "sl_client_order_id": "01a16059-8e82-73e4-9b9e-29a15d28855c",
       "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
       "symbol": "ETH-USD",
-      "sequence_id": 93821741,
-      "message_id": "1792617734440-0"
+      "sequence_id": 93821984,
+      "message_id": "1792617844354-0"
     }
   },
   "primary": {
-    "ID": 243140831,
-    "ClientOrderID": "01a16057-e127-7d83-928a-ada51b2a5278",
+    "ID": 243140844,
+    "ClientOrderID": "01a16059-8e82-73d4-9d4f-c891f8862e5f",
     "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
     "Symbol": "ETH-USD",
     "Strategy": {
-      "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+      "ID": "49fb4166-80e8-4e7b-a0ca-580ddc74e91f",
       "IsPrimary": true
     },
     "CloseReason": "",
@@ -57,16 +57,16 @@
     "WorkingType": "none",
     "Size": "0.006",
     "Filled": "0",
-    "Price": "2482.15",
+    "Price": "2477.14",
     "StopPrice": "0",
     "BoundPrice": "0",
     "PostOnly": false,
     "ReduceOnly": false,
     "ClosePosition": false,
     "PriceProtect": false,
-    "CreateTimestamp": 1792617734439,
-    "EntryTimestamp": 1792617734441,
-    "EventTimestamp": 1792617734441
+    "CreateTimestamp": 1792617844354,
+    "EntryTimestamp": 1792617844355,
+    "EventTimestamp": 1792617844355
   },
   "open": {
     "status": 200,
@@ -74,12 +74,12 @@
       "count": 3,
       "orders": [
         {
-          "ID": 243140831,
-          "ClientOrderID": "01a16057-e127-7d83-928a-ada51b2a5278",
+          "ID": 243140844,
+          "ClientOrderID": "01a16059-8e82-73d4-9d4f-c891f8862e5f",
           "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
           "Symbol": "ETH-USD",
           "Strategy": {
-            "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+            "ID": "49fb4166-80e8-4e7b-a0ca-580ddc74e91f",
             "IsPrimary": true
           },
           "CloseReason": "",
@@ -92,24 +92,24 @@
           "WorkingType": "none",
           "Size": "0.006",
           "Filled": "0",
-          "Price": "2482.15",
+          "Price": "2477.14",
           "StopPrice": "0",
           "BoundPrice": "0",
           "PostOnly": false,
           "ReduceOnly": false,
           "ClosePosition": false,
           "PriceProtect": false,
-          "CreateTimestamp": 1792617734439,
-          "EntryTimestamp": 1792617734441,
-          "EventTimestamp": 1792617734441
+          "CreateTimestamp": 1792617844354,
+          "EntryTimestamp": 1792617844355,
+          "EventTimestamp": 1792617844355
         },
         {
-          "ID": 243140832,
-          "ClientOrderID": "01a16057-e127-7d92-ad6f-cd07f07d5134",
+          "ID": 243140845,
+          "ClientOrderID": "01a16059-8e82-73df-849f-9aadc79772a0",
           "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
           "Symbol": "ETH-USD",
           "Strategy": {
-            "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+            "ID": "49fb4166-80e8-4e7b-a0ca-580ddc74e91f",
             "IsPrimary": false
           },
           "CloseReason": "",
@@ -123,23 +123,23 @@
           "Size": "0.006",
           "Filled": "0",
           "Price": "0",
-          "StopPrice": "2569.46",
+          "StopPrice": "2564.28",
           "BoundPrice": "0",
           "PostOnly": false,
           "ReduceOnly": true,
           "ClosePosition": false,
           "PriceProtect": false,
-          "CreateTimestamp": 1792617734439,
-          "EntryTimestamp": 1792617734441,
+          "CreateTimestamp": 1792617844354,
+          "EntryTimestamp": 1792617844355,
           "EventTimestamp": 0
         },
         {
-          "ID": 243140833,
-          "ClientOrderID": "01a16057-e127-7d97-8f12-31742162dc51",
+          "ID": 243140846,
+          "ClientOrderID": "01a16059-8e82-73e4-9b9e-29a15d28855c",
           "AccountID": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
           "Symbol": "ETH-USD",
           "Strategy": {
-            "ID": "57d695c5-2c66-4cb0-9b02-4e685b5baf11",
+            "ID": "49fb4166-80e8-4e7b-a0ca-580ddc74e91f",
             "IsPrimary": false
           },
           "CloseReason": "",
@@ -153,14 +153,14 @@
           "Size": "0.006",
           "Filled": "0",
           "Price": "0",
-          "StopPrice": "2419.78",
+          "StopPrice": "2414.90",
           "BoundPrice": "0",
           "PostOnly": false,
           "ReduceOnly": true,
           "ClosePosition": false,
           "PriceProtect": false,
-          "CreateTimestamp": 1792617734439,
-          "EntryTimestamp": 1792617734441,
+          "CreateTimestamp": 1792617844354,
+          "EntryTimestamp": 1792617844355,
           "EventTimestamp": 0
         }
       ]
@@ -172,8 +172,8 @@
       "account_id": "01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097",
       "symbol": "ETH-USD",
       "canceled_count": -1,
-      "sequence_id": 93821765,
-      "message_id": "1792617744885-0"
+      "sequence_id": 93822008,
+      "message_id": "1792617854368-0"
     }
   }
 }

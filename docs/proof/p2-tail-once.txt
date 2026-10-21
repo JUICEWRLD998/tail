@@ -1,0 +1,9 @@
+# P2 exit check: tail-once --place on testnet, 2026-10-21T21:23:52Z
+$ TAIL_RISK_PCT=3 npx tsx scripts/tail-once.ts "ETH long 2480 tp 2560 sl 2420 5x" --place
+parse: {"symbol":"ETH-USD","side":"long","entryKind":"limit","entry":"2480.00","tp":"2560.00","sl":"2420.00","leverageHint":5,"extraTargets":[]}
+equity (margin_balance): 19.92115252
+sizing: {"ok":true,"size":"0.009","notional":"22.32","riskUsd":"0.54","binding":"risk"}
+bracket: {"symbol":"ETH-USD","side":"buy","size":"0.009","tp":"2560.00","sl":"2420.00","strategyId":"ff8243f5-2cca-45d9-ae16-4949302ee48d","type":"limit","price":"2480.00"}
+sequenced (201 is not acceptance): {"strategy_id":"ff8243f5-2cca-45d9-ae16-4949302ee48d","primary_client_order_id":"01a16059-664b-7aae-9777-5a28b0e588df","tp_client_order_id":"01a16059-664b-7ab8-8754-fa46db53482f","sl_client_order_id":"01a16059-664b-7abd-b835-8f9e97d05df4","account_id":"01a15f3c-3e2e-79f9-90b3-7c2a9f5ba097","symbol":"ETH-USD","sequence_id":93821961,"message_id":"1792617834060-0"}
+primary: order id 243140841, status open
+openOrders: 3 orders: 243140841 limit buy open; 243140842 take_profit sell pending; 243140843 stop sell pending

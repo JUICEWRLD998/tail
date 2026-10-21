@@ -20,8 +20,8 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Position sizing (risk, notional, leverage, lot step) | LIVE | `npm test`. Floors to the lot step, never rounds up |
 | Fade (flip side, swap TP and SL, show the inverted reward-to-risk) | LIVE | `npm test` |
 | Strike request signing (Ed25519) | LIVE | `npm test` (RFC 8032 vector); Strike accepted a signed `GET /v2/account` on testnet, `docs/proof/spike-a.json` |
-| Strike client, bracket order from the CLI | NEXT | Waiting on a funded testnet API wallet |
-| Telegram bot, cards, Tail and Fade buttons | NEXT | Waiting on the dev bot token |
+| Strike client, bracket order from the CLI | LIVE | `scripts/tail-once.ts`, testnet, ETH-USD. Proof: `docs/proof/p2-tail-once.txt` |
+| Telegram: read channel posts, post cards with deep-link buttons, edit them | LIVE (spike) | `docs/proof/spike-d.json`. The bot itself is NEXT |
 | Builder Connect from a script (Solana wallet) | LIVE | `scripts/scripted-follower.ts`, testnet. Fees on orders: NEXT |
 | Caller record and earnings pages | NOT LIVE | |
 | Payout to callers | NOT LIVE | |
@@ -40,10 +40,10 @@ possible entries, a stop on the wrong side of the entry), the bot asks one quest
 
 | Strike feature | Use | Status |
 |---|---|---|
-| `POST /v2/order/strategy` | entry, take-profit and stop-loss in one request | NEXT |
+| `POST /v2/order/strategy` | entry, take-profit and stop-loss in one request; the order's final status is read afterwards, because a 201 only means sequenced | LIVE |
 | `GET /price/v2/exchangeInfo` | listed markets, tick size, lot step, minimum notional | read; used by the parser and sizing |
-| `GET /v2/account` | follower equity (`margin_balance`) for sizing | NEXT |
-| API wallets (Ed25519 signed requests) | trade without withdrawal rights | signing LIVE, calls NEXT |
+| `GET /v2/account` | follower equity (`margin_balance`) for sizing | LIVE |
+| API wallets (Ed25519 signed requests) | trade without withdrawal rights | LIVE |
 | Builder Connect and `X-Builder-Fee-Bps` | one-signature onboarding, caller fee per fill | NEXT |
 
 ## Verify in 60 seconds
@@ -54,6 +54,11 @@ npm test
 ```
 
 Expect all tests green. `npm run test:cov` prints coverage for `src/core` and `src/strike/sign.ts`.
+
+## Testnet notes
+
+Testnet order books are thin. Only ETH-USD has a book that agrees with its mark price; limit orders on ADA-USD, SOL-USD and
+BTC-USD were rejected as `order_price_out_of_limit` (details in [DECISIONS.md](DECISIONS.md)). Demos run on ETH-USD.
 
 ## What Tail is not
 

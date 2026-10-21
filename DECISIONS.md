@@ -2,6 +2,20 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-21 21:45 UTC: P0 and P2 exit checks PASSED
+
+- **P0 exit met:** five spike results with real responses are above (A signing + account, B bracket, C fill and fees,
+  D Telegram, E Builder Connect), keys never printed. `npm run spikes` reruns A and B green (ETH-USD, places and cancels).
+- **P2 exit met:** `TAIL_RISK_PCT=3 npx tsx scripts/tail-once.ts "ETH long 2480 tp 2560 sl 2420 5x" --place` parsed the call,
+  read `margin_balance` 19.92115252, sized 0.009 ETH (notional 22.32, risk 0.54 USD), placed the bracket, and read the primary
+  as `open` with order id **243140841**; `GET /v2/openOrders` listed 3 orders: `limit buy open`, `take_profit sell pending`,
+  `stop sell pending`. Output in `docs/proof/p2-tail-once.txt`. The orders were then cancelled; nothing is left open.
+- `tail-once` now reads the primary's final status before printing success, and exits 1 on `rejected`.
+- Why `TAIL_RISK_PCT=3`: at the default 1% a 19.92 USD account risks 0.20 USD, which sizes below the 10 USD minimum
+  notional, and sizing correctly refuses. Small test accounts need a higher risk percent or more margin.
+- Open: builder-fee reporting on a fill (needs a funded builder-code wallet, P4); why the position showed leverage 20.
+- Next: P3, the Telegram bot's thin path.
+
 ## 2026-10-21 21:36 UTC: Spike C PASSED (fills and fees, live, ETH-USD)
 
 - Market bracket buy 0.006 ETH-USD (about $15 notional) with TP +3% and SL -3% of mark. Primary `Status: filled`,

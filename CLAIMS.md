@@ -12,9 +12,11 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | Request signing follows the documented message and Ed25519 | `npx vitest run test/sign.test.ts` | pass (RFC 8032 test 1) |
 | Strike accepts our signed request; an unregistered key gets 401 | `set -a; . ./.env; set +a; npx tsx scripts/spike-a.ts` (needs a registered API wallet) | 200 and `margin_balance`; output in `docs/proof/spike-a.json` |
 | Builder Connect works with no browser | `BUILDER_CODE=<code> npx tsx scripts/scripted-follower.ts` | verify-signature 200, new account id |
+| A parsed call becomes a real testnet bracket and Strike lists it | `TAIL_RISK_PCT=3 npx tsx scripts/tail-once.ts "ETH long 2480 tp 2560 sl 2420 5x" --place` | primary `open`, openOrders lists the limit, take_profit and stop; output in `docs/proof/p2-tail-once.txt` |
+| A market bracket fills and reports a fee | `npx tsx scripts/spike-c.ts` | primary `filled`, fill has `fee` and `fee_type`; `docs/proof/spike-c.json` |
+| Telegram card with deep-link buttons, DM `/start`, card edit | `npx tsx scripts/spike-d.ts` (needs a tap) | outcome ok; `docs/proof/spike-d.json` |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |
 
 ## Not yet claimed
 
-- That a bracket order fills and reports fees (Spikes B, C).
-- That the bot reads channel posts and edits cards (Spike D).
+- That a builder fee appears on a fill (needs a funded builder-code wallet).
