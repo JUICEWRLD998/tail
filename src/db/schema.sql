@@ -75,3 +75,23 @@ CREATE TABLE IF NOT EXISTS misses (
   count    INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (symbol, chat_id)
 );
+
+-- Builder Connect: a one-time link token (10 min) bound to the Telegram user who asked for it.
+CREATE TABLE IF NOT EXISTS connect_tokens (
+  token       TEXT PRIMARY KEY,
+  tg_id       INTEGER NOT NULL,
+  expires_at  TEXT NOT NULL,
+  used_at     TEXT
+);
+
+-- The API wallet key generated for a connect attempt, held (encrypted) until the wallet signature arrives (5 min).
+CREATE TABLE IF NOT EXISTS connect_pending (
+  nonce         TEXT PRIMARY KEY,
+  token         TEXT NOT NULL,
+  tg_id         INTEGER NOT NULL,
+  address       TEXT NOT NULL,
+  chain         TEXT NOT NULL,
+  api_pub       TEXT NOT NULL,
+  api_priv_enc  TEXT NOT NULL,
+  expires_at    TEXT NOT NULL
+);
