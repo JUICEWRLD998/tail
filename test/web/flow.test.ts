@@ -66,8 +66,8 @@ describe("runConnect", () => {
     return {
       seen,
       info: async () => ({ ok: true, builderCode: "sigma", feeCapBps: 10, chains: ["ethereum"] }),
-      challenge: async (t, b) => (seen.push(["challenge", t, b]), { ok: true, nonce: "n1", message: "Sign this" }),
-      complete: async (t, b) => (seen.push(["complete", t, b]), { ok: true, address: "0x0c3a…741d" }),
+      challenge: async (t: string, b: unknown) => (seen.push(["challenge", t, b]), { ok: true, nonce: "n1", message: "Sign this" }),
+      complete: async (t: string, b: unknown) => (seen.push(["complete", t, b]), { ok: true, address: "0x0c3a…741d" }),
       ...over,
     } as never;
   }
