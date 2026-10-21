@@ -83,7 +83,10 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
 
   return {
     network, baseUrl: BASE_URLS[network], mode, token: env.TELEGRAM_BOT_TOKEN, kek,
-    dbPath: env.TAIL_DB ?? "data/tail.db", ownerTgId, linkKey: env.SPIKE_API_PRIV || undefined,
+    dbPath: env.TAIL_DB ?? "data/tail.db",
+    // /link is a dev convenience that installs a server-held key. Production wallets arrive only through Builder Connect.
+    ownerTgId: mode === "prod" ? undefined : ownerTgId,
+    linkKey: mode === "prod" ? undefined : env.SPIKE_API_PRIV || undefined,
     builderCode: env.BUILDER_CODE || undefined, builderFeeBps, publicUrl, port, webhookSecret, webhookPath,
   };
 }
