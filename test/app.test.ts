@@ -14,7 +14,7 @@ const strike = {
   account: async () => ({ margin_balance: "19.92", blockchain: "ethereum", blockchain_address: "0x0C3aD0348879998C97106Feb1d0AE9406A6A741d", account_id: "acc-1" }),
   placeBracket: async () => ({ primary_client_order_id: "pc-1" }),
   order: async () => ({ ID: 1, Status: "open", CloseReason: "" }),
-  builderRequestSignature: async (i: { publicKey: string }) => ({ nonce: "n1", message_to_sign: `sign for ${i.publicKey.slice(0, 8)}` }),
+  builderRequestSignature: async (i: { publicKey: string }) => ((lastPub = i.publicKey), { nonce: "n1", message_to_sign: `sign for ${i.publicKey.slice(0, 8)}` }),
   builderVerifySignature: async () => ({ account_id: "acc-9", api_wallet_public_key: lastPub, fee_share_bps: 10, builder_code: "sigma" }),
 } as unknown as StrikeLike & Record<string, unknown>;
 let lastPub = "";
@@ -96,11 +96,6 @@ describe("connect, end to end through the server", () => {
 
     const ch = await app.server.inject({ method: "POST", url: `/api/connect/${token}/challenge`, payload: { address: "0x0C3aD0348879998C97106Feb1d0AE9406A6A741d", chain: "ethereum" } });
     expect(ch.json()).toMatchObject({ ok: true, nonce: "n1" });
-    lastPub = (app.store as any).takePending ? "" : "";
-    // The fake Strike must echo the public key we generated; read it back from the pending record.
-    const pending = app.store.takePending("n1", token, new Date().toISOString())!;
-    lastPub = pending.apiPub;
-    app.store.savePending({ nonce: "n1", token, tgId: pending.tgId, address: pending.address, chain: pending.chain, apiPub: pending.apiPub, apiPrivEnc: pending.apiPrivEnc, createdAt: new Date().toISOString() });
 
     const done = await app.server.inject({ method: "POST", url: `/api/connect/${token}/complete`, payload: { nonce: "n1", signature: "0xsig" } });
     expect(done.json()).toEqual({ ok: true, address: "0x0C3a…741d" });
