@@ -218,3 +218,86 @@ describe("misses", () => {
     expect(s.missCount("PEPE", -1001)).toBe(0);
   });
 });
+
+describe("queries for the live-state jobs", () => {
+  const draft = (over = {}) => ({
+    chatId: -1001, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long" as const, entryKind: "limit" as const, entry: "2480.00",
+    tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: T0, ...over,
+  });
+  const open = (s: Store, over = {}) => {
+    const id = s.createDraftCall(draft(over));
+    s.openCall(id, 50 + id);
+    return id;
+  };
+
+  it("openCalls returns only open calls", () => {
+    const s = fresh();
+    const a = open(s);
+    s.createDraftCall(draft()); // stays a draft
+    const c = open(s);
+    s.finishCall(c, { status: "tp_hit", resultPrice: "2561.00", closedAt: T0 });
+    expect(s.openCalls().map((x) => x.id)).toEqual([a]);
+  });
+
+  it("markEntered records the entry once", () => {
+    const s = fresh();
+    const id = open(s);
+    expect(s.markEntered(id, "2480.00", at(1))).toBe(true);
+    expect(s.markEntered(id, "2470.00", at(2))).toBe(false);
+    expect(s.getCall(id)).toMatchObject({ enteredAt: at(1), enteredPrice: "2480.00" });
+  });
+
+  it("finishCall closes an open call exactly once (the first caller wins)", () => {
+    const s = fresh();
+    const id = open(s);
+    expect(s.finishCall(id, { status: "sl_hit", resultPrice: "2419.00", closedAt: at(3) })).toBe(true);
+    expect(s.finishCall(id, { status: "tp_hit", resultPrice: "2561.00", closedAt: at(4) })).toBe(false);
+    expect(s.getCall(id)).toMatchObject({ status: "sl_hit", resultPrice: "2419.00", closedAt: at(3) });
+  });
+
+  it("setReceipt stores the receipt message id", () => {
+    const s = fresh();
+    const id = open(s);
+    s.setReceipt(id, 777);
+    expect(s.getCall(id)?.receiptMessageId).toBe(777);
+  });
+
+  it("activeTails returns placed and filled tails, not rejected, cancelled or closed ones", () => {
+    const s = fresh();
+    const call = open(s);
+    const mk = (tg: number, status: "placed" | "filled" | "rejected" | "cancelled" | "closed" | "quoted") => {
+      const id = s.createTail({ callId: call, tgId: tg, mode: "tail", strategyId: `s${tg}`, size: "1", notionalUsd: "1", feeBps: 0, createdAt: T0 });
+      s.updateTail(id, { status });
+      return id;
+    };
+    const placed = mk(1, "placed");
+    const filled = mk(2, "filled");
+    mk(3, "rejected");
+    mk(4, "cancelled");
+    mk(5, "closed");
+    mk(6, "quoted");
+    expect(s.activeTails().map((t) => t.id).sort()).toEqual([placed, filled].sort());
+  });
+
+  it("callsOfChat lists decided and open calls for the record, never drafts or cancelled", () => {
+    const s = fresh();
+    open(s);
+    s.createDraftCall(draft());
+    const dropped = s.createDraftCall(draft());
+    s.cancelDraft(dropped);
+    open(s, { chatId: -2002 });
+    expect(s.callsOfChat(-1001).length).toBe(1);
+  });
+
+  it("followersIn counts distinct followers with a live tail on the chat's calls", () => {
+    const s = fresh();
+    const c1 = open(s);
+    const c2 = open(s);
+    const live = (call: number, tg: number, status: "placed" | "filled" | "rejected") => s.updateTail(s.createTail({ callId: call, tgId: tg, mode: "tail", strategyId: `${call}-${tg}`, size: "1", notionalUsd: "1", feeBps: 0, createdAt: T0 }), { status });
+    live(c1, 1, "placed");
+    live(c2, 1, "filled"); // same follower again: counted once
+    live(c1, 2, "placed");
+    live(c1, 3, "rejected"); // not live
+    expect(s.followersIn(-1001)).toBe(2);
+  });
+});
