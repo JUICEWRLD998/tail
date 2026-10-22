@@ -197,7 +197,7 @@ export function createService(d: ServiceDeps) {
       });
       const strike = d.strikeFor(user);
 
-      let created: { primary_client_order_id?: string };
+      let created: { primary_client_order_id?: string; tp_client_order_id?: string; sl_client_order_id?: string };
       try {
         created = await strike.placeBracket(bracket);
       } catch (e) {
@@ -212,6 +212,11 @@ export function createService(d: ServiceDeps) {
 
       // A 201 only means "sequenced". Strike can still reject the primary afterwards, so read its final status.
       const clientId = created.primary_client_order_id as string;
+      // Kept so the reconciliation job can tell when a protective leg has closed the position.
+      const legs = {
+        ...(created.tp_client_order_id ? { tpClientOrderId: created.tp_client_order_id } : {}),
+        ...(created.sl_client_order_id ? { slClientOrderId: created.sl_client_order_id } : {}),
+      };
       let primary: any;
       try {
         for (let n = 0; n < attempts; n++) {
@@ -220,17 +225,17 @@ export function createService(d: ServiceDeps) {
           await d.sleep(500);
         }
       } catch {
-        store.updateTail(tail.id, { primaryClientOrderId: clientId, error: "unconfirmed" });
+        store.updateTail(tail.id, { primaryClientOrderId: clientId, error: "unconfirmed", ...legs });
         return { text: "Sent to Strike, but could not read its status. Check your open orders on Strike." };
       }
       if (primary.Status === "rejected") {
         const code = (primary.CloseReason as string) || "rejected";
-        store.updateTail(tail.id, { status: "rejected", error: code, primaryClientOrderId: clientId });
+        store.updateTail(tail.id, { status: "rejected", error: code, primaryClientOrderId: clientId, ...legs });
         return { text: rejectionText(code) };
       }
       const filled = primary.Status === "filled";
       store.updateTail(tail.id, {
-        status: filled ? "filled" : "placed", orderId: String(primary.ID), primaryClientOrderId: clientId,
+        status: filled ? "filled" : "placed", orderId: String(primary.ID), primaryClientOrderId: clientId, ...legs,
         ...(filled ? { filledAt: d.now() } : {}),
       });
       const text = filled
