@@ -469,7 +469,7 @@ describe("confirm", () => {
     build({ order: { ID: 5, Status: "rejected", CloseReason: "order_price_out_of_limit" } });
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Strike rejected the order: order_price_out_of_limit.");
+    expect(r.text).toBe("Strike rejected the order: the entry price is too far from the market price.");
     expect(r.cardEdit).toBeUndefined();
     expect(store.getTail(tailId)).toMatchObject({ status: "rejected", error: "order_price_out_of_limit" });
     expect(store.tailCounts(1)).toEqual({ tailed: 0, faded: 0 });
@@ -528,7 +528,7 @@ describe("confirm", () => {
     build({ throwOnPlace: new StrikeError(400, "POST", "/v2/order/strategy", "account has not approved builder \"sigma\"") });
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Strike rejected the order: account has not approved builder \"sigma\".");
+    expect(r.text).toBe("Strike rejected the order: your wallet has not approved this builder. Reconnect with /connect.");
     expect(store.getTail(tailId)).toMatchObject({ status: "rejected" });
   });
 

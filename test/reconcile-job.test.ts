@@ -97,7 +97,7 @@ describe("runReconcile", () => {
     script.primary = { [`p-${t}`]: { ID: 100, Status: "rejected", CloseReason: "order_price_out_of_limit" } };
     await runReconcile(deps());
     expect(store.getTail(t)).toMatchObject({ status: "rejected", error: "order_price_out_of_limit" });
-    expect(dms[0]?.text).toBe("Strike rejected your ETH-USD order: order_price_out_of_limit.");
+    expect(dms[0]?.text).toBe("Strike rejected your ETH-USD order: the entry price is too far from the market price.");
     expect(edits).toHaveLength(1);
     expect(edits[0]).toMatchObject({ chatId: -1001, messageId: 70 });
     expect(edits[0]?.text).toContain("Tailed 0 · Faded 0");

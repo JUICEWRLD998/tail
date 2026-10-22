@@ -86,8 +86,13 @@ describe("refusal and rejection text", () => {
     expect(refusalText({ reason: "below_min_notional", detail: "notional 7.44 USD is below the market minimum 10" } as never)).toContain("notional 7.44 USD is below the market minimum 10");
   });
 
-  it("shows Strike's rejection code, HTML-escaped", () => {
-    expect(rejectionText("order_price_out_of_limit")).toBe("Strike rejected the order: order_price_out_of_limit.");
+  it("explains a known Strike rejection in plain words", () => {
+    expect(rejectionText("order_price_out_of_limit")).toBe("Strike rejected the order: the entry price is too far from the market price.");
+    expect(rejectionText("insufficient_balance")).toBe("Strike rejected the order: not enough margin on your Strike account for this size.");
+  });
+
+  it("shows an unknown Strike rejection code as-is, HTML-escaped", () => {
+    expect(rejectionText("something_new")).toBe("Strike rejected the order: something_new.");
     expect(rejectionText("<b>x</b>")).toBe("Strike rejected the order: &lt;b&gt;x&lt;/b&gt;.");
   });
 });
