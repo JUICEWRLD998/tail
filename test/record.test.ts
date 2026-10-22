@@ -53,6 +53,10 @@ describe("recordText (what a caller reads)", () => {
     expect(t).toBe("Tail test channel\n3 calls · 1 open · 1 target · 1 stop\nHit rate 50.0% · average 0.17R\nFollowers in: 3\nTestnet.");
   });
 
+  it("uses the singular for one call", () => {
+    expect(recordText("X", summarize([call("open")], 0))).toBe("X\n1 call · 1 open · 0 target · 0 stop\nFollowers in: 0\nTestnet.");
+  });
+
   it("omits hit rate and R until a call has a result, but still shows counts", () => {
     expect(recordText("X", summarize([call("open"), call("expired")], 1))).toBe("X\n2 calls · 1 open · 0 target · 0 stop · 1 expired\nFollowers in: 1\nTestnet.");
   });

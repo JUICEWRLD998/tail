@@ -206,6 +206,15 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
       VALUES (@nonce, @token, @tgId, @address, @chain, @apiPub, @apiPrivEnc, @expiresAt)`),
     getPending: db.prepare("SELECT * FROM connect_pending WHERE nonce = ? AND token = ? AND expires_at > ?"),
     delPending: db.prepare("DELETE FROM connect_pending WHERE nonce = ?"),
+    openCalls: db.prepare("SELECT * FROM calls WHERE status = 'open' ORDER BY id"),
+    markEntered: db.prepare("UPDATE calls SET entered_at = ?, entered_price = ? WHERE id = ? AND status = 'open' AND entered_at IS NULL"),
+    finishCall: db.prepare("UPDATE calls SET status = ?, result_price = ?, closed_at = ? WHERE id = ? AND status = 'open'"),
+    setReceipt: db.prepare("UPDATE calls SET receipt_message_id = ? WHERE id = ?"),
+    activeTails: db.prepare("SELECT * FROM tails WHERE status IN ('placed','filled') ORDER BY id"),
+    callsOfChat: db.prepare("SELECT * FROM calls WHERE chat_id = ? AND status NOT IN ('draft','cancelled') ORDER BY id"),
+    followersIn: db.prepare(`
+      SELECT COUNT(DISTINCT t.tg_id) n FROM tails t JOIN calls c ON c.id = t.call_id
+      WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed')`),
     miss: db.prepare(`
       INSERT INTO misses (symbol, chat_id, count) VALUES (?, ?, 1)
       ON CONFLICT(symbol, chat_id) DO UPDATE SET count = count + 1`),
@@ -343,6 +352,19 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
         return { nonce: r.nonce as string, tgId: r.tg_id as number, address: r.address as string, chain: r.chain as string, apiPub: r.api_pub as string, apiPrivEnc: r.api_priv_enc as string };
       })();
     },
+
+    openCalls: (): Call[] => q.openCalls.all().map(mapCall),
+    /** Records the entry once; false if the call already entered or is no longer open. */
+    markEntered: (id: number, price: string, at: string): boolean => q.markEntered.run(at, price, id).changes === 1,
+    /** Closes an open call exactly once; the first caller wins and a later one gets false. */
+    finishCall: (id: number, r: { status: "tp_hit" | "sl_hit" | "expired"; resultPrice: string | null; closedAt: string }): boolean =>
+      q.finishCall.run(r.status, r.resultPrice, r.closedAt, id).changes === 1,
+    setReceipt(id: number, messageId: number) {
+      q.setReceipt.run(messageId, id);
+    },
+    activeTails: (): Tail[] => q.activeTails.all().map(mapTail),
+    callsOfChat: (chatId: number): Call[] => q.callsOfChat.all(chatId).map(mapCall),
+    followersIn: (chatId: number): number => (q.followersIn.get(chatId) as { n: number }).n,
 
     recordMiss(symbol: string, chatId: number) {
       q.miss.run(symbol, chatId);

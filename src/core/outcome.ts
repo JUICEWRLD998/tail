@@ -60,7 +60,7 @@ export function evaluateCall(call: OutcomeCall, mark: string, nowMs: number, ttl
 }
 
 /** Ideal R for a finished call: the call's reward-to-risk on a target, -1 on a stop. Null if undefined (expired, no entry). */
-export function resultR(call: OutcomeCall, state: "tp_hit" | "sl_hit"): string | null {
+export function resultR(call: Pick<OutcomeCall, "side" | "entry" | "enteredPrice" | "tp" | "sl">, state: "tp_hit" | "sl_hit"): string | null {
   if (state === "sl_hit") return "-1";
   const entry = call.entry ?? call.enteredPrice;
   return entry === null ? null : rewardRisk({ side: call.side, entry, tp: call.tp, sl: call.sl });
