@@ -44,12 +44,12 @@ let strike: ReturnType<typeof fakeStrike>;
 let svc: Service;
 let n = 0;
 
-function build(o: FakeOpts = {}) {
+function build(o: FakeOpts = {}, limits: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number } = {}) {
   strike = fakeStrike(o);
   svc = createService({
     store, kek, botUsername: "tailbot",
     publicStrike: strike, strikeFor: () => strike, clientForKey: () => strike,
-    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3,
+    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits,
   });
 }
 
@@ -210,6 +210,84 @@ describe("questions with answers (the ask flow)", () => {
     const r = await dmOf("#DOGE/USDT long 0.1 tp 0.2 sl 0.09");
     expect(r.reply.text).toBe("Not on Strike yet: DOGE.");
     expect(r.reply.buttons).toBeUndefined();
+  });
+});
+
+describe("guard rails", () => {
+  const post = (text: string) => svc.onCallerPost({ chatId: CHAT, messageId: 9, text });
+  const callN = (n: number) => `ETH long ${2400 + n} tp ${2600 + n} sl ${2300 + n}`;
+
+  it("limits calls per channel per hour, tells the caller, and recovers after the hour", async () => {
+    build({}, { maxCallsPerHour: 3 });
+    for (let n = 0; n < 3; n++) expect(await post(callN(n))).toMatchObject({ type: "dm" });
+    expect(store.getCall(3)).toBeDefined();
+    const blocked = await post(callN(3));
+    expect(blocked).toMatchObject({ type: "dm", tgId: CALLER });
+    if (blocked.type !== "dm") throw new Error();
+    expect(blocked.reply.text).toBe("Too many calls in the last hour (limit 3). Wait before posting another.");
+    expect(store.getCall(4)).toBeUndefined();
+    advance(61);
+    expect(await post(callN(4))).toMatchObject({ type: "dm" });
+    expect(store.getCall(4)).toBeDefined();
+  });
+
+  it("the call limit is per channel, not global", async () => {
+    build({}, { maxCallsPerHour: 1 });
+    store.registerChannel({ chatId: -2002, title: "Other", kind: "channel", callerTgId: 901, createdAt: new Date(clock).toISOString() });
+    await post(callN(0));
+    const other = await svc.onCallerPost({ chatId: -2002, messageId: 1, text: callN(1) });
+    expect(other).toMatchObject({ type: "dm", tgId: 901 });
+    expect(store.getCall(2)).toMatchObject({ chatId: -2002 });
+  });
+
+  it("a questions or chatter do not count towards the limit", async () => {
+    build({}, { maxCallsPerHour: 2 });
+    for (let n = 0; n < 5; n++) await post("gm everyone");
+    for (let n = 0; n < 5; n++) await post("ETH 2480 tp 2560 sl 2420"); // asks about the side; no draft
+    expect(await post(callN(0))).toMatchObject({ type: "dm" });
+    expect(store.getCall(1)).toBeDefined();
+  });
+
+  it("ignores an identical call posted again within two minutes, then allows it", async () => {
+    build({}, { duplicateWindowMs: 2 * 60_000 });
+    await post(callN(0));
+    const again = await post(callN(0));
+    if (again.type !== "dm") throw new Error();
+    expect(again.reply.text).toBe("This call was already posted a moment ago.");
+    expect(store.getCall(2)).toBeUndefined();
+    advance(3);
+    await post(callN(0));
+    expect(store.getCall(2)).toBeDefined();
+  });
+
+  it("caps a follower's open tails", async () => {
+    build({}, { maxOpenTails: 2 });
+    linkFollower();
+    for (let n = 0; n < 2; n++) {
+      const call = openCall({ entry: String(2480 + n) + ".00" });
+      const t = store.createTail({ callId: call, tgId: FOLLOWER, mode: "tail", strategyId: `s${n}`, size: "0.009", notionalUsd: "22", feeBps: 0, createdAt: new Date(clock).toISOString() });
+      store.updateTail(t, { status: n === 0 ? "placed" : "filled" });
+    }
+    const third = openCall();
+    expect(await svc.quote({ tgId: FOLLOWER, callId: third, mode: "tail" })).toEqual({ ok: false, text: "You have 2 open Tail positions. Wait for one to close first." });
+  });
+
+  it("closed and rejected tails do not count against the cap", async () => {
+    build({}, { maxOpenTails: 1 });
+    linkFollower();
+    const c1 = openCall();
+    const t1 = store.createTail({ callId: c1, tgId: FOLLOWER, mode: "tail", strategyId: "s1", size: "1", notionalUsd: "1", feeBps: 0, createdAt: new Date(clock).toISOString() });
+    store.updateTail(t1, { status: "closed" });
+    const c2 = openCall();
+    expect(await svc.quote({ tgId: FOLLOWER, callId: c2, mode: "tail" })).toMatchObject({ ok: true });
+  });
+
+  it("the defaults are 10 calls an hour and 10 open tails", async () => {
+    build();
+    for (let n = 0; n < 10; n++) await post(callN(n));
+    const blocked = await post(callN(11));
+    if (blocked.type !== "dm") throw new Error();
+    expect(blocked.reply.text).toContain("limit 10");
   });
 });
 
