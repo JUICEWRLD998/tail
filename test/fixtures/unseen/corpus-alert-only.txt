@@ -1,0 +1,4 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'alert-only' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: alert first, details later
+GOLD BUY NOW

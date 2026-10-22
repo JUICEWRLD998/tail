@@ -1,0 +1,14 @@
+{
+ "outcome": "card",
+ "draft": {
+  "symbol": "XAU-USD",
+  "side": "short",
+  "entryKind": "limit",
+  "entry": "4627.50",
+  "tp": "4623.00",
+  "sl": "4632.00",
+  "extraTargets": [
+   "4620.00"
+  ]
+ }
+}

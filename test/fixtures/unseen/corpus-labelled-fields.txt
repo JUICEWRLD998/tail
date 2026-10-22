@@ -1,0 +1,11 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'labelled-fields' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: labelled fields
+BUY XAUUSD
+
+Entry: 4345.16
+
+SL: 4330.16
+TP1: 4350.16
+TP2: 4355.16
+TP3: 4385.16

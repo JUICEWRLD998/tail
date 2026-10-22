@@ -1,0 +1,11 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'bare-inline-repeated-tp' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: bare inline, repeated target keyword
+XAUUSD BUY 4329
+
+TP 4334
+TP 4339
+TP 4344
+TP 4350 OPEN
+
+SL 4320

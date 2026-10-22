@@ -1,0 +1,6 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'tolerate-slash-zone' (MIT, published by jazzrabbit OU). synthetic, written by the corpus author to test one tolerance rule (label: synthetic)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: tolerance
+GOLD BUY 4438/4433
+SL 4428
+TP1 4443

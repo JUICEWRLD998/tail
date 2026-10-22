@@ -1,0 +1,16 @@
+{
+ "outcome": "card",
+ "draft": {
+  "symbol": "CTK-USD",
+  "side": "long",
+  "entryKind": "limit",
+  "entry": "1.380",
+  "tp": "1.430",
+  "sl": "1.280",
+  "extraTargets": [
+   "1.490",
+   "1.530",
+   "1.580"
+  ]
+ }
+}

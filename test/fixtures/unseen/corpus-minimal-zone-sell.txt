@@ -1,0 +1,7 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'minimal-zone-sell' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: minimum
+SELL XAUUSD 4626-4629
+SL 4632
+TP1 4623
+TP2 4620
