@@ -10,14 +10,19 @@ const botInfo = { id: 1, is_bot: true, first_name: "Tail", username: "tailbot", 
 const strike = {
   syncClock: async () => 0,
   markets: async () => MARKETS,
-  markPrice: async () => "2494.62",
+  markPrice: async () => markResult,
   account: async () => ({ margin_balance: "19.92", blockchain: "ethereum", blockchain_address: "0x0C3aD0348879998C97106Feb1d0AE9406A6A741d", account_id: "acc-1" }),
   placeBracket: async () => ({ primary_client_order_id: "pc-1" }),
-  order: async () => ({ ID: 1, Status: "open", CloseReason: "" }),
+  order: async () => orderResult,
+  fills: async () => ({ fills: [{ client_order_id: "pc-live", price: "2480.00", realized_pnl: "0" }] }),
+  openOrders: async () => ({ orders: [] }),
+  orderHistory: async () => ({ orders: [] }),
   builderRequestSignature: async (i: { publicKey: string }) => ((lastPub = i.publicKey), { nonce: "n1", message_to_sign: `sign for ${i.publicKey.slice(0, 8)}` }),
   builderVerifySignature: async () => ({ account_id: "acc-9", api_wallet_public_key: lastPub, fee_share_bps: 10, builder_code: "sigma" }),
 } as unknown as StrikeLike & Record<string, unknown>;
 let lastPub = "";
+let orderResult: Record<string, unknown> = { ID: 1, Status: "open", CloseReason: "" };
+let markResult = "2494.62";
 
 const env = (over: Record<string, string> = {}) => ({
   TELEGRAM_BOT_TOKEN: "123:abc", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: ":memory:",
@@ -102,5 +107,72 @@ describe("connect, end to end through the server", () => {
     expect(app.store.getUser(4444)).toMatchObject({ builderCode: "sigma", chain: "ethereum", strikeAccountId: "acc-9" });
     expect(api.filter((c) => c.method === "sendMessage").at(-1)?.payload).toMatchObject({ chat_id: 4444, text: "Linked 0x0C3a…741d. Tap Tail on a call card to trade." });
     expect(JSON.stringify(done.json())).not.toMatch(/[0-9a-f]{64}/);
+  });
+});
+
+
+describe("live-state jobs through the app", () => {
+  const seedOpenCall = (app: Awaited<ReturnType<typeof make>>["app"], over: Record<string, unknown> = {}) => {
+    app.store.registerChannel({ chatId: -1001, title: "Test", kind: "channel", callerTgId: 900, createdAt: new Date().toISOString() });
+    const id = app.store.createDraftCall({
+      chatId: -1001, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00",
+      leverageHint: null, createdAt: new Date().toISOString(), ...over,
+    } as never);
+    app.store.openCall(id, 55);
+    return id;
+  };
+
+  it("posts the receipt as a reply to the card and edits the card without the Tail and Fade buttons", async () => {
+    const { app, api } = await make(env());
+    const id = seedOpenCall(app);
+    markResult = "2479.00";
+    await app.runJobsOnce(); // enters
+    markResult = "2561.10";
+    await app.runJobsOnce(); // target
+    const receipt = api.find((c) => c.method === "sendMessage")!;
+    expect(receipt.payload).toMatchObject({ chat_id: -1001, parse_mode: "HTML", reply_parameters: { message_id: 55, allow_sending_without_reply: true } });
+    expect(receipt.payload.text).toContain("take profit hit");
+    const edit = api.find((c) => c.method === "editMessageText")!;
+    expect(edit.payload).toMatchObject({ chat_id: -1001, message_id: 55 });
+    expect(edit.payload.text).toContain("Result: take profit hit");
+    expect(edit.payload.reply_markup).toBeUndefined();
+    expect(app.store.getCall(id)?.status).toBe("tp_hit");
+    markResult = "2494.62";
+  });
+
+  it("reconciliation tells a follower their order filled, using the real bot API", async () => {
+    const { app, api } = await make(env());
+    const callId = seedOpenCall(app);
+    app.store.linkUser({ tgId: 4444, chain: "ethereum", address: "0xabc", strikeAccountId: "a", apiPub: "p", apiPrivEnc: "v1:a:b:c", builderCode: null, linkedAt: "t" });
+    const tail = app.store.createTail({ callId, tgId: 4444, mode: "tail", strategyId: "s1", size: "0.009", notionalUsd: "22", feeBps: 0, createdAt: new Date().toISOString() });
+    app.store.updateTail(tail, { status: "placed", primaryClientOrderId: "pc-live", orderId: "1" });
+    orderResult = { ID: 1, Status: "filled" };
+    await app.runJobsOnce();
+    expect(api.find((c) => c.method === "sendMessage" && c.payload.chat_id === 4444)?.payload.text).toBe("Filled: ETH-USD LONG 0.009 at 2480.00.");
+    expect(app.store.getTail(tail)?.status).toBe("filled");
+    orderResult = { ID: 1, Status: "open", CloseReason: "" };
+  });
+
+  it("a rejection edits the card counters and keeps the Tail and Fade buttons", async () => {
+    const { app, api } = await make(env());
+    const callId = seedOpenCall(app);
+    app.store.linkUser({ tgId: 4444, chain: "ethereum", address: "0xabc", strikeAccountId: "a", apiPub: "p", apiPrivEnc: "v1:a:b:c", builderCode: null, linkedAt: "t" });
+    const tail = app.store.createTail({ callId, tgId: 4444, mode: "tail", strategyId: "s1", size: "0.009", notionalUsd: "22", feeBps: 0, createdAt: new Date().toISOString() });
+    app.store.updateTail(tail, { status: "placed", primaryClientOrderId: "pc-live", orderId: "1" });
+    orderResult = { ID: 1, Status: "rejected", CloseReason: "order_price_out_of_limit" };
+    await app.runJobsOnce();
+    const edit = api.find((c) => c.method === "editMessageText")!;
+    expect(edit.payload.text).toContain("Tailed 0 · Faded 0");
+    expect(edit.payload.reply_markup.inline_keyboard[0].map((b: { url: string }) => b.url)).toEqual(["https://t.me/tailbot?start=t_1", "https://t.me/tailbot?start=f_1"]);
+    orderResult = { ID: 1, Status: "open", CloseReason: "" };
+  });
+
+  it("one job failing does not stop the other from running", async () => {
+    const { app } = await make(env());
+    seedOpenCall(app);
+    const real = strike.markPrice;
+    (strike as any).markPrice = async () => { throw new Error("price feed down"); };
+    await expect(app.runJobsOnce()).resolves.toBeDefined();
+    (strike as any).markPrice = real;
   });
 });
