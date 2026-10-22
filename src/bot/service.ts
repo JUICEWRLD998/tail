@@ -40,6 +40,8 @@ export interface ServiceDeps {
   uuid: () => string;
   sleep: (ms: number) => Promise<void>;
   pollAttempts?: number;
+  /** Abuse limits. Defaults: 10 calls per channel per hour, 10 open tails per follower, 2 minutes to repeat a call. */
+  limits?: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number };
 }
 
 const QUOTE_TTL_MS = 5 * 60_000;
@@ -58,6 +60,10 @@ function strikeMessage(e: unknown): { text: string; strike: boolean } {
 export function createService(d: ServiceDeps) {
   const { store } = d;
   const attempts = d.pollAttempts ?? 20;
+  const maxOpenTails = d.limits?.maxOpenTails ?? 10;
+  const maxCallsPerHour = d.limits?.maxCallsPerHour ?? 10;
+  const duplicateWindowMs = d.limits?.duplicateWindowMs ?? 2 * 60_000;
+  const before = (ms: number) => new Date(Date.parse(d.now()) - ms).toISOString();
 
   const FOLLOW_UP: Record<string, string> = {
     sl: " Post the call again with it.", tp: " Post the call again with it.", entry: " Post the call again with it.",
@@ -84,6 +90,13 @@ export function createService(d: ServiceDeps) {
       return { type: "dm", tgId: callerTgId, reply: { text: `${question}${FOLLOW_UP[field] ?? ""}` } };
     }
     const dr = r.draft;
+    // Abuse limits apply only to a real call about to become a draft, never to chatter or a question.
+    if (store.hasRecentCall(i.chatId, i.text, before(duplicateWindowMs))) {
+      return { type: "dm", tgId: callerTgId, reply: { text: "This call was already posted a moment ago." } };
+    }
+    if (store.countCallsSince(i.chatId, before(3_600_000)) >= maxCallsPerHour) {
+      return { type: "dm", tgId: callerTgId, reply: { text: `Too many calls in the last hour (limit ${maxCallsPerHour}). Wait before posting another.` } };
+    }
     const id = store.createDraftCall({
       chatId: i.chatId, messageId: i.messageId, rawText: i.text, symbol: dr.symbol, side: dr.side, entryKind: dr.entryKind,
       entry: dr.entry, tp: dr.tp, sl: dr.sl, leverageHint: dr.leverageHint, createdAt: d.now(),
@@ -159,6 +172,9 @@ export function createService(d: ServiceDeps) {
       const call = store.getCall(i.callId);
       if (!call || call.status !== "open") return { ok: false, text: "This call is closed." };
       if (store.findLiveTail(call.id, i.tgId)) return { ok: false, text: "You already took this call." };
+      if (store.countLiveTails(i.tgId) >= maxOpenTails) {
+        return { ok: false, text: `You have ${maxOpenTails} open Tail positions. Wait for one to close first.` };
+      }
 
       let equity: string;
       let mark: string | null = null;

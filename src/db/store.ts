@@ -234,6 +234,8 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     newAsk: db.prepare("INSERT INTO asks (tg_id, chat_id, message_id, raw_text, field, options, created_at) VALUES (@tgId, @chatId, @messageId, @rawText, @field, @options, @createdAt)"),
     getAsk: db.prepare("SELECT * FROM asks WHERE id = ? AND tg_id = ? AND used_at IS NULL AND created_at > ?"),
     useAsk: db.prepare("UPDATE asks SET used_at = ? WHERE id = ? AND used_at IS NULL"),
+    callsSince: db.prepare("SELECT COUNT(*) n FROM calls WHERE chat_id = ? AND created_at > ?"),
+    recentSame: db.prepare("SELECT id FROM calls WHERE chat_id = ? AND raw_text = ? AND created_at > ? AND status != 'cancelled' LIMIT 1"),
     miss: db.prepare(`
       INSERT INTO misses (symbol, chat_id, count) VALUES (?, ?, 1)
       ON CONFLICT(symbol, chat_id) DO UPDATE SET count = count + 1`),
@@ -404,6 +406,10 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
         return { chatId: r.chat_id as number, messageId: r.message_id as number | null, rawText: r.raw_text as string, field: r.field as string, options: JSON.parse(r.options) as string[] };
       })();
     },
+
+    /** Calls created in a chat after `sinceIso`, of any status: the basis of the per-channel spam limit. */
+    countCallsSince: (chatId: number, sinceIso: string): number => (q.callsSince.get(chatId, sinceIso) as { n: number }).n,
+    hasRecentCall: (chatId: number, rawText: string, sinceIso: string): boolean => q.recentSame.get(chatId, rawText, sinceIso) !== undefined,
 
     recordMiss(symbol: string, chatId: number) {
       q.miss.run(symbol, chatId);
