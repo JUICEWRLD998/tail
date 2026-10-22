@@ -2,6 +2,15 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 12:20 UTC: live follower test, first attempt did not place; bot restarted
+
+- He posted `ETH-USD LONG NOW / TP 2404 / SL 2390 / 5x` in the test channel; the card appeared (call 2) and Tail produced a quote
+  (tail 2, size 0.041, 98.45 USD, from his 19.92 USD equity). Confirm never reached the bot: tail 2 stayed `quoted`, Strike
+  showed no order, position or history. The dev bot had hit its 2-hour background cap and stopped. Restarted (new 2 h).
+- My own probe first used the repo `.env` keys and got 401; the bot's environment key works (`GET /v2/account` 200, equity
+  19.92). Lesson written into `product-hardening` Pitfalls with the `|| true` and bot-cap lessons.
+- Still open for P6: Fade end to end and a real fill from a follower tap (his taps).
+
 ## 2026-10-22 P7 built (795 tests + 115 browser checks); not deployed
 
 - **Fee rate is now stored per tail.** Every tail recorded `fee_bps` 0 until now, so no earnings could be computed. A tail takes

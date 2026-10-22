@@ -110,3 +110,9 @@ appears on two parents (settling one must pay only that one).
 - `references/demo-seam-audit.md` — the worked audit this skill was distilled from: the exact
   seams found in an agent-built payment-reconciliation service, the fixes in prose, and the live
   verification transcript.
+- A check with `|| true`, or a "control" that compares a constant with itself, asserts nothing and reports green. Every
+  planted control must run the real comparison on altered input and be seen to fail. Grep your own probe for `|| true`.
+- A repo `.env` can hold older keys than the environment the service runs in. Probing with `. ./.env` returned 401 and
+  looked like a revoked key. Probe with the same environment the service uses, and say which one you used.
+- A background bot has a hard time cap (2 hours here) and dies silently, so "I tapped Confirm and nothing happened"
+  can be a dead process, not a bug. Before a live test check the process and the log, and restart so the cap outlasts it.
