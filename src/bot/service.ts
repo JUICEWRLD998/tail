@@ -1,5 +1,6 @@
 // Tail's application logic: everything a user can do, with Telegram and Strike injected.
 // The model builds nothing here. Every order is parsed and sized by tested deterministic code.
+import type { AiReader } from "../ai/openrouter.js";
 import { fadeOf, rewardRisk } from "../core/fade.js";
 import { bracketFromDraft } from "../core/order.js";
 import { parseCall, type Hints, type ParseResult } from "../core/parser.js";
@@ -42,6 +43,8 @@ export interface ServiceDeps {
   pollAttempts?: number;
   /** Abuse limits. Defaults: 10 calls per channel per hour, 10 open tails per follower, 2 minutes to repeat a call. */
   limits?: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number };
+  /** Optional fallback reader for calls the parser could not read. Its output is a proposal the caller must confirm. */
+  ai?: AiReader;
 }
 
 const QUOTE_TTL_MS = 5 * 60_000;
@@ -55,6 +58,14 @@ function strikeMessage(e: unknown): { text: string; strike: boolean } {
     return { text: `Strike said: ${escapeHtml(e.strikeError)}.${relink}`, strike: true };
   }
   return { text: "Could not reach Strike. Try again.", strike: false };
+}
+
+/** A parse failure is worth an AI reading when it is a question, or free text that names a listed market and has levels. */
+function worthAReading(reason: string, text: string, markets: Readonly<Record<string, unknown>>): boolean {
+  if (reason !== "not_a_call") return true;
+  const numbers = text.match(/\d+(?:\.\d+)?/g) ?? [];
+  const lower = text.toLowerCase();
+  return numbers.length >= 3 && Object.keys(markets).some((m) => lower.includes(m.replace(/-USD$/, "").toLowerCase()));
 }
 
 export function createService(d: ServiceDeps) {
@@ -72,7 +83,17 @@ export function createService(d: ServiceDeps) {
 
   /** Parses a call and turns the result into what the caller sees: a confirm card, a question, or nothing. */
   async function processCall(callerTgId: number, i: { chatId: number; messageId: number; text: string }, hints: Hints): Promise<CallerPostResult> {
-    const r: ParseResult = parseCall(i.text, { markets: await marketMap() }, hints);
+    const ctx = { markets: await marketMap() };
+    let r: ParseResult = parseCall(i.text, ctx, hints);
+    let aiRead = false;
+    // Only a first reading may use the AI: an answer to a question (hints) is final.
+    if (!r.ok && r.reason !== "not_listed" && d.ai?.enabled && Object.keys(hints).length === 0 && worthAReading(r.reason, i.text, ctx.markets)) {
+      const proposal = await d.ai.read(i.text, ctx, i.chatId);
+      if (proposal.ok) {
+        r = { ok: true, draft: proposal.draft };
+        aiRead = true;
+      }
+    }
     if (!r.ok) {
       if (r.reason === "not_a_call") return { type: "ignore" };
       if (r.reason === "not_listed") {
@@ -104,7 +125,7 @@ export function createService(d: ServiceDeps) {
     return {
       type: "dm", tgId: callerTgId,
       reply: {
-        text: callerConfirmCard({ ...dr, extraTargets: dr.extraTargets }),
+        text: callerConfirmCard({ ...dr, extraTargets: dr.extraTargets }, aiRead),
         buttons: [
           { text: "Post", callback: callbackData("post", id) },
           { text: "Drop", callback: callbackData("drop", id) },

@@ -38,8 +38,9 @@ export function callCard(c: CardCall, counts: { tailed: number; faded: number })
   return `<b>${title(c)}</b>\n${levelsLine(c, true)}\nTailed ${counts.tailed} · Faded ${counts.faded}`;
 }
 
-export function callerConfirmCard(c: CardCall & { extraTargets: string[] }): string {
+export function callerConfirmCard(c: CardCall & { extraTargets: string[] }, aiRead = false): string {
   const lines = ["Post this call?", `<b>${title(c)}</b>`, levelsLine(c, true)];
+  if (aiRead) lines.push("Read by AI from your message. Check every price before you post.");
   if (c.extraTargets.length > 0) lines.push(`Only TP1 is used. Ignored: ${c.extraTargets.join(", ")}`);
   return lines.join("\n");
 }
