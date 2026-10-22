@@ -52,6 +52,13 @@ export interface Call {
   status: CallStatus;
   createdAt: string;
   closedAt: string | null;
+  /** When the price first reached the call's entry (or the first sample, for a market call). */
+  enteredAt: string | null;
+  enteredPrice: string | null;
+  /** The mark price that ended the call (tp_hit, sl_hit, expired). */
+  resultPrice: string | null;
+  /** The receipt message posted as a reply to the card. */
+  receiptMessageId: number | null;
 }
 
 export type TailStatus = "quoted" | "placed" | "filled" | "rejected" | "cancelled" | "closed";
@@ -72,6 +79,12 @@ export interface Tail {
   error: string | null;
   createdAt: string;
   filledAt: string | null;
+  tpClientOrderId: string | null;
+  slClientOrderId: string | null;
+  closedAt: string | null;
+  realizedPnl: string | null;
+  /** "tp" or "sl" when a protective leg closed the position. */
+  closeReason: string | null;
 }
 
 const SETTING_COLUMNS = { riskPct: "risk_pct", maxLeverage: "max_leverage", maxNotionalUsd: "max_notional_usd" } as const;
@@ -79,7 +92,8 @@ export type SettingKey = keyof typeof SETTING_COLUMNS;
 
 const TAIL_PATCH_COLUMNS = {
   status: "status", orderId: "order_id", primaryClientOrderId: "primary_client_order_id", fillPrice: "fill_price",
-  error: "error", filledAt: "filled_at",
+  error: "error", filledAt: "filled_at", tpClientOrderId: "tp_client_order_id", slClientOrderId: "sl_client_order_id",
+  closedAt: "closed_at", realizedPnl: "realized_pnl", closeReason: "close_reason",
 } as const;
 
 const mapUser = (r: any): User => ({
@@ -97,19 +111,59 @@ const mapCall = (r: any): Call => ({
   id: r.id, chatId: r.chat_id, messageId: r.message_id, cardMessageId: r.card_message_id, rawText: r.raw_text,
   symbol: r.symbol, side: r.side, entryKind: r.entry_kind, entry: r.entry, tp: r.tp, sl: r.sl,
   leverageHint: r.leverage_hint, status: r.status, createdAt: r.created_at, closedAt: r.closed_at,
+  enteredAt: r.entered_at ?? null, enteredPrice: r.entered_price ?? null, resultPrice: r.result_price ?? null,
+  receiptMessageId: r.receipt_message_id ?? null,
 });
 
 const mapTail = (r: any): Tail => ({
   id: r.id, callId: r.call_id, tgId: r.tg_id, mode: r.mode, strategyId: r.strategy_id,
   primaryClientOrderId: r.primary_client_order_id, orderId: r.order_id, size: r.size, notionalUsd: r.notional_usd,
   feeBps: r.fee_bps, status: r.status, fillPrice: r.fill_price, error: r.error, createdAt: r.created_at, filledAt: r.filled_at,
+  tpClientOrderId: r.tp_client_order_id ?? null, slClientOrderId: r.sl_client_order_id ?? null, closedAt: r.closed_at ?? null,
+  realizedPnl: r.realized_pnl ?? null, closeReason: r.close_reason ?? null,
 });
 
-export function openStore(path: string) {
+/**
+ * schema.sql is version 1 (the baseline P3/P4 shipped). Each entry below upgrades by one version, in a transaction,
+ * and the same list builds a fresh database, so a fresh and a migrated database cannot drift apart.
+ */
+const MIGRATIONS: string[] = [
+  // v2 (P5): live state. Leg order ids for reconciliation, close details, and call outcome tracking.
+  `ALTER TABLE tails ADD COLUMN tp_client_order_id TEXT;
+   ALTER TABLE tails ADD COLUMN sl_client_order_id TEXT;
+   ALTER TABLE tails ADD COLUMN closed_at TEXT;
+   ALTER TABLE tails ADD COLUMN realized_pnl TEXT;
+   ALTER TABLE tails ADD COLUMN close_reason TEXT;
+   ALTER TABLE calls ADD COLUMN entered_at TEXT;
+   ALTER TABLE calls ADD COLUMN entered_price TEXT;
+   ALTER TABLE calls ADD COLUMN result_price TEXT;
+   ALTER TABLE calls ADD COLUMN receipt_message_id INTEGER;`,
+];
+
+export function openStore(path: string, opts: { extraMigrations?: string[] } = {}) {
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+
+  const migrations = [...MIGRATIONS, ...(opts.extraMigrations ?? [])];
+  const stored = db.pragma("user_version", { simple: true }) as number;
+  const version = Math.max(stored, 1); // a database from before migrations existed (0) is the v1 baseline
+  if (version > migrations.length + 1) {
+    db.close();
+    throw new Error("this database was written by a newer version of Tail");
+  }
+  try {
+    for (let v = version; v <= migrations.length; v++) {
+      db.transaction(() => {
+        db.exec(migrations[v - 1] as string);
+        db.pragma(`user_version = ${v + 1}`);
+      })();
+    }
+  } catch (e) {
+    db.close();
+    throw e;
+  }
 
   const q = {
     getUser: db.prepare("SELECT * FROM users WHERE tg_id = ? AND revoked_at IS NULL AND api_priv_enc IS NOT NULL"),
@@ -152,6 +206,18 @@ export function openStore(path: string) {
       VALUES (@nonce, @token, @tgId, @address, @chain, @apiPub, @apiPrivEnc, @expiresAt)`),
     getPending: db.prepare("SELECT * FROM connect_pending WHERE nonce = ? AND token = ? AND expires_at > ?"),
     delPending: db.prepare("DELETE FROM connect_pending WHERE nonce = ?"),
+    openCalls: db.prepare("SELECT * FROM calls WHERE status = 'open' ORDER BY id"),
+    markEntered: db.prepare("UPDATE calls SET entered_at = ?, entered_price = ? WHERE id = ? AND status = 'open' AND entered_at IS NULL"),
+    finishCall: db.prepare("UPDATE calls SET status = ?, result_price = ?, closed_at = ? WHERE id = ? AND status = 'open'"),
+    setReceipt: db.prepare("UPDATE calls SET receipt_message_id = ? WHERE id = ?"),
+    missingReceipt: db.prepare(`
+      SELECT * FROM calls WHERE status IN ('tp_hit','sl_hit','expired') AND receipt_message_id IS NULL
+        AND card_message_id IS NOT NULL AND closed_at > ? AND closed_at <= ? ORDER BY id`),
+    activeTails: db.prepare("SELECT * FROM tails WHERE status IN ('placed','filled') ORDER BY id"),
+    callsOfChat: db.prepare("SELECT * FROM calls WHERE chat_id = ? AND status NOT IN ('draft','cancelled') ORDER BY id"),
+    followersIn: db.prepare(`
+      SELECT COUNT(DISTINCT t.tg_id) n FROM tails t JOIN calls c ON c.id = t.call_id
+      WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed')`),
     miss: db.prepare(`
       INSERT INTO misses (symbol, chat_id, count) VALUES (?, ?, 1)
       ON CONFLICT(symbol, chat_id) DO UPDATE SET count = count + 1`),
@@ -208,7 +274,7 @@ export function openStore(path: string) {
     },
     channelsOf: (tgId: number): Channel[] => q.channelsOf.all(tgId).map(mapChannel),
 
-    createDraftCall: (c: Omit<Call, "id" | "cardMessageId" | "status" | "closedAt">): number =>
+    createDraftCall: (c: Omit<Call, "id" | "cardMessageId" | "status" | "closedAt" | "enteredAt" | "enteredPrice" | "resultPrice" | "receiptMessageId">): number =>
       Number(q.newCall.run({ ...c, messageId: c.messageId ?? null }).lastInsertRowid),
     getCall: (id: number): Call | undefined => {
       const r = q.getCall.get(id);
@@ -227,7 +293,8 @@ export function openStore(path: string) {
       const r = q.getTail.get(id);
       return r ? mapTail(r) : undefined;
     },
-    updateTail(id: number, patch: Partial<Record<keyof typeof TAIL_PATCH_COLUMNS, string>>) {
+    /** A field set to null is cleared back to NULL; an undefined field is left alone. */
+    updateTail(id: number, patch: Partial<Record<keyof typeof TAIL_PATCH_COLUMNS, string | null>>) {
       const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
       if (entries.length === 0) return;
       const sets = entries.map(([k]) => {
@@ -289,6 +356,22 @@ export function openStore(path: string) {
         return { nonce: r.nonce as string, tgId: r.tg_id as number, address: r.address as string, chain: r.chain as string, apiPub: r.api_pub as string, apiPrivEnc: r.api_priv_enc as string };
       })();
     },
+
+    openCalls: (): Call[] => q.openCalls.all().map(mapCall),
+    /** Records the entry once; false if the call already entered or is no longer open. */
+    markEntered: (id: number, price: string, at: string): boolean => q.markEntered.run(at, price, id).changes === 1,
+    /** Closes an open call exactly once; the first caller wins and a later one gets false. */
+    finishCall: (id: number, r: { status: "tp_hit" | "sl_hit" | "expired"; resultPrice: string | null; closedAt: string }): boolean =>
+      q.finishCall.run(r.status, r.resultPrice, r.closedAt, id).changes === 1,
+    setReceipt(id: number, messageId: number) {
+      q.setReceipt.run(messageId, id);
+    },
+    /** Finished calls whose receipt never posted, within a recent window, so a Telegram outage does not lose it. */
+    callsMissingReceipt: (nowIso: string, windowMs: number, graceMs: number): Call[] =>
+      q.missingReceipt.all(new Date(Date.parse(nowIso) - windowMs).toISOString(), new Date(Date.parse(nowIso) - graceMs).toISOString()).map(mapCall),
+    activeTails: (): Tail[] => q.activeTails.all().map(mapTail),
+    callsOfChat: (chatId: number): Call[] => q.callsOfChat.all(chatId).map(mapCall),
+    followersIn: (chatId: number): number => (q.followersIn.get(chatId) as { n: number }).n,
 
     recordMiss(symbol: string, chatId: number) {
       q.miss.run(symbol, chatId);

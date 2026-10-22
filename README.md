@@ -26,6 +26,7 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Builder Connect from a script (Solana wallet) | LIVE | `scripts/scripted-follower.ts`, testnet. Fees on orders: NEXT |
 | Connect page: one wallet signature links a follower (MetaMask, Rabby, Phantom, Lace, Eternl) | NEXT | Built; browser-tested locally against real Strike testnet with a scripted Ethereum wallet (`scripts/e2e-connect.ts`). Not deployed |
 | Deployment (Docker, Render blueprint, `docs/DEPLOY.md`) | NEXT | Files written; waiting on a host and the prod bot token |
+| Live card state: counters from Strike's real order status, call results with a receipt, caller record (`/record`) | LIVE | Ran on testnet against the real dev database: `docs/proof/p5-live.json`. A fresh fill-to-close run with a follower is still to do |
 | Builder fee on orders | NEXT | Sent for builder wallets; not yet seen on a fill |
 | Caller record and earnings pages | NOT LIVE | |
 | Payout to callers | NOT LIVE | |

@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-22T09:52:02.896Z",
+  "schemaVersion": 2,
+  "calls": [
+    {
+      "id": 1,
+      "chat_id": -1004446016960,
+      "symbol": "ETH-USD",
+      "side": "long",
+      "entry_kind": "limit",
+      "entry": "2480.00",
+      "tp": "2560.00",
+      "sl": "2420.00",
+      "status": "sl_hit",
+      "entered_at": "2026-10-22T09:51:45.695Z",
+      "entered_price": "2480.00",
+      "result_price": "2403.41874071",
+      "closed_at": "2026-10-22T09:51:45.695Z",
+      "card_message_id": 7,
+      "receipt_message_id": 8
+    }
+  ],
+  "tails": [
+    {
+      "id": 1,
+      "call_id": 1,
+      "mode": "tail",
+      "status": "cancelled",
+      "size": "0.009",
+      "order_id": "243140879",
+      "close_reason": null,
+      "realized_pnl": null
+    }
+  ],
+  "records": [
+    {
+      "title": "Tail test channel",
+      "summary": {
+        "calls": 1,
+        "open": 0,
+        "tpHit": 0,
+        "slHit": 1,
+        "expired": 0,
+        "decided": 1,
+        "hitRatePct": "0.0",
+        "avgR": "-1",
+        "followers": 0
+      },
+      "text": "Tail test channel\n1 call · 0 open · 0 target · 1 stop\nHit rate 0.0% · average -1R\nFollowers in: 0\nTestnet."
+    }
+  ]
+}

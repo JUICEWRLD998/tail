@@ -2,6 +2,36 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 09:55 UTC: P5 built (551 tests); live exit check partly met
+
+- **Built, test first:** versioned migrations (v2 adds leg order ids, close details, call outcome tracking; the live dev database
+  was upgraded in place without losing rows); pure outcome rules (`core/outcome.ts`); caller record maths (`core/record.ts`);
+  outcomes job; reconciliation job; scheduler; card edit queue; `/record`; all wired into `createApp`
+  (reconcile every 15 s, outcomes every 30 s).
+- **Strike is the source of truth for a tail.** Reconcile reads each live tail's real order status and records fills (with
+  Strike's fill price), rejections, cancellations, a position closed by its take-profit or stop leg (with realized PnL), and
+  recovers an "unconfirmed" order by strategy id (open orders, then order history), writing it off after 10 minutes.
+- **Bugs the tests found:** (1) two overlapping outcome runs posted two receipts (the retry step saw "no receipt id yet"
+  while the first was still posting): fixed with an in-flight guard; (2) the retry step would steal a receipt a second
+  instance was about to post: fixed with a 30 s grace period; (3) confirm never re-checked that the call was still open, so
+  a follower could open a trade on a call that had already hit its target or stop: fixed.
+- **Live, on the real dev database (testnet):** on start the schema went to v2; reconcile read Strike's status for the stale
+  test order I cancelled earlier and moved the tail to `cancelled`; outcomes judged call 1 (long ETH-USD limit 2480, tp 2560,
+  sl 2420) against the live mark 2403.42 and closed it `sl_hit` with a receipt posted as message 8, a reply to card 7.
+  `/record` would show: 1 call, 0 target, 1 stop, hit rate 0.0%, average -1R, followers in 0. `docs/proof/p5-live.json`.
+- **Caveats, stated plainly:**
+  - That call entered and stopped in the same tick (`entered_at` = `closed_at`): nothing was polling earlier, so the job
+    inferred "entered at the limit, then stopped" from a price already below both levels. Samples are polled marks; a wick
+    between two polls is missed. R is the call's own ideal reward-to-risk, not a slippage measurement.
+  - A target reached without ever touching the limit entry is not counted as a hit; it waits and expires after 72 h.
+  - The result edit is a final edit; the defensive "final" flag in the queue is covered by its own unit test, but the
+    app-level test cannot distinguish it from coalescing (a mutation survived there), so it is defence in depth.
+- **NOT yet done for the P5 exit check as written:** one call reaching a result with a *follower's* order in it. Needs a
+  market-entry call with a tight target and one real Tail tap, so the follower's fill and its TP-leg close are exercised
+  live. The logic is unit-tested; the live path so far covered cancellation and a call result.
+- Not verified visually: how Telegram renders the receipt reply and the edited card (I cannot see his chat). Telegram
+  removes the inline keyboard on an edit that omits `reply_markup`; that is from the API's behaviour, UNVERIFIED until he looks.
+
 ## 2026-10-21 23:55 UTC: P4 built except the deploy and real-wallet checks
 
 **Status:** P4's exit check is **not met**: it needs the service deployed and a follower signing in a real wallet. Everything

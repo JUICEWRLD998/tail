@@ -2,7 +2,9 @@
 import { Bot, InlineKeyboard } from "grammy";
 import type { UserFromGetMe } from "grammy/types";
 import type { Store } from "../db/store.js";
+import { recordText, summarize, type RecordCall } from "../core/record.js";
 import { escapeHtml, parseCallbackData, parseStartPayload } from "./cards.js";
+import type { CardEdit } from "./edit-queue.js";
 import type { Button, Reply, Service } from "./service.js";
 
 export interface BotOptions {
@@ -14,6 +16,8 @@ export interface BotOptions {
   ownerTgId?: number | undefined;
   /** Dev-only API wallet key held by the server (SPIKE_API_PRIV). Never sent to Telegram. */
   linkKey?: string | undefined;
+  /** Routes channel-card edits through a batching queue. Without it, edits are sent immediately. */
+  enqueueCardEdit?: (edit: CardEdit) => Promise<void>;
   /** Public https origin of this service. When set, unlinked followers get a wallet-connect button. */
   publicUrl?: string | undefined;
   now: () => string;
@@ -35,6 +39,7 @@ const HELP = [
   "Callers",
   "/addchannel  register a channel or group",
   "/call ETH long 2480 tp 2560 sl 2420  draft a call",
+  "/record  your calls, hit rate and followers",
 ].join("\n");
 const CONNECT_TEXT = "Connect your wallet once to trade. It signs one message and cannot withdraw funds.";
 const WELCOME = "Tail turns a channel call into a Strike order in one tap.\nTap Tail or Fade on a call card to start.\n/me shows your account. /link connects it.";
@@ -131,6 +136,20 @@ export function createBot(o: BotOptions): Bot {
     else await ctx.reply("That does not look like a call.");
   });
 
+  bot.command("record", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const channels = store.channelsOf(ctx.from!.id);
+    if (channels.length === 0) return void (await ctx.reply("No channel yet. Use /addchannel."));
+    const blocks = channels.map((c) => {
+      const rows: RecordCall[] = store.callsOfChat(c.chatId).map((x) => ({
+        symbol: x.symbol, side: x.side, entryKind: x.entryKind, entry: x.entry, tp: x.tp, sl: x.sl, enteredPrice: x.enteredPrice,
+        status: x.status as RecordCall["status"],
+      }));
+      return recordText(escapeHtml(c.title), summarize(rows, store.followersIn(c.chatId)));
+    });
+    await ctx.reply(blocks.join("\n\n"), HTML);
+  });
+
   bot.command("link", async (ctx) => {
     if (ctx.chat.type !== "private") return;
     const id = ctx.from!.id;
@@ -200,7 +219,11 @@ export function createBot(o: BotOptions): Bot {
     await ctx.answerCallbackQuery();
     if (r.cardEdit) {
       try {
-        await ctx.api.editMessageText(r.cardEdit.chatId, r.cardEdit.messageId, r.cardEdit.text, { ...HTML, reply_markup: keyboard(r.cardEdit.buttons) });
+        if (o.enqueueCardEdit) {
+          await o.enqueueCardEdit({ chatId: r.cardEdit.chatId, messageId: r.cardEdit.messageId, text: r.cardEdit.text, buttons: (r.cardEdit.buttons ?? []) as { text: string; url: string }[] });
+        } else {
+          await ctx.api.editMessageText(r.cardEdit.chatId, r.cardEdit.messageId, r.cardEdit.text, { ...HTML, reply_markup: keyboard(r.cardEdit.buttons) });
+        }
       } catch (e) {
         // "message is not modified" and a deleted card are harmless; the order is already placed.
         console.warn(`card edit failed: ${(e as Error).message}`);

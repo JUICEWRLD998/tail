@@ -31,7 +31,7 @@ function fakeStrike(o: FakeOpts = {}) {
     placeBracket: async (b) => {
       if (o.throwOnPlace) throw o.throwOnPlace;
       placed.push(b);
-      return { primary_client_order_id: "pc-1", strategy_id: b.strategyId };
+      return { primary_client_order_id: "pc-1", tp_client_order_id: "tp-1", sl_client_order_id: "sl-1", strategy_id: b.strategyId };
     },
     order: async () => o.order ?? { ID: 243140841, Status: "open", CloseReason: "" },
   };
@@ -267,6 +267,12 @@ describe("confirm", () => {
     expect(store.getTail(tailId)).toMatchObject({ status: "placed", orderId: "243140841", primaryClientOrderId: "pc-1" });
   });
 
+  it("stores the TP and SL leg order ids so a closed position can be recognised later", async () => {
+    const { tailId } = await quoted();
+    await svc.confirm({ tgId: FOLLOWER, tailId });
+    expect(store.getTail(tailId)).toMatchObject({ primaryClientOrderId: "pc-1", tpClientOrderId: "tp-1", slClientOrderId: "sl-1" });
+  });
+
   it("a fade places a sell with swapped legs", async () => {
     const { tailId } = await quoted("fade");
     await svc.confirm({ tgId: FOLLOWER, tailId });
@@ -319,6 +325,15 @@ describe("confirm", () => {
     const r = await svc.confirm({ tgId: 424242, tailId });
     expect(r.text).toBe("This quote is not yours.");
     expect(strike.placed.length).toBe(0);
+  });
+
+  it("confirming after the call has hit its target or stop places nothing", async () => {
+    const { callId, tailId } = await quoted();
+    store.finishCall(callId, { status: "tp_hit", resultPrice: "2561", closedAt: new Date(clock).toISOString() });
+    const r = await svc.confirm({ tgId: FOLLOWER, tailId });
+    expect(r.text).toBe("This call is closed.");
+    expect(strike.placed.length).toBe(0);
+    expect(store.getTail(tailId)?.status).toBe("cancelled");
   });
 
   it("an expired quote asks the follower to tap again and sends nothing", async () => {

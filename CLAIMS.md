@@ -20,10 +20,15 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | A wrong or refused signature links nothing | same script, checks B and C | pass |
 | The connect page fits 8 widths in both themes with no overflow | same script, checks G1 to G7; screenshots in `docs/proof/connect/` | pass |
 | Text contrast meets WCAG AA in both themes | `npx tsx scripts/contrast.ts` | every pair above its bar; planted controls in `test/web/contrast.test.ts` |
+| A call's result is decided from real mark prices and posted once as a reply to its card | `npx vitest run test/outcome.test.ts test/outcomes-job.test.ts`; live: `npx tsx scripts/p5-proof.ts` | pass; `docs/proof/p5-live.json` shows call 1 `sl_hit` with a receipt id |
+| A tail's status comes from Strike, not from our row (fills, rejections, cancellations, closed positions, unconfirmed orders) | `npx vitest run test/reconcile-job.test.ts` | pass; live: the stale tail became `cancelled` from Strike's status |
+| A burst of confirms edits a card at most once per 3 s and a result can never be overwritten | `npx vitest run test/edit-queue.test.ts test/app.test.ts` | pass |
+| The caller record is computed from rows only | `npx vitest run test/record.test.ts`; `/record` in Telegram | pass; says so when there are no results |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |
 
 ## Not yet claimed
 
+- That a follower's order fills and later closes at its target or stop, end to end on testnet (the logic is tested; the live run so far covered cancellation and a call result).
 - That a builder fee appears on a fill (needs a funded builder-code wallet).
 - That Cardano (Lace, Eternl) and Phantom signatures link in a real wallet. Ethereum is verified with a scripted wallet only.
 - That the Docker image builds and runs (no Docker daemon was available).
