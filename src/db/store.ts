@@ -210,6 +210,9 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     markEntered: db.prepare("UPDATE calls SET entered_at = ?, entered_price = ? WHERE id = ? AND status = 'open' AND entered_at IS NULL"),
     finishCall: db.prepare("UPDATE calls SET status = ?, result_price = ?, closed_at = ? WHERE id = ? AND status = 'open'"),
     setReceipt: db.prepare("UPDATE calls SET receipt_message_id = ? WHERE id = ?"),
+    missingReceipt: db.prepare(`
+      SELECT * FROM calls WHERE status IN ('tp_hit','sl_hit','expired') AND receipt_message_id IS NULL
+        AND card_message_id IS NOT NULL AND closed_at > ? ORDER BY id`),
     activeTails: db.prepare("SELECT * FROM tails WHERE status IN ('placed','filled') ORDER BY id"),
     callsOfChat: db.prepare("SELECT * FROM calls WHERE chat_id = ? AND status NOT IN ('draft','cancelled') ORDER BY id"),
     followersIn: db.prepare(`
@@ -362,6 +365,9 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     setReceipt(id: number, messageId: number) {
       q.setReceipt.run(messageId, id);
     },
+    /** Finished calls whose receipt never posted, within a recent window, so a Telegram outage does not lose it. */
+    callsMissingReceipt: (nowIso: string, windowMs: number): Call[] =>
+      q.missingReceipt.all(new Date(Date.parse(nowIso) - windowMs).toISOString()).map(mapCall),
     activeTails: (): Tail[] => q.activeTails.all().map(mapTail),
     callsOfChat: (chatId: number): Call[] => q.callsOfChat.all(chatId).map(mapCall),
     followersIn: (chatId: number): number => (q.followersIn.get(chatId) as { n: number }).n,
