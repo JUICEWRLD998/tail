@@ -241,7 +241,12 @@ describe("runReconcile", () => {
 
   it("never revisits closed, rejected or cancelled tails", async () => {
     const callId = seed();
-    for (const status of ["closed", "rejected", "cancelled"] as const) store.updateTail(tailFor(callId, 5, {}), { status });
+    let tg = 20;
+    for (const status of ["closed", "rejected", "cancelled"] as const) {
+      seed(tg);
+      store.updateTail(tailFor(callId, tg), { status });
+      tg++;
+    }
     expect(await runReconcile(deps())).toEqual({ checked: 0, changed: 0 });
   });
 });
