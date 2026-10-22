@@ -91,6 +91,48 @@ describe("runReconcile", () => {
     expect(dms.length).toBe(1);
   });
 
+  describe("a tail confirm already marked filled, without a fill price", () => {
+    const filledTail = (o: Record<string, string> = {}) => tailFor(seed(), 5, { status: "filled", ...o });
+    const primaryOf = (t: number) => ({ [`p-${t}`]: { ID: 100, Status: "filled" } });
+
+    it("gets its price from Strike's fill, silently", async () => {
+      const t = filledTail();
+      script.primary = primaryOf(t);
+      script.fills = [{ client_order_id: `p-${t}`, price: "2380.31", size: "0.041", fee: "0.04", realized_pnl: "0" }];
+      await runReconcile(deps());
+      expect(store.getTail(t)?.fillPrice).toBe("2380.31");
+      expect(dms.length).toBe(0);
+    });
+
+    it("uses the size-weighted average when the order filled in pieces", async () => {
+      const t = filledTail();
+      script.primary = primaryOf(t);
+      script.fills = [
+        { client_order_id: `p-${t}`, price: "2380", size: "0.003", realized_pnl: "0" },
+        { client_order_id: `p-${t}`, price: "2384", size: "0.001", realized_pnl: "0" },
+        { client_order_id: "someone-else", price: "9999", size: "5", realized_pnl: "0" },
+      ];
+      await runReconcile(deps());
+      expect(store.getTail(t)?.fillPrice).toBe("2381");
+    });
+
+    it("stays empty when Strike has no matching fill: never a guess", async () => {
+      const t = filledTail();
+      script.primary = primaryOf(t);
+      script.fills = [{ client_order_id: "other", price: "1", size: "1", realized_pnl: "0" }];
+      await runReconcile(deps());
+      expect(store.getTail(t)?.fillPrice).toBeNull();
+    });
+
+    it("leaves a price that is already recorded alone", async () => {
+      const t = filledTail({ fillPrice: "2380.00" });
+      script.primary = primaryOf(t);
+      script.fills = [{ client_order_id: `p-${t}`, price: "1.00", size: "1", realized_pnl: "0" }];
+      await runReconcile(deps());
+      expect(store.getTail(t)?.fillPrice).toBe("2380.00");
+    });
+  });
+
   it("a rejected primary becomes rejected, the follower is told why, and the card counters drop", async () => {
     const callId = seed();
     const t = tailFor(callId);
