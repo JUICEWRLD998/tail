@@ -6,6 +6,7 @@ import { dirname } from "node:path";
 import { Api, InlineKeyboard, type Bot } from "grammy";
 import type { Update, UserFromGetMe } from "grammy/types";
 import { createBot } from "./bot/bot.js";
+import { createEditQueue } from "./bot/edit-queue.js";
 import { createService, type StrikeLike } from "./bot/service.js";
 import type { Config } from "./config.js";
 import { createConnectService } from "./connect/service.js";
@@ -31,6 +32,8 @@ export interface AppDeps {
 /** How often the live-state jobs run. Reconcile is cheaper per tick and bounded per run; outcomes is one price read per symbol. */
 export const OUTCOMES_EVERY_MS = 30_000;
 export const RECONCILE_EVERY_MS = 15_000;
+/** Telegram throttles edits per chat; counter edits for one card are spaced at least this far apart. */
+export const CARD_EDIT_WINDOW_MS = 3_000;
 
 const ALLOWED_UPDATES = ["message", "channel_post", "callback_query", "my_chat_member"] as const;
 
@@ -71,10 +74,24 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
   // Wallet connect needs a builder code, its fee, and a URL the browser can reach.
   const connectEnabled = Boolean(cfg.publicUrl && cfg.builderCode && cfg.builderFeeBps !== undefined);
 
+  // All channel-card edits (confirm, reconcile, outcomes) share one queue so a stale counter cannot overwrite a result.
+  // The bot is created just below; the edit function reads it lazily.
+  let botRef: Bot | undefined;
+  const cardQueue = createEditQueue({
+    delayMs: CARD_EDIT_WINDOW_MS,
+    edit: async (chatId, messageId, text, buttons) => {
+      const kb = new InlineKeyboard();
+      for (const b of buttons) kb.url(b.text, b.url);
+      await (botRef as Bot).api.editMessageText(chatId, messageId, text, { parse_mode: "HTML", ...(buttons.length > 0 ? { reply_markup: kb } : {}) });
+    },
+    log: (m) => console.warn(`[cards] ${m}`),
+  });
+
   const bot: Bot = createBot({
     token: cfg.token, botInfo: me, service, store, ownerTgId: cfg.ownerTgId, linkKey: cfg.linkKey,
-    publicUrl: connectEnabled ? cfg.publicUrl : undefined, now,
+    publicUrl: connectEnabled ? cfg.publicUrl : undefined, enqueueCardEdit: (e) => cardQueue.enqueue(e), now,
   });
+  botRef = bot;
 
   const connect = createConnectService({
     store, kek: cfg.kek, builderCode: cfg.builderCode ?? "", feeShareBps: cfg.builderFeeBps ?? 0, strike: publicStrike, now,
@@ -87,19 +104,15 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
       store, now: Date.now, markPrice: (symbol) => publicStrike.markPrice(symbol),
       reply: async (chatId, text, replyTo) =>
         (await bot.api.sendMessage(chatId, text, { ...html, ...(replyTo ? { reply_parameters: { message_id: replyTo, allow_sending_without_reply: true } } : {}) })).message_id,
-      // No reply_markup: the call is over, so the Tail and Fade buttons are removed from the card.
-      editCard: async (chatId, messageId, text) => void (await bot.api.editMessageText(chatId, messageId, text, html)),
+      // Final edit: the call is over, so the buttons go (no buttons = no reply_markup) and nothing may overwrite it.
+      editCard: (chatId, messageId, text) => cardQueue.enqueue({ chatId, messageId, text, buttons: [] }, { final: true }),
       log: (m) => console.warn(`[outcomes] ${m}`),
     });
   const reconcile = () =>
     runReconcile({
       store, now: Date.now, botUsername: me.username as string, strikeFor,
       dm: async (tgId, text) => void (await bot.api.sendMessage(tgId, text, html)),
-      editCard: async (chatId, messageId, text, buttons) => {
-        const kb = new InlineKeyboard();
-        for (const b of buttons) kb.url(b.text, b.url);
-        await bot.api.editMessageText(chatId, messageId, text, { ...html, reply_markup: kb });
-      },
+      editCard: (chatId, messageId, text, buttons) => cardQueue.enqueue({ chatId, messageId, text, buttons }),
       log: (m) => console.warn(`[reconcile] ${m}`),
     });
   const scheduler = createScheduler(
@@ -162,6 +175,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
 
     async stop() {
       await scheduler.stop();
+      await cardQueue.flush();
       await server.close();
       try {
         await bot.stop();

@@ -4,6 +4,7 @@ import type { UserFromGetMe } from "grammy/types";
 import type { Store } from "../db/store.js";
 import { recordText, summarize, type RecordCall } from "../core/record.js";
 import { escapeHtml, parseCallbackData, parseStartPayload } from "./cards.js";
+import type { CardEdit } from "./edit-queue.js";
 import type { Button, Reply, Service } from "./service.js";
 
 export interface BotOptions {
@@ -15,6 +16,8 @@ export interface BotOptions {
   ownerTgId?: number | undefined;
   /** Dev-only API wallet key held by the server (SPIKE_API_PRIV). Never sent to Telegram. */
   linkKey?: string | undefined;
+  /** Routes channel-card edits through a batching queue. Without it, edits are sent immediately. */
+  enqueueCardEdit?: (edit: CardEdit) => Promise<void>;
   /** Public https origin of this service. When set, unlinked followers get a wallet-connect button. */
   publicUrl?: string | undefined;
   now: () => string;
@@ -216,7 +219,11 @@ export function createBot(o: BotOptions): Bot {
     await ctx.answerCallbackQuery();
     if (r.cardEdit) {
       try {
-        await ctx.api.editMessageText(r.cardEdit.chatId, r.cardEdit.messageId, r.cardEdit.text, { ...HTML, reply_markup: keyboard(r.cardEdit.buttons) });
+        if (o.enqueueCardEdit) {
+          await o.enqueueCardEdit({ chatId: r.cardEdit.chatId, messageId: r.cardEdit.messageId, text: r.cardEdit.text, buttons: (r.cardEdit.buttons ?? []) as { text: string; url: string }[] });
+        } else {
+          await ctx.api.editMessageText(r.cardEdit.chatId, r.cardEdit.messageId, r.cardEdit.text, { ...HTML, reply_markup: keyboard(r.cardEdit.buttons) });
+        }
       } catch (e) {
         // "message is not modified" and a deleted card are harmless; the order is already placed.
         console.warn(`card edit failed: ${(e as Error).message}`);
