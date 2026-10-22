@@ -131,10 +131,10 @@ describe("live-state jobs through the app", () => {
     await app.runJobsOnce(); // target
     const receipt = api.find((c) => c.method === "sendMessage")!;
     expect(receipt.payload).toMatchObject({ chat_id: -1001, parse_mode: "HTML", reply_parameters: { message_id: 55, allow_sending_without_reply: true } });
-    expect(receipt.payload.text).toContain("take profit hit");
+    expect(receipt.payload.text).toContain("Target hit");
     const edit = api.find((c) => c.method === "editMessageText")!;
     expect(edit.payload).toMatchObject({ chat_id: -1001, message_id: 55 });
-    expect(edit.payload.text).toContain("Result: take profit hit");
+    expect(edit.payload.text).toContain("✅ <b>Target hit</b>");
     expect(edit.payload.reply_markup).toBeUndefined();
     expect(app.store.getCall(id)?.status).toBe("tp_hit");
     markResult = "2494.62";
@@ -264,8 +264,8 @@ describe("card edits are batched across confirm, reconcile and outcomes", () => 
     await app.runJobsOnce(); // target: final edit
     await vi.advanceTimersByTimeAsync(10_000);
     const cardEdits = api.filter((c) => c.method === "editMessageText" && c.payload.chat_id === -1001);
-    expect(cardEdits.at(-1)!.payload.text).toContain("Result: take profit hit");
-    expect(cardEdits.some((c) => c.payload.text.includes("Tailed 2") && !c.payload.text.includes("Result"))).toBe(false);
+    expect(cardEdits.at(-1)!.payload.text).toContain("✅ <b>Target hit</b>");
+    expect(cardEdits.some((c) => c.payload.text.includes("Tailed 2") && !c.payload.text.includes("Target hit"))).toBe(false);
     markResult = "2494.62";
   });
 });

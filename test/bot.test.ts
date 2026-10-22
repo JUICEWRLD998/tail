@@ -128,7 +128,7 @@ describe("caller flow", () => {
     await bot.handleUpdate(tap("p:1", CALLER) as never);
     const card = sent()[0] as ApiCall;
     expect(card.payload).toMatchObject({ chat_id: CHAT, parse_mode: "HTML" });
-    expect(card.payload.text).toBe("<b>ETH-USD · LONG</b>\nEntry 2480.00 · TP 2560.00 · SL 2420.00 · R:R 1.33\nTailed 0 · Faded 0");
+    expect(card.payload.text).toBe(["🟢 <b>ETH-USD · LONG</b>","","📍 Entry  <code>2480.00</code>","🎯 Target  <code>2560.00</code>","🛑 Stop  <code>2420.00</code>","⚖️ R:R 1.33","","👥 Tailed 0 · Faded 0"].join("\n"));
     expect(kbButtons(card).map((b) => b.url)).toEqual(["https://t.me/tailbot?start=t_1", "https://t.me/tailbot?start=f_1"]);
     expect(store.getCall(1)?.status).toBe("open");
     expect(sent("editMessageText")[0]?.payload.text).toBe("Posted.");
@@ -172,7 +172,7 @@ describe("follower flow", () => {
     await openCard();
     linkFollower();
     await bot.handleUpdate(dm("/start t_1", FOLLOWER) as never);
-    expect(lastText()).toContain("Size 0.009 · notional 22.32 USD");
+    expect(lastText()).toContain("📏 Size <code>0.009</code> · <code>22.32</code> USD notional");
     expect(kbButtons(sent()[0]).map((b) => b.callback_data)).toEqual(["y:1", "n:1"]);
     expect(placed.length).toBe(0);
   });
@@ -290,7 +290,7 @@ describe("connecting a wallet (when the service has a public URL)", () => {
     await openCard();
     linkFollower();
     await bot.handleUpdate(dm("/start t_1", FOLLOWER) as never);
-    expect(lastText()).toContain("Size 0.009");
+    expect(lastText()).toContain("📏 Size <code>0.009</code>");
   });
 
   it("the connect link is only offered in a private chat", async () => {

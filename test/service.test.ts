@@ -314,7 +314,7 @@ describe("posting a draft", () => {
     const r = svc.postDraft(id, CALLER);
     expect(r).toMatchObject({ ok: true, chatId: CHAT });
     if (!r.ok) throw new Error();
-    expect(r.text).toBe("<b>ETH-USD · LONG</b>\nEntry 2480.00 · TP 2560.00 · SL 2420.00 · R:R 1.33\nTailed 0 · Faded 0");
+    expect(r.text).toBe(["🟢 <b>ETH-USD · LONG</b>","","📍 Entry  <code>2480.00</code>","🎯 Target  <code>2560.00</code>","🛑 Stop  <code>2420.00</code>","⚖️ R:R 1.33","","👥 Tailed 0 · Faded 0"].join("\n"));
     expect(r.buttons.map((b) => b.url)).toEqual(["https://t.me/tailbot?start=t_1", "https://t.me/tailbot?start=f_1"]);
   });
 
@@ -349,8 +349,8 @@ describe("quote", () => {
     const r = await svc.quote({ tgId: FOLLOWER, callId: id, mode: "tail" });
     expect(r).toMatchObject({ ok: true });
     if (!r.ok) throw new Error();
-    expect(r.reply.text).toContain("Size 0.009 · notional 22.32 USD");
-    expect(r.reply.text).toContain("Risk 0.54 USD (3% of 19.92 USD)");
+    expect(r.reply.text).toContain("📏 Size <code>0.009</code> · <code>22.32</code> USD notional");
+    expect(r.reply.text).toContain("💸 Risk <code>0.54</code> USD (3% of 19.92 USD)");
     expect(store.getTail(r.tailId)).toMatchObject({ status: "quoted", mode: "tail", size: "0.009", callId: id });
     expect(r.reply.buttons?.map((b) => b.callback)).toEqual([callbackData("confirm", r.tailId), callbackData("cancel", r.tailId)]);
   });
@@ -380,8 +380,9 @@ describe("quote", () => {
     const id = openCall();
     const r = await svc.quote({ tgId: FOLLOWER, callId: id, mode: "fade" });
     if (!r.ok) throw new Error(r.text);
-    expect(r.reply.text).toContain("<b>Fade ETH-USD · SHORT</b>");
-    expect(r.reply.text).toContain("TP 2420.00 · SL 2560.00");
+    expect(r.reply.text).toContain("🔴 <b>Fade ETH-USD · SHORT</b>");
+    expect(r.reply.text).toContain("🛑 Stop  <code>2560.00</code>");
+    expect(r.reply.text).toContain("🎯 Target  <code>2420.00</code>");
     expect(r.reply.text).toContain("R:R 0.75 (the caller's call is 1.33)");
     // fade risk distance is entry to the caller's TP (80), so the size is smaller: 0.597 / 80 = 0.007
     expect(store.getTail(r.tailId)?.size).toBe("0.007");
@@ -391,7 +392,7 @@ describe("quote", () => {
     build({ equity: "0" });
     linkFollower();
     const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
-    expect(r).toEqual({ ok: false, text: "No margin on your Strike account. Deposit first." });
+    expect(r).toEqual({ ok: false, text: "⚠️ No margin on your Strike account. Deposit first." });
   });
 
   it("refuses a trade below the market minimum and says why", async () => {
@@ -400,7 +401,7 @@ describe("quote", () => {
     const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
     expect(r).toMatchObject({ ok: false });
     if (r.ok) throw new Error();
-    expect(r.text).toMatch(/^Too small for this market\. notional .* is below the market minimum 10/);
+    expect(r.text).toMatch(/^⚠️ Too small for this market\. notional .* is below the market minimum 10/);
   });
 
   it("sizes a market-entry call from the follower's mark price", async () => {
@@ -408,7 +409,7 @@ describe("quote", () => {
     const id = openCall({ entryKind: "market", entry: null });
     const r = await svc.quote({ tgId: FOLLOWER, callId: id, mode: "tail" });
     if (!r.ok) throw new Error(r.text);
-    expect(r.reply.text).toContain("Entry market");
+    expect(r.reply.text).toContain("📍 Entry  <code>market</code>");
   });
 
   it("refuses a market-entry call whose stop is already behind the price", async () => {
@@ -492,7 +493,7 @@ describe("confirm", () => {
     build({ order: { ID: 5, Status: "rejected", CloseReason: "order_price_out_of_limit" } });
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Strike rejected the order: the entry price is too far from the market price.");
+    expect(r.text).toBe("❌ Strike rejected the order: the entry price is too far from the market price.");
     expect(r.cardEdit).toBeUndefined();
     expect(store.getTail(tailId)).toMatchObject({ status: "rejected", error: "order_price_out_of_limit" });
     expect(store.tailCounts(1)).toEqual({ tailed: 0, faded: 0 });
@@ -551,7 +552,7 @@ describe("confirm", () => {
     build({ throwOnPlace: new StrikeError(400, "POST", "/v2/order/strategy", "account has not approved builder \"sigma\"") });
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Strike rejected the order: your wallet has not approved this builder. Reconnect with /connect.");
+    expect(r.text).toBe("❌ Strike rejected the order: your wallet has not approved this builder. Reconnect with /connect.");
     expect(store.getTail(tailId)).toMatchObject({ status: "rejected" });
   });
 

@@ -39,7 +39,7 @@ async function postReceipt(d: OutcomeDeps, call: Call, ev: Terminal, enteredPric
     if (call.cardMessageId !== null) {
       try {
         const card = callCard(call, d.store.tailCounts(call.id));
-        await d.editCard(call.chatId, call.cardMessageId, `${card}\n${resultLine(oc, ev.state)}`);
+        await d.editCard(call.chatId, call.cardMessageId, `${card}\n\n${resultLine(oc, ev.state)}`);
       } catch (e) {
         d.log?.(`card edit failed for call ${call.id}: ${(e as Error).message}`); // the receipt is already posted
       }

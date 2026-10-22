@@ -75,10 +75,10 @@ describe("runOutcomes", () => {
     expect(await runOutcomes(deps())).toEqual({ evaluated: 1, finished: 1 });
     expect(store.getCall(id)).toMatchObject({ status: "tp_hit", resultPrice: "2561.10", closedAt: new Date(clock).toISOString(), receiptMessageId: 901 });
     expect(posts).toEqual([
-      { chatId: -1001, replyTo: 70 + id, text: "<b>ETH-USD · LONG · take profit hit</b>\n+1.33R · entry 2480.00 · TP 2560.00 · mark 2561.10" },
+      { chatId: -1001, replyTo: 70 + id, text: ["✅ <b>ETH-USD · LONG · Target hit</b>", "+1.33R", "", "📍 Entry  <code>2480.00</code>", "🎯 Target  <code>2560.00</code>", "🏁 Mark  <code>2561.10</code>"].join("\n") },
     ]);
     expect(edits[0]).toMatchObject({ chatId: -1001, messageId: 70 + id });
-    expect(edits[0]?.text).toBe("<b>ETH-USD · LONG</b>\nEntry 2480.00 · TP 2560.00 · SL 2420.00 · R:R 1.33\nTailed 0 · Faded 0\nResult: take profit hit (+1.33R)");
+    expect(edits[0]?.text).toBe(["🟢 <b>ETH-USD · LONG</b>","","📍 Entry  <code>2480.00</code>","🎯 Target  <code>2560.00</code>","🛑 Stop  <code>2420.00</code>","⚖️ R:R 1.33","","👥 Tailed 0 · Faded 0"].join("\n")+"\n\n✅ <b>Target hit</b> · +1.33R");
   });
 
   it("a stop hit says stopped out", async () => {
@@ -87,7 +87,7 @@ describe("runOutcomes", () => {
     await runOutcomes(deps());
     marks["ETH-USD"] = "2419.00";
     await runOutcomes(deps());
-    expect(posts[0]?.text).toBe("<b>ETH-USD · LONG · stopped out</b>\n-1R · entry 2480.00 · SL 2420.00 · mark 2419.00");
+    expect(posts[0]?.text).toBe(["🛑 <b>ETH-USD · LONG · Stopped out</b>", "-1R", "", "📍 Entry  <code>2480.00</code>", "🛑 Stop  <code>2420.00</code>", "🏁 Mark  <code>2419.00</code>"].join("\n"));
   });
 
   it("a gap through the entry to the stop is recorded as entered and stopped in one tick", async () => {
@@ -95,7 +95,7 @@ describe("runOutcomes", () => {
     marks["ETH-USD"] = "2410.00";
     await runOutcomes(deps());
     expect(store.getCall(id)).toMatchObject({ status: "sl_hit", enteredPrice: "2480.00" });
-    expect(posts[0]?.text).toContain("stopped out");
+    expect(posts[0]?.text).toContain("Stopped out");
   });
 
   it("a market call enters at the first price it sees", async () => {
@@ -110,8 +110,8 @@ describe("runOutcomes", () => {
     clock = T0 + 73 * H;
     await runOutcomes(deps());
     expect(store.getCall(id)?.status).toBe("expired");
-    expect(posts[0]?.text).toBe("<b>ETH-USD · LONG · never entered</b>\nThe price did not reach 2480.00 in 72 hours.");
-    expect(edits[0]?.text).toMatch(/Result: expired$/);
+    expect(posts[0]?.text).toBe("⌛ <b>ETH-USD · LONG · Never entered</b>\nThe price did not reach 2480.00 in 72 hours.");
+    expect(edits[0]?.text).toMatch(/⌛ <b>Expired<\/b>$/);
   });
 
   it("is idempotent: a second run posts no second receipt", async () => {
