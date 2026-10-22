@@ -112,19 +112,19 @@ describe("runReconcile", () => {
   });
 
   it("a take-profit leg that filled closes the tail with the realized PnL", async () => {
-    const t = tailFor(seed(), { status: "filled" });
+    const t = tailFor(seed(), 5, { status: "filled" });
     script.primary = { [`p-${t}`]: { ID: 100, Status: "filled" }, [`tp-${t}`]: { ID: 101, Status: "filled" }, [`sl-${t}`]: { ID: 102, Status: "expired" } };
     script.fills = [
       { client_order_id: `p-${t}`, price: "2480", realized_pnl: "0", size: "0.009" },
       { client_order_id: `tp-${t}`, price: "2561", realized_pnl: "0.7290", size: "0.009" },
     ];
     await runReconcile(deps());
-    expect(store.getTail(t)).toMatchObject({ status: "closed", closeReason: "tp", realizedPnl: "0.7290", closedAt: new Date(clock).toISOString() });
+    expect(store.getTail(t)).toMatchObject({ status: "closed", closeReason: "tp", realizedPnl: "0.729", closedAt: new Date(clock).toISOString() });
     expect(dms.map((d) => d.text)).toEqual(["Closed at take profit. Realized PnL +0.729 USD."]);
   });
 
   it("a stop leg that filled closes the tail as a stop-out", async () => {
-    const t = tailFor(seed(), { status: "filled" });
+    const t = tailFor(seed(), 5, { status: "filled" });
     script.primary = { [`p-${t}`]: { ID: 100, Status: "filled" }, [`tp-${t}`]: { ID: 101, Status: "expired" }, [`sl-${t}`]: { ID: 102, Status: "filled" } };
     script.fills = [{ client_order_id: `sl-${t}`, price: "2419", realized_pnl: "-0.549", size: "0.009" }];
     await runReconcile(deps());

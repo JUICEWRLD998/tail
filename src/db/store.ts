@@ -293,7 +293,8 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
       const r = q.getTail.get(id);
       return r ? mapTail(r) : undefined;
     },
-    updateTail(id: number, patch: Partial<Record<keyof typeof TAIL_PATCH_COLUMNS, string>>) {
+    /** A field set to null is cleared back to NULL; an undefined field is left alone. */
+    updateTail(id: number, patch: Partial<Record<keyof typeof TAIL_PATCH_COLUMNS, string | null>>) {
       const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
       if (entries.length === 0) return;
       const sets = entries.map(([k]) => {
