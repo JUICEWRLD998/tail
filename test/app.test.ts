@@ -105,7 +105,7 @@ describe("connect, end to end through the server", () => {
     const done = await app.server.inject({ method: "POST", url: `/api/connect/${token}/complete`, payload: { nonce: "n1", signature: "0xsig" } });
     expect(done.json()).toEqual({ ok: true, address: "0x0C3a…741d" });
     expect(app.store.getUser(4444)).toMatchObject({ builderCode: "sigma", chain: "ethereum", strikeAccountId: "acc-9" });
-    expect(api.filter((c) => c.method === "sendMessage").at(-1)?.payload).toMatchObject({ chat_id: 4444, text: "Linked 0x0C3a…741d. Tap Tail on a call card to trade." });
+    expect(api.filter((c) => c.method === "sendMessage").at(-1)?.payload).toMatchObject({ chat_id: 4444, text: "✅ <b>Linked</b> 0x0C3a…741d\nTap <b>Tail</b> on a call card to trade.", parse_mode: "HTML" });
     expect(JSON.stringify(done.json())).not.toMatch(/[0-9a-f]{64}/);
   });
 });
@@ -131,10 +131,10 @@ describe("live-state jobs through the app", () => {
     await app.runJobsOnce(); // target
     const receipt = api.find((c) => c.method === "sendMessage")!;
     expect(receipt.payload).toMatchObject({ chat_id: -1001, parse_mode: "HTML", reply_parameters: { message_id: 55, allow_sending_without_reply: true } });
-    expect(receipt.payload.text).toContain("take profit hit");
+    expect(receipt.payload.text).toContain("Target hit");
     const edit = api.find((c) => c.method === "editMessageText")!;
     expect(edit.payload).toMatchObject({ chat_id: -1001, message_id: 55 });
-    expect(edit.payload.text).toContain("Result: take profit hit");
+    expect(edit.payload.text).toContain("✅ <b>Target hit</b>");
     expect(edit.payload.reply_markup).toBeUndefined();
     expect(app.store.getCall(id)?.status).toBe("tp_hit");
     markResult = "2494.62";
@@ -148,7 +148,7 @@ describe("live-state jobs through the app", () => {
     app.store.updateTail(tail, { status: "placed", primaryClientOrderId: "pc-live", orderId: "1" });
     orderResult = { ID: 1, Status: "filled" };
     await app.runJobsOnce();
-    expect(api.find((c) => c.method === "sendMessage" && c.payload.chat_id === 4444)?.payload.text).toBe("Filled: ETH-USD LONG 0.009 at 2480.00.");
+    expect(api.find((c) => c.method === "sendMessage" && c.payload.chat_id === 4444)?.payload.text).toBe("✅ <b>Filled</b>\nETH-USD · LONG · 0.009 at <code>2480.00</code>");
     expect(app.store.getTail(tail)?.status).toBe("filled");
     orderResult = { ID: 1, Status: "open", CloseReason: "" };
   });
@@ -264,8 +264,8 @@ describe("card edits are batched across confirm, reconcile and outcomes", () => 
     await app.runJobsOnce(); // target: final edit
     await vi.advanceTimersByTimeAsync(10_000);
     const cardEdits = api.filter((c) => c.method === "editMessageText" && c.payload.chat_id === -1001);
-    expect(cardEdits.at(-1)!.payload.text).toContain("Result: take profit hit");
-    expect(cardEdits.some((c) => c.payload.text.includes("Tailed 2") && !c.payload.text.includes("Result"))).toBe(false);
+    expect(cardEdits.at(-1)!.payload.text).toContain("✅ <b>Target hit</b>");
+    expect(cardEdits.some((c) => c.payload.text.includes("Tailed 2") && !c.payload.text.includes("Target hit"))).toBe(false);
     markResult = "2494.62";
   });
 });

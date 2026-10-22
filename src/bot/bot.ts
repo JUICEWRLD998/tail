@@ -32,25 +32,27 @@ const HTML = { parse_mode: "HTML" as const };
 const CODE_RE = /^TAIL-[A-Z2-9]{6}$/i;
 const POINTER = "Tail reads calls from a channel. Tap Tail or Fade on a call card, or send /help.";
 const HELP = [
-  "Followers",
-  "/me  your account and limits",
-  "/connect  link your wallet",
-  "/link  link a dev key (server owner only)",
-  "/risk 1  percent of equity risked per trade",
-  "/maxlev 5  leverage cap",
-  "/maxnotional 500  size cap in USD",
-  "/revoke  remove your key from Tail",
+  "<b>Tail</b> · one-tap calls on Strike",
   "",
-  "Callers",
-  "/addchannel  register a channel or group",
-  "/call ETH long 2480 tp 2560 sl 2420  draft a call",
-  "/record  your calls, hit rate and followers",
-  "/earnings  estimated builder fee on your followers' fills",
-  "/page  your public record page",
-  "/publish  turn the page on (/unpublish turns it off)",
+  "<b>Followers</b>",
+  "👤 /me  your account and limits",
+  "🔗 /connect  link your wallet",
+  "🛠️ /link  link a dev key (server owner only)",
+  "⚖️ /risk 1  percent of equity risked per trade",
+  "📈 /maxlev 5  leverage cap",
+  "💼 /maxnotional 500  size cap in USD",
+  "🔓 /revoke  remove your key from Tail",
+  "",
+  "<b>Callers</b>",
+  "➕ /addchannel  register a channel or group",
+  "📝 /call ETH long 2480 tp 2560 sl 2420  draft a call",
+  "📊 /record  your calls, hit rate and followers",
+  "💰 /earnings  estimated builder fee on your followers' fills",
+  "🌐 /page  your public record page",
+  "📣 /publish  turn the page on (/unpublish turns it off)",
 ].join("\n");
 const CONNECT_TEXT = "Connect your wallet once to trade. It signs one message and cannot withdraw funds.";
-const WELCOME = "Tail turns a channel call into a Strike order in one tap.\nTap Tail or Fade on a call card to start.\n/me shows your account. /link connects it.";
+const WELCOME = "👋 <b>Tail</b> turns a channel call into a Strike order in one tap.\n\nTap <b>Tail</b> or <b>Fade</b> on a call card to start.\n/me shows your account · /connect links your wallet.";
 
 function keyboard(buttons: Button[] | undefined): InlineKeyboard | undefined {
   if (!buttons || buttons.length === 0) return undefined;
@@ -108,7 +110,7 @@ export function createBot(o: BotOptions): Bot {
       } catch {
         /* the bot may lack delete permission; the code is single use and expires anyway */
       }
-      await dmUser(tgId, { text: `Registered ${escapeHtml(chat.title ?? String(chat.id))}. Post a call there to try it.` });
+      await dmUser(tgId, { text: `✅ <b>Registered</b> ${escapeHtml(chat.title ?? String(chat.id))}\nPost a call there to try it.` });
       return;
     }
     const r = await service.onCallerPost({ chatId: chat.id, messageId: ctx.msg.message_id, text, ...(senderTgId === undefined ? {} : { senderTgId }) });
@@ -128,7 +130,7 @@ export function createBot(o: BotOptions): Bot {
   });
 
   bot.command("help", async (ctx) => {
-    if (ctx.chat.type === "private") await ctx.reply(HELP);
+    if (ctx.chat.type === "private") await ctx.reply(HELP, HTML);
   });
 
   bot.command("connect", async (ctx) => {
@@ -195,14 +197,14 @@ export function createBot(o: BotOptions): Bot {
     if (ctx.chat.type !== "private") return;
     const picked = await pageChannels(ctx, "page");
     if (!picked) return;
-    await ctx.reply(picked.map((c) => (c.isPublic && c.slug ? `${escapeHtml(c.title)}\n${pageLink(c.slug)}` : `${escapeHtml(c.title)}\nThe public page is off. /publish turns it on.`)).join("\n\n"), HTML);
+    await ctx.reply(picked.map((c) => (c.isPublic && c.slug ? `🌐 <b>${escapeHtml(c.title)}</b>\n${pageLink(c.slug)}` : `🌐 <b>${escapeHtml(c.title)}</b>\nThe public page is off. /publish turns it on.`)).join("\n\n"), HTML);
   });
   bot.command("publish", async (ctx) => {
     if (ctx.chat.type !== "private") return;
     const picked = await pageChannels(ctx, "publish");
     if (!picked) return;
     await ctx.reply(
-      picked.map((c) => `${escapeHtml(c.title)}\n${pageLink(store.publishChannel(c.chatId))}\nAnyone with the link sees your record and earnings estimate. Not your followers. /unpublish turns it off.`).join("\n\n"),
+      picked.map((c) => `🌐 <b>${escapeHtml(c.title)}</b>\n${pageLink(store.publishChannel(c.chatId))}\nAnyone with the link sees your record and earnings estimate. Not your followers. /unpublish turns it off.`).join("\n\n"),
       HTML,
     );
   });
@@ -211,7 +213,7 @@ export function createBot(o: BotOptions): Bot {
     const picked = await pageChannels(ctx, "unpublish");
     if (!picked) return;
     for (const c of picked) store.unpublishChannel(c.chatId);
-    await ctx.reply(picked.map((c) => `${escapeHtml(c.title)}\nThe public page is off.`).join("\n\n"), HTML);
+    await ctx.reply(picked.map((c) => `🌐 <b>${escapeHtml(c.title)}</b>\nThe public page is off.`).join("\n\n"), HTML);
   });
 
   bot.command("link", async (ctx) => {

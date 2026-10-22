@@ -66,26 +66,27 @@ export function resultR(call: Pick<OutcomeCall, "side" | "entry" | "enteredPrice
   return entry === null ? null : rewardRisk({ side: call.side, entry, tp: call.tp, sl: call.sl });
 }
 
-const head = (c: OutcomeCall, what: string) => `<b>${c.symbol} · ${c.side.toUpperCase()} · ${what}</b>`;
+const head = (mark: string, c: OutcomeCall, what: string) => `${mark} <b>${c.symbol} · ${c.side.toUpperCase()} · ${what}</b>`;
 
 export function receiptText(call: OutcomeCall, e: Extract<Evaluation, { state: "tp_hit" | "sl_hit" | "expired" }>): string {
   if (e.state === "expired") {
     return e.entered
-      ? `${head(call, "expired")}\nNo target or stop in 72 hours.`
-      : `${head(call, "never entered")}\nThe price did not reach ${call.entry ?? "the entry"} in 72 hours.`;
+      ? `${head("⌛", call, "Expired")}\nNo target or stop in 72 hours.`
+      : `${head("⌛", call, "Never entered")}\nThe price did not reach ${call.entry ?? "the entry"} in 72 hours.`;
   }
   const entry = call.entry ?? call.enteredPrice ?? "market";
+  const levels = (exit: string) => ["", `📍 Entry  <code>${entry}</code>`, exit, `🏁 Mark  <code>${e.resultPrice}</code>`];
   if (e.state === "tp_hit") {
     const r = resultR(call, "tp_hit");
-    return `${head(call, "take profit hit")}\n${r === null ? "" : `+${r}R · `}entry ${entry} · TP ${call.tp} · mark ${e.resultPrice}`;
+    return [head("✅", call, "Target hit"), ...(r === null ? [] : [`+${r}R`]), ...levels(`🎯 Target  <code>${call.tp}</code>`)].join("\n");
   }
-  return `${head(call, "stopped out")}\n-1R · entry ${entry} · SL ${call.sl} · mark ${e.resultPrice}`;
+  return [head("🛑", call, "Stopped out"), "-1R", ...levels(`🛑 Stop  <code>${call.sl}</code>`)].join("\n");
 }
 
 /** The line appended to the channel card once the call has a result. */
 export function resultLine(call: OutcomeCall, state: "tp_hit" | "sl_hit" | "expired"): string {
-  if (state === "expired") return "Result: expired";
-  if (state === "sl_hit") return "Result: stopped out (-1R)";
+  if (state === "expired") return "⌛ <b>Expired</b>";
+  if (state === "sl_hit") return "🛑 <b>Stopped out</b> · -1R";
   const r = resultR(call, "tp_hit");
-  return `Result: take profit hit${r === null ? "" : ` (+${r}R)`}`;
+  return `✅ <b>Target hit</b>${r === null ? "" : ` · +${r}R`}`;
 }

@@ -43,10 +43,10 @@ export function summarize(calls: RecordCall[], followers: number): Summary {
 }
 
 export function recordText(title: string, s: Summary): string {
-  if (s.calls === 0) return `${title}\nNo calls with a result yet.\nTestnet.`;
+  if (s.calls === 0) return `📊 <b>${title}</b>\nNo calls with a result yet.\n🧪 Testnet`;
   const parts = [`${s.calls} ${s.calls === 1 ? "call" : "calls"}`, `${s.open} open`, `${s.tpHit} target`, `${s.slHit} stop`, ...(s.expired > 0 ? [`${s.expired} expired`] : [])];
-  const lines = [title, parts.join(" · ")];
-  if (s.hitRatePct !== null) lines.push(`Hit rate ${s.hitRatePct}%${s.avgR !== null ? ` · average ${s.avgR}R` : ""}`);
-  lines.push(`Followers in: ${s.followers}`, "Testnet.");
+  const lines = [`📊 <b>${title}</b>`, parts.join(" · ")];
+  if (s.hitRatePct !== null) lines.push(`🎯 Hit rate ${s.hitRatePct}%${s.avgR !== null ? ` · average ${s.avgR}R` : ""}`);
+  lines.push(`👥 Followers in ${s.followers}`, "🧪 Testnet");
   return lines.join("\n");
 }

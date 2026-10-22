@@ -75,13 +75,13 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
             const code = (history.close_reason as string) || "rejected";
             d.store.updateTail(tail.id, { status: "rejected", error: code, primaryClientOrderId: history.client_order_id, orderId: String(history.ID) });
             countersChanged.add(tail.callId);
-            await tell(tail.tgId, `Strike rejected your ${call.symbol} order: ${reasonClause(code, escapeHtml)}`);
+            await tell(tail.tgId, `❌ Strike rejected your ${call.symbol} order: ${reasonClause(code, escapeHtml)}`);
             return true;
           }
           if (CANCELLED.has(hs)) {
             d.store.updateTail(tail.id, { status: "cancelled", primaryClientOrderId: history.client_order_id, orderId: String(history.ID) });
             countersChanged.add(tail.callId);
-            await tell(tail.tgId, `Your ${call.symbol} order was cancelled on Strike.`);
+            await tell(tail.tgId, `🚫 Your ${call.symbol} order was cancelled on Strike.`);
             return true;
           }
           d.store.updateTail(tail.id, { primaryClientOrderId: history.client_order_id, orderId: String(history.ID), error: null });
@@ -89,7 +89,7 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
         } else if (d.now() - Date.parse(tail.createdAt) > NOT_FOUND_AFTER_MS) {
           d.store.updateTail(tail.id, { status: "rejected", error: "not_found" });
           countersChanged.add(tail.callId);
-          await tell(tail.tgId, `Your ${call.symbol} order never reached Strike. Tap Tail again to retry.`);
+          await tell(tail.tgId, `⚠️ Your ${call.symbol} order never reached Strike. Tap Tail again to retry.`);
           return true;
         } else {
           return false;
@@ -109,19 +109,19 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
       if (status === "filled") {
         const f = (await fills()).find((x) => x.client_order_id === primaryId);
         d.store.updateTail(tail.id, { status: "filled", filledAt: nowIso, ...(f?.price ? { fillPrice: String(f.price) } : {}), error: null });
-        await tell(tail.tgId, `Filled: ${call.symbol} ${sideOf(call, fresh)} ${fresh.size}${f?.price ? ` at ${f.price}` : ""}.`);
+        await tell(tail.tgId, `✅ <b>Filled</b>\n${call.symbol} · ${sideOf(call, fresh)} · ${fresh.size}${f?.price ? ` at <code>${f.price}</code>` : ""}`);
         current = "filled";
         did = true;
       } else if (status === "rejected") {
         const code = (primary.CloseReason as string) || "rejected";
         d.store.updateTail(tail.id, { status: "rejected", error: code });
         countersChanged.add(tail.callId);
-        await tell(tail.tgId, `Strike rejected your ${call.symbol} order: ${reasonClause(code, escapeHtml)}`);
+        await tell(tail.tgId, `❌ Strike rejected your ${call.symbol} order: ${reasonClause(code, escapeHtml)}`);
         return true;
       } else if (CANCELLED.has(status)) {
         d.store.updateTail(tail.id, { status: "cancelled" });
         countersChanged.add(tail.callId);
-        await tell(tail.tgId, `Your ${call.symbol} order was cancelled on Strike.`);
+        await tell(tail.tgId, `🚫 Your ${call.symbol} order was cancelled on Strike.`);
         return true;
       } else {
         return did;
@@ -148,8 +148,8 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
         if (String(leg.Status ?? "").toLowerCase() !== "filled") continue;
         const pnl = sumPnl(await fills(), legId);
         d.store.updateTail(tail.id, { status: "closed", closeReason: reason, closedAt: nowIso, ...(pnl !== null ? { realizedPnl: pnl } : {}) });
-        const head = reason === "tp" ? "Closed at take profit." : "Stopped out.";
-        await tell(tail.tgId, `${head}${pnl !== null ? ` Realized PnL ${signed(pnl)} USD.` : ""}`);
+        const head = reason === "tp" ? "🎯 <b>Closed at take profit</b>" : "🛑 <b>Stopped out</b>";
+        await tell(tail.tgId, `${head}${pnl !== null ? `\n💰 Realized PnL ${signed(pnl)} USD` : ""}`);
         return true;
       }
     }

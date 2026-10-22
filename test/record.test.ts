@@ -45,19 +45,19 @@ describe("summarize", () => {
 
 describe("recordText (what a caller reads)", () => {
   it("says there are no results yet, instead of inventing numbers", () => {
-    expect(recordText("Tail test channel", summarize([], 0))).toBe("Tail test channel\nNo calls with a result yet.\nTestnet.");
+    expect(recordText("Tail test channel", summarize([], 0))).toBe("📊 <b>Tail test channel</b>\nNo calls with a result yet.\n🧪 Testnet");
   });
 
   it("shows the record from the rows", () => {
     const t = recordText("Tail test channel", summarize([call("tp_hit"), call("sl_hit"), call("open")], 3));
-    expect(t).toBe("Tail test channel\n3 calls · 1 open · 1 target · 1 stop\nHit rate 50.0% · average 0.17R\nFollowers in: 3\nTestnet.");
+    expect(t).toBe("📊 <b>Tail test channel</b>\n3 calls · 1 open · 1 target · 1 stop\n🎯 Hit rate 50.0% · average 0.17R\n👥 Followers in 3\n🧪 Testnet");
   });
 
   it("uses the singular for one call", () => {
-    expect(recordText("X", summarize([call("open")], 0))).toBe("X\n1 call · 1 open · 0 target · 0 stop\nFollowers in: 0\nTestnet.");
+    expect(recordText("X", summarize([call("open")], 0))).toBe("📊 <b>X</b>\n1 call · 1 open · 0 target · 0 stop\n👥 Followers in 0\n🧪 Testnet");
   });
 
   it("omits hit rate and R until a call has a result, but still shows counts", () => {
-    expect(recordText("X", summarize([call("open"), call("expired")], 1))).toBe("X\n2 calls · 1 open · 0 target · 0 stop · 1 expired\nFollowers in: 1\nTestnet.");
+    expect(recordText("X", summarize([call("open"), call("expired")], 1))).toBe("📊 <b>X</b>\n2 calls · 1 open · 0 target · 0 stop · 1 expired\n👥 Followers in 1\n🧪 Testnet");
   });
 });

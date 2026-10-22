@@ -82,7 +82,7 @@ describe("registering a channel", () => {
     expect(store.getChannel(-2002)).toMatchObject({ callerTgId: 777, title: "New Channel", kind: "channel" });
     expect(sent("deleteMessage")[0]?.payload).toMatchObject({ chat_id: -2002, message_id: 40 });
     expect(sent().at(-1)?.payload).toMatchObject({ chat_id: 777 });
-    expect(lastText()).toContain("Registered New Channel");
+    expect(lastText()).toContain("✅ <b>Registered</b> New Channel");
   });
 
   it("a wrong or reused code does nothing and says nothing", async () => {
@@ -128,7 +128,7 @@ describe("caller flow", () => {
     await bot.handleUpdate(tap("p:1", CALLER) as never);
     const card = sent()[0] as ApiCall;
     expect(card.payload).toMatchObject({ chat_id: CHAT, parse_mode: "HTML" });
-    expect(card.payload.text).toBe("<b>ETH-USD · LONG</b>\nEntry 2480.00 · TP 2560.00 · SL 2420.00 · R:R 1.33\nTailed 0 · Faded 0");
+    expect(card.payload.text).toBe(["🟢 <b>ETH-USD · LONG</b>","","📍 Entry  <code>2480.00</code>","🎯 Target  <code>2560.00</code>","🛑 Stop  <code>2420.00</code>","⚖️ R:R 1.33","","👥 Tailed 0 · Faded 0"].join("\n"));
     expect(kbButtons(card).map((b) => b.url)).toEqual(["https://t.me/tailbot?start=t_1", "https://t.me/tailbot?start=f_1"]);
     expect(store.getCall(1)?.status).toBe("open");
     expect(sent("editMessageText")[0]?.payload.text).toBe("Posted.");
@@ -172,7 +172,7 @@ describe("follower flow", () => {
     await openCard();
     linkFollower();
     await bot.handleUpdate(dm("/start t_1", FOLLOWER) as never);
-    expect(lastText()).toContain("Size 0.009 · notional 22.32 USD");
+    expect(lastText()).toContain("📏 Size <code>0.009</code> · <code>22.32</code> USD notional");
     expect(kbButtons(sent()[0]).map((b) => b.callback_data)).toEqual(["y:1", "n:1"]);
     expect(placed.length).toBe(0);
   });
@@ -187,7 +187,7 @@ describe("follower flow", () => {
     await openCard();
     linkFollower();
     await bot.handleUpdate(dm("/start whatever", FOLLOWER) as never);
-    expect(lastText()).toContain("Tap Tail or Fade");
+    expect(lastText()).toContain("Tap <b>Tail</b> or <b>Fade</b>");
     expect(store.getTail(1)).toBeUndefined();
   });
 
@@ -199,7 +199,7 @@ describe("follower flow", () => {
     await bot.handleUpdate(tap("y:1", FOLLOWER, "Tail ETH-USD") as never);
     expect(placed).toHaveLength(1);
     const edits = sent("editMessageText");
-    expect(edits[0]?.payload.text).toContain("Placed. Strike order 243140841 is open.");
+    expect(edits[0]?.payload.text).toContain("📨 <b>Placed</b>\nStrike order <code>243140841</code> is open.");
     const cardEdit = edits.find((e) => e.payload.chat_id === CHAT);
     expect(cardEdit?.payload).toMatchObject({ message_id: store.getCall(1)!.cardMessageId });
     expect(cardEdit?.payload.text).toMatch(/Tailed 1 · Faded 0$/);
@@ -290,7 +290,7 @@ describe("connecting a wallet (when the service has a public URL)", () => {
     await openCard();
     linkFollower();
     await bot.handleUpdate(dm("/start t_1", FOLLOWER) as never);
-    expect(lastText()).toContain("Size 0.009");
+    expect(lastText()).toContain("📏 Size <code>0.009</code>");
   });
 
   it("the connect link is only offered in a private chat", async () => {
@@ -310,7 +310,7 @@ describe("/record (a caller's record, from rows)", () => {
 
   it("says there is nothing yet for a caller with no results", async () => {
     await bot.handleUpdate(dm("/record", CALLER) as never);
-    expect(lastText()).toBe("Test\nNo calls with a result yet.\nTestnet.");
+    expect(lastText()).toBe("📊 <b>Test</b>\nNo calls with a result yet.\n🧪 Testnet");
   });
 
   it("shows hit rate, average R and followers computed from the rows", async () => {
@@ -320,7 +320,7 @@ describe("/record (a caller's record, from rows)", () => {
     store.updateTail(store.createTail({ callId: a, tgId: 31, mode: "tail", strategyId: "s1", size: "1", notionalUsd: "1", feeBps: 0, createdAt: T }), { status: "filled" });
     store.updateTail(store.createTail({ callId: a, tgId: 32, mode: "fade", strategyId: "s2", size: "1", notionalUsd: "1", feeBps: 0, createdAt: T }), { status: "placed" });
     await bot.handleUpdate(dm("/record", CALLER) as never);
-    expect(lastText()).toBe("Test\n3 calls · 1 open · 1 target · 1 stop\nHit rate 50.0% · average 0.17R\nFollowers in: 2\nTestnet.");
+    expect(lastText()).toBe("📊 <b>Test</b>\n3 calls · 1 open · 1 target · 1 stop\n🎯 Hit rate 50.0% · average 0.17R\n👥 Followers in 2\n🧪 Testnet");
   });
 
   it("someone who runs no channel is pointed to /addchannel", async () => {
@@ -331,7 +331,7 @@ describe("/record (a caller's record, from rows)", () => {
   it("escapes a channel title that contains HTML", async () => {
     store.registerChannel({ chatId: -777, title: "<b>Alpha</b> & co", kind: "channel", callerTgId: 4444, createdAt: T });
     await bot.handleUpdate(dm("/record", 4444) as never);
-    expect(lastText()).toBe("&lt;b&gt;Alpha&lt;/b&gt; &amp; co\nNo calls with a result yet.\nTestnet.");
+    expect(lastText()).toBe("📊 <b>&lt;b&gt;Alpha&lt;/b&gt; &amp; co</b>\nNo calls with a result yet.\n🧪 Testnet");
   });
 
   it("only works in a private chat and is listed in /help", async () => {
@@ -345,7 +345,7 @@ describe("/record (a caller's record, from rows)", () => {
 describe("answering the parser's question (ask flow through the bot)", () => {
   it("an ambiguous channel post becomes a DM question with tappable answers", async () => {
     await bot.handleUpdate(channelPost("ETH 2480 tp 2560 sl 2420") as never);
-    expect(sent()[0]?.payload).toMatchObject({ chat_id: CALLER, text: "Long or short on ETH-USD?" });
+    expect(sent()[0]?.payload).toMatchObject({ chat_id: CALLER, text: "❓ Long or short on ETH-USD?" });
     expect(kbButtons(sent()[0]).map((b) => [b.text, b.callback_data])).toEqual([["Long", "a:1:0"], ["Short", "a:1:1"]]);
   });
 
@@ -462,7 +462,7 @@ describe("help and fallback", () => {
 describe("account commands", () => {
   it("/link by the owner stores the server-held key and never echoes it", async () => {
     await bot.handleUpdate(dm("/link", OWNER) as never);
-    expect(lastText()).toMatch(/^Linked 0x0C3a…741d\./);
+    expect(lastText()).toMatch(/^✅ <b>Linked<\/b> 0x0C3a…741d\n💼 Equity /);
     expect(JSON.stringify(calls)).not.toContain(KEY);
     expect(store.getUser(OWNER)).toBeDefined();
   });
@@ -530,17 +530,17 @@ describe("earnings and the public page", () => {
     filled(id, 33, 0);
     await bot.handleUpdate(dm("/earnings", CALLER) as never);
     expect(lastText()).toBe([
-      "Test",
-      "Estimated builder fee: 0.04464 USD",
+      "💰 <b>Test</b>",
+      "Estimated builder fee: <b>0.04464 USD</b>",
       "Entry fills only: 44.64 USD at 10 bps, 2 tails. 1 tail used a personal wallet and earns nothing.",
-      "Payout to callers is not live.",
+      "ℹ️ Payout to callers is not live.",
     ].join("\n"));
   });
 
   it("/earnings says plainly when nothing has filled", async () => {
     call();
     await bot.handleUpdate(dm("/earnings", CALLER) as never);
-    expect(lastText()).toBe("Test\nNo filled tails yet, so no builder fee.\nPayout to callers is not live.");
+    expect(lastText()).toBe("💰 <b>Test</b>\nNo filled tails yet, so no builder fee.\nℹ️ Payout to callers is not live.");
   });
 
   it("/earnings points a non-caller to /addchannel", async () => {
@@ -550,13 +550,13 @@ describe("earnings and the public page", () => {
 
   it("/page says the page is private and how to publish", async () => {
     await bot.handleUpdate(dm("/page", CALLER) as never);
-    expect(lastText()).toBe("Test\nThe public page is off. /publish turns it on.");
+    expect(lastText()).toBe("🌐 <b>Test</b>\nThe public page is off. /publish turns it on.");
   });
 
   it("/publish makes the page public and replies with its link", async () => {
     await bot.handleUpdate(dm("/publish", CALLER) as never);
     const slug = store.getChannel(CHAT)!.slug as string;
-    expect(lastText()).toBe(`Test\n${PUBLIC}/c/${slug}\nAnyone with the link sees your record and earnings estimate. Not your followers. /unpublish turns it off.`);
+    expect(lastText()).toBe(`🌐 <b>Test</b>\n${PUBLIC}/c/${slug}\nAnyone with the link sees your record and earnings estimate. Not your followers. /unpublish turns it off.`);
     expect(store.channelBySlug(slug)).toBeDefined();
   });
 
@@ -566,7 +566,7 @@ describe("earnings and the public page", () => {
     await bot.handleUpdate(dm("/page", CALLER) as never);
     expect(lastText()).toContain(`${PUBLIC}/c/${slug}`);
     await bot.handleUpdate(dm("/unpublish", CALLER) as never);
-    expect(lastText()).toBe("Test\nThe public page is off.");
+    expect(lastText()).toBe("🌐 <b>Test</b>\nThe public page is off.");
     expect(store.channelBySlug(slug)).toBeUndefined();
   });
 
@@ -575,7 +575,7 @@ describe("earnings and the public page", () => {
     await bot.handleUpdate(dm("/publish", CALLER) as never);
     expect(lastText()).toBe("You have several channels. Send /publish with a title: Test, Second");
     await bot.handleUpdate(dm("/publish second", CALLER) as never);
-    expect(lastText()).toContain("Second\nhttps://tail.test/c/");
+    expect(lastText()).toContain("🌐 <b>Second</b>\nhttps://tail.test/c/");
     expect(store.getChannel(-888)!.isPublic).toBe(true);
     expect(store.getChannel(CHAT)!.isPublic).toBe(false);
   });

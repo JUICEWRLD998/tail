@@ -2,6 +2,18 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 Telegram copy pass (his request: "not properly structured, no emojis, just bland")
+
+- One vocabulary across every message: a side marker (green circle long, red circle short), one marker emoji per line at
+  most (📍 entry, 🎯 target, 🛑 stop, ⚖️ R:R, 📏 size, 💸 risk, 👥 followers, ✅ filled or hit, 🚫 cancelled, ❌ rejected,
+  ⚠️ warning, ❓ question), bold headings, numbers in code spans, blank lines between header, levels and counters. A test
+  pins "at most one emoji per line" on the call card so it cannot become a wall.
+- Covers the channel card, caller and follower confirm cards, receipts and the card's result line, fill and close DMs,
+  rejections and cancellations, Linked and Registered, /me, /record, /earnings, /page, /help and the welcome. Popup alerts
+  (answerCallbackQuery) stay plain text: Telegram shows them in a small dialog.
+- Previewed to him with `scripts/preview-copy.ts` (owner DM only, sample numbers, labelled as a preview).
+- Also fixed while there: the connect "Linked" DM is now sent as HTML like every other message.
+
 ## 2026-10-22 12:20 UTC: live follower test, first attempt did not place; bot restarted
 
 - He posted `ETH-USD LONG NOW / TP 2404 / SL 2390 / 5x` in the test channel; the card appeared (call 2) and Tail produced a quote

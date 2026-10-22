@@ -86,7 +86,7 @@ describe("runReconcile", () => {
     script.fills = [{ client_order_id: `p-${t}`, price: "2479.50", size: "0.009", fee: "0.0111", realized_pnl: "0" }];
     await runReconcile(deps());
     expect(store.getTail(t)).toMatchObject({ status: "filled", fillPrice: "2479.50", filledAt: new Date(clock).toISOString() });
-    expect(dms).toEqual([{ tgId: 5, text: "Filled: ETH-USD LONG 0.009 at 2479.50." }]);
+    expect(dms).toEqual([{ tgId: 5, text: "✅ <b>Filled</b>\nETH-USD · LONG · 0.009 at <code>2479.50</code>" }]);
     await runReconcile(deps());
     expect(dms.length).toBe(1);
   });
@@ -139,7 +139,7 @@ describe("runReconcile", () => {
     script.primary = { [`p-${t}`]: { ID: 100, Status: "rejected", CloseReason: "order_price_out_of_limit" } };
     await runReconcile(deps());
     expect(store.getTail(t)).toMatchObject({ status: "rejected", error: "order_price_out_of_limit" });
-    expect(dms[0]?.text).toBe("Strike rejected your ETH-USD order: the entry price is too far from the market price.");
+    expect(dms[0]?.text).toBe("❌ Strike rejected your ETH-USD order: the entry price is too far from the market price.");
     expect(edits).toHaveLength(1);
     expect(edits[0]).toMatchObject({ chatId: -1001, messageId: 70 });
     expect(edits[0]?.text).toContain("Tailed 0 · Faded 0");
@@ -150,7 +150,7 @@ describe("runReconcile", () => {
     script.primary = { [`p-${t}`]: { ID: 100, Status: status } };
     await runReconcile(deps());
     expect(store.getTail(t)?.status).toBe("cancelled");
-    expect(dms[0]?.text).toBe("Your ETH-USD order was cancelled on Strike.");
+    expect(dms[0]?.text).toBe("🚫 Your ETH-USD order was cancelled on Strike.");
   });
 
   it("a take-profit leg that filled closes the tail with the realized PnL", async () => {
@@ -162,7 +162,7 @@ describe("runReconcile", () => {
     ];
     await runReconcile(deps());
     expect(store.getTail(t)).toMatchObject({ status: "closed", closeReason: "tp", realizedPnl: "0.729", closedAt: new Date(clock).toISOString() });
-    expect(dms.map((d) => d.text)).toEqual(["Closed at take profit. Realized PnL +0.729 USD."]);
+    expect(dms.map((d) => d.text)).toEqual(["🎯 <b>Closed at take profit</b>\n💰 Realized PnL +0.729 USD"]);
   });
 
   it("a stop leg that filled closes the tail as a stop-out", async () => {
@@ -171,7 +171,7 @@ describe("runReconcile", () => {
     script.fills = [{ client_order_id: `sl-${t}`, price: "2419", realized_pnl: "-0.549", size: "0.009" }];
     await runReconcile(deps());
     expect(store.getTail(t)).toMatchObject({ status: "closed", closeReason: "sl", realizedPnl: "-0.549" });
-    expect(dms[0]?.text).toBe("Stopped out. Realized PnL -0.549 USD.");
+    expect(dms[0]?.text).toBe("🛑 <b>Stopped out</b>\n💰 Realized PnL -0.549 USD");
   });
 
   it("a position that fills and closes between two runs reports both, in order", async () => {
@@ -180,7 +180,7 @@ describe("runReconcile", () => {
     script.fills = [{ client_order_id: `p-${t}`, price: "2480", realized_pnl: "0" }, { client_order_id: `tp-${t}`, price: "2561", realized_pnl: "0.729" }];
     await runReconcile(deps());
     expect(store.getTail(t)?.status).toBe("closed");
-    expect(dms.map((d) => d.text)).toEqual(["Filled: ETH-USD LONG 0.009 at 2480.", "Closed at take profit. Realized PnL +0.729 USD."]);
+    expect(dms.map((d) => d.text)).toEqual(["✅ <b>Filled</b>\nETH-USD · LONG · 0.009 at <code>2480</code>", "🎯 <b>Closed at take profit</b>\n💰 Realized PnL +0.729 USD"]);
   });
 
   it("recovers an unconfirmed order by its strategy id from open orders", async () => {
@@ -215,7 +215,7 @@ describe("runReconcile", () => {
     clock = T0 + 11 * MIN;
     await runReconcile(deps());
     expect(store.getTail(t)).toMatchObject({ status: "rejected", error: "not_found" });
-    expect(dms[0]?.text).toBe("Your ETH-USD order never reached Strike. Tap Tail again to retry.");
+    expect(dms[0]?.text).toBe("⚠️ Your ETH-USD order never reached Strike. Tap Tail again to retry.");
   });
 
   it("one tail failing does not stop the others, and never throws", async () => {

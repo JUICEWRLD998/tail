@@ -99,7 +99,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
 
   const connect = createConnectService({
     store, kek: cfg.kek, builderCode: cfg.builderCode ?? "", feeShareBps: cfg.builderFeeBps ?? 0, strike: publicStrike, now,
-    notify: async (tgId, text) => void (await bot.api.sendMessage(tgId, text)),
+    notify: async (tgId, text) => void (await bot.api.sendMessage(tgId, text, { parse_mode: "HTML" })),
   });
 
   const html = { parse_mode: "HTML" as const };
