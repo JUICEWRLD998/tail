@@ -134,6 +134,35 @@ describe("runOutcomes", () => {
     expect(posts.length).toBe(1);
   });
 
+  it("another instance that finishes the call first owns the receipt: this run posts nothing", async () => {
+    const id = openCall();
+    marks["ETH-USD"] = "2479.00";
+    await runOutcomes(deps());
+    const rival = deps();
+    rival.markPrice = async () => {
+      // The other instance finishes the call between our read of open calls and our update.
+      store.finishCall(id, { status: "tp_hit", resultPrice: "2562.00", closedAt: new Date(clock).toISOString() });
+      return "2561.00";
+    };
+    clock += H;
+    await runOutcomes(rival);
+    expect(posts.length).toBe(0);
+    expect(store.getCall(id)).toMatchObject({ status: "tp_hit", resultPrice: "2562.00" });
+  });
+
+  it("gives a just-finished call a grace period before treating its missing receipt as lost", async () => {
+    const id = openCall();
+    marks["ETH-USD"] = "2479.00";
+    await runOutcomes(deps());
+    store.finishCall(id, { status: "tp_hit", resultPrice: "2562.00", closedAt: new Date(clock).toISOString() });
+    clock += 5_000; // 5 s later: the other instance may still be posting
+    await runOutcomes(deps());
+    expect(posts.length).toBe(0);
+    clock += 60_000; // a minute later it really is lost
+    await runOutcomes(deps());
+    expect(posts.length).toBe(1);
+  });
+
   it("asks for each symbol's price once per run, however many calls use it", async () => {
     openCall();
     openCall();

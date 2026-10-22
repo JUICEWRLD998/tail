@@ -315,7 +315,8 @@ describe("receipts that failed to post", () => {
     s.finishCall(b, { status: "sl_hit", resultPrice: "2419.00", closedAt: at(1) });
     s.setReceipt(b, 9); // already has one
     s.finishCall(c, { status: "expired", resultPrice: null, closedAt: at(-60 * 30) }); // closed long ago
-    expect(s.callsMissingReceipt(at(5), 24 * 60 * 60_000).map((x) => x.id)).toEqual([a]);
+    expect(s.callsMissingReceipt(at(5), 24 * 60 * 60_000, 30_000).map((x) => x.id)).toEqual([a]);
+    expect(s.callsMissingReceipt(at(1) , 24 * 60 * 60_000, 30_000).map((x) => x.id)).toEqual([]); // inside the grace period
     expect(d).toBeGreaterThan(0); // still open: never listed
   });
 });
