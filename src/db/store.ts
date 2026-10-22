@@ -138,7 +138,20 @@ const MIGRATIONS: string[] = [
    ALTER TABLE calls ADD COLUMN entered_price TEXT;
    ALTER TABLE calls ADD COLUMN result_price TEXT;
    ALTER TABLE calls ADD COLUMN receipt_message_id INTEGER;`,
+  // v3 (P6): a question the parser asked a caller, kept until they tap an answer (single use, 15 minutes).
+  `CREATE TABLE IF NOT EXISTS asks (
+     id          INTEGER PRIMARY KEY AUTOINCREMENT,
+     tg_id       INTEGER NOT NULL,
+     chat_id     INTEGER NOT NULL,
+     message_id  INTEGER,
+     raw_text    TEXT NOT NULL,
+     field       TEXT NOT NULL,
+     options     TEXT NOT NULL,
+     created_at  TEXT NOT NULL,
+     used_at     TEXT
+   );`,
 ];
+const ASK_TTL_MS = 15 * 60_000;
 
 export function openStore(path: string, opts: { extraMigrations?: string[] } = {}) {
   const db = new Database(path);
@@ -218,6 +231,9 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     followersIn: db.prepare(`
       SELECT COUNT(DISTINCT t.tg_id) n FROM tails t JOIN calls c ON c.id = t.call_id
       WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed')`),
+    newAsk: db.prepare("INSERT INTO asks (tg_id, chat_id, message_id, raw_text, field, options, created_at) VALUES (@tgId, @chatId, @messageId, @rawText, @field, @options, @createdAt)"),
+    getAsk: db.prepare("SELECT * FROM asks WHERE id = ? AND tg_id = ? AND used_at IS NULL AND created_at > ?"),
+    useAsk: db.prepare("UPDATE asks SET used_at = ? WHERE id = ? AND used_at IS NULL"),
     miss: db.prepare(`
       INSERT INTO misses (symbol, chat_id, count) VALUES (?, ?, 1)
       ON CONFLICT(symbol, chat_id) DO UPDATE SET count = count + 1`),
@@ -372,6 +388,18 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     activeTails: (): Tail[] => q.activeTails.all().map(mapTail),
     callsOfChat: (chatId: number): Call[] => q.callsOfChat.all(chatId).map(mapCall),
     followersIn: (chatId: number): number => (q.followersIn.get(chatId) as { n: number }).n,
+
+    createAsk: (a: { tgId: number; chatId: number; messageId: number | null; rawText: string; field: string; options: string[]; createdAt: string }): number =>
+      Number(q.newAsk.run({ ...a, messageId: a.messageId ?? null, options: JSON.stringify(a.options) }).lastInsertRowid),
+    /** Returns a pending question once, only to the caller it was asked of; a wrong caller does not burn it. */
+    takeAsk(id: number, tgId: number, now: string) {
+      return db.transaction(() => {
+        const r = q.getAsk.get(id, tgId, new Date(Date.parse(now) - ASK_TTL_MS).toISOString()) as any;
+        if (!r) return undefined;
+        if (q.useAsk.run(now, id).changes !== 1) return undefined;
+        return { chatId: r.chat_id as number, messageId: r.message_id as number | null, rawText: r.raw_text as string, field: r.field as string, options: JSON.parse(r.options) as string[] };
+      })();
+    },
 
     recordMiss(symbol: string, chatId: number) {
       q.miss.run(symbol, chatId);
