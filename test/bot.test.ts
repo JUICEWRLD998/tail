@@ -20,7 +20,8 @@ let placed: any[];
 let bot: ReturnType<typeof createBot>;
 let uid = 0;
 
-function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefined; equity?: string; publicUrl?: string | undefined } = {}) {
+let nowMsForBot = Date.parse("2026-10-21T12:00:00.000Z");
+function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefined; equity?: string; publicUrl?: string | undefined; rateLimit?: { max: number; windowMs: number } } = {}) {
   store = openStore(":memory:");
   placed = [];
   calls = [];
@@ -37,7 +38,7 @@ function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefi
     now: () => T, uuid: () => `u${++uid}`, sleep: async () => {}, pollAttempts: 2,
   });
   bot = createBot({
-    token: "123:abc", service, store, ownerTgId: opts.ownerTgId, linkKey: opts.linkKey, publicUrl: opts.publicUrl, now: () => T,
+    token: "123:abc", service, store, ownerTgId: opts.ownerTgId, linkKey: opts.linkKey, publicUrl: opts.publicUrl, now: () => T, ...(opts.rateLimit ? { rateLimit: opts.rateLimit, nowMs: () => nowMsForBot } : {}),
     botInfo: { id: 1, is_bot: true, first_name: "Tail", username: "tailbot", can_join_groups: true, can_read_all_group_messages: true, supports_inline_queries: false, can_connect_to_business: false, has_main_web_app: false } as never,
   });
   bot.api.config.use(async (_prev, method, payload) => {
@@ -389,6 +390,49 @@ describe("answering the parser's question (ask flow through the bot)", () => {
     await bot.handleUpdate(tap("a:1", CALLER) as never);
     await bot.handleUpdate(tap("a:x:0", CALLER) as never);
     expect(sent().length).toBe(0);
+  });
+});
+
+describe("per-user rate limit", () => {
+  it("answers 'Slow down' once, then stays quiet, and recovers after the window", async () => {
+    setup({ rateLimit: { max: 3, windowMs: 60_000 } });
+    for (let i = 0; i < 3; i++) await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    expect(sent().length).toBe(3);
+    await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    expect(lastText()).toBe("Slow down. Try again in a minute.");
+    await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    await bot.handleUpdate(dm("/me", FOLLOWER) as never);
+    expect(sent().length).toBe(4);
+    nowMsForBot += 61_000;
+    await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    expect(lastText()).toContain("/addchannel");
+  });
+
+  it("limits button taps too, with an alert instead of a message", async () => {
+    setup({ rateLimit: { max: 2, windowMs: 60_000 } });
+    for (let i = 0; i < 2; i++) await bot.handleUpdate(tap("zzz", FOLLOWER) as never);
+    await bot.handleUpdate(tap("zzz", FOLLOWER) as never);
+    const answers = sent("answerCallbackQuery");
+    expect(answers.at(-1)?.payload).toMatchObject({ text: "Slow down. Try again in a minute.", show_alert: true });
+  });
+
+  it("does not limit channel posts or other users", async () => {
+    setup({ rateLimit: { max: 1, windowMs: 60_000 } });
+    await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    await bot.handleUpdate(dm("/help", FOLLOWER) as never);
+    await bot.handleUpdate(dm("/help", 222) as never);
+    expect(sent().filter((c) => c.payload.chat_id === 222).length).toBe(1);
+    calls.length = 0;
+    for (let i = 0; i < 3; i++) await bot.handleUpdate(channelPost(`ETH long ${2480 + i} tp ${2560 + i} sl ${2420 + i}`) as never);
+    expect(sent().length).toBe(3);
+  });
+
+  it("a limit hit by one user never reaches the service", async () => {
+    setup({ rateLimit: { max: 1, windowMs: 60_000 } });
+    await bot.handleUpdate(dm("/addchannel", 777) as never);
+    await bot.handleUpdate(dm("/addchannel", 777) as never);
+    await bot.handleUpdate(dm("/addchannel", 777) as never);
+    expect(sent().filter((c) => /TAIL-/.test(c.payload.text)).length).toBe(1);
   });
 });
 
