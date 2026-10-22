@@ -1,5 +1,5 @@
 // Telegram message text and callback encoding. Pure functions: every string a user reads is pinned by tests.
-// Copy rules: short lines, plain words, no emoji. HTML parse mode, so dynamic text is always escaped.
+// Copy rules: short lines, plain words, one marker emoji per line at most, never a wall. HTML parse mode, so dynamic text is always escaped.
 import { rewardRisk, type Side } from "../core/fade.js";
 import { reasonClause } from "../core/reasons.js";
 import type { Binding, SizingResult } from "../core/sizing.js";
@@ -26,31 +26,38 @@ function callRR(c: CardCall): string | null {
   return rr === null ? null : withOneDecimal(rr);
 }
 
-function levelsLine(c: CardCall, withRR: boolean): string {
-  const rr = withRR ? callRR(c) : null;
-  return `Entry ${c.entry ?? "market"} · TP ${c.tp} · SL ${c.sl}${rr ? ` · R:R ${rr}` : ""}`;
+export const sideMark = (side: Side) => (side === "long" ? "🟢" : "🔴");
+const code = (v: string) => `<code>${v}</code>`;
+
+/** One level per line, each with its own marker. Numbers sit in code spans so they are easy to tap and copy. */
+function levelLines(entry: string | null, tp: string, sl: string): string[] {
+  return [`📍 Entry  ${code(entry ?? "market")}`, `🎯 Target  ${code(tp)}`, `🛑 Stop  ${code(sl)}`];
 }
 
-const title = (c: CardCall) =>
-  `${c.symbol} · ${c.side.toUpperCase()}${c.leverageHint ? ` · ${c.leverageHint}x` : ""}`;
+const heading = (c: CardCall) => `${sideMark(c.side)} <b>${c.symbol} · ${c.side.toUpperCase()}</b>${c.leverageHint ? ` · ${c.leverageHint}x` : ""}`;
 
 export function callCard(c: CardCall, counts: { tailed: number; faded: number }): string {
-  return `<b>${title(c)}</b>\n${levelsLine(c, true)}\nTailed ${counts.tailed} · Faded ${counts.faded}`;
+  const rr = callRR(c);
+  return [
+    heading(c), "", ...levelLines(c.entry, c.tp, c.sl), ...(rr ? [`⚖️ R:R ${rr}`] : []), "",
+    `👥 Tailed ${counts.tailed} · Faded ${counts.faded}`,
+  ].join("\n");
 }
 
 export function callerConfirmCard(c: CardCall & { extraTargets: string[] }, aiRead = false): string {
-  const lines = ["Post this call?", `<b>${title(c)}</b>`, levelsLine(c, true)];
-  if (aiRead) lines.push("Read by AI from your message. Check every price before you post.");
-  if (c.extraTargets.length > 0) lines.push(`Only TP1 is used. Ignored: ${c.extraTargets.join(", ")}`);
+  const rr = callRR(c);
+  const lines = ["📝 <b>Post this call?</b>", "", heading(c), ...levelLines(c.entry, c.tp, c.sl), ...(rr ? [`⚖️ R:R ${rr}`] : [])];
+  if (aiRead) lines.push("", "🤖 Read by AI from your message. Check every price before you post.");
+  if (c.extraTargets.length > 0) lines.push("", `ℹ️ Only TP1 is used. Ignored: ${c.extraTargets.join(", ")}`);
   return lines.join("\n");
 }
 
 const CAP_TEXT: Record<Binding, string | null> = {
   risk: null,
-  max_notional: "Capped by your max notional.",
-  user_leverage: "Capped by your max leverage.",
-  market_leverage: "Capped by the market's max leverage.",
-  max_qty: "Capped by the market's max size.",
+  max_notional: "🔒 Capped by your max notional.",
+  user_leverage: "🔒 Capped by your max leverage.",
+  market_leverage: "🔒 Capped by the market's max leverage.",
+  max_qty: "🔒 Capped by the market's max size.",
 };
 
 export interface FollowerCardInput {
@@ -68,18 +75,20 @@ export interface FollowerCardInput {
 export function followerConfirmCard(i: FollowerCardInput): string {
   const verb = i.mode === "fade" ? "Fade" : "Tail";
   const lines = [
-    `<b>${verb} ${i.call.symbol} · ${i.levels.side.toUpperCase()}</b>`,
-    `Entry ${i.call.entry ?? "market"} · TP ${i.levels.tp} · SL ${i.levels.sl}`,
-    `Size ${i.sizing.size} · notional ${i.sizing.notional} USD`,
-    `Risk ${i.sizing.riskUsd} USD (${i.riskPct}% of ${i.equity} USD)`,
+    `${sideMark(i.levels.side)} <b>${verb} ${i.call.symbol} · ${i.levels.side.toUpperCase()}</b>`,
+    "",
+    ...levelLines(i.call.entry, i.levels.tp, i.levels.sl),
+    "",
+    `📏 Size ${code(i.sizing.size)} · ${code(i.sizing.notional)} USD notional`,
+    `💸 Risk ${code(i.sizing.riskUsd)} USD (${i.riskPct}% of ${i.equity} USD)`,
   ];
-  const cap = CAP_TEXT[i.sizing.binding];
-  if (cap) lines.push(cap);
   if (i.rewardRisk !== null) {
     const mine = withOneDecimal(i.rewardRisk);
     const theirs = i.mode === "fade" ? callRR(i.call) : null;
-    lines.push(theirs ? `R:R ${mine} (the caller's call is ${theirs})` : `R:R ${mine}`);
+    lines.push(theirs ? `⚖️ R:R ${mine} (the caller's call is ${theirs})` : `⚖️ R:R ${mine}`);
   }
+  const cap = CAP_TEXT[i.sizing.binding];
+  if (cap) lines.push(cap);
   return lines.join("\n");
 }
 
@@ -87,19 +96,19 @@ export function refusalText(r: Extract<SizingResult, { ok: false }>): string {
   const d = escapeHtml(r.detail);
   switch (r.reason) {
     case "no_equity":
-      return "No margin on your Strike account. Deposit first.";
+      return "⚠️ No margin on your Strike account. Deposit first.";
     case "below_min_notional":
     case "below_min_qty":
-      return `Too small for this market. ${d}.`;
+      return `⚠️ Too small for this market. ${d}.`;
     case "invalid_settings":
-      return `Check your settings with /me. ${d}.`;
+      return `⚠️ Check your settings with /me. ${d}.`;
     default:
-      return `These levels cannot be sized. ${d}.`;
+      return `⚠️ These levels cannot be sized. ${d}.`;
   }
 }
 
 export function rejectionText(code: string): string {
-  return `Strike rejected the order: ${reasonClause(code, escapeHtml)}`;
+  return `❌ Strike rejected the order: ${reasonClause(code, escapeHtml)}`;
 }
 
 export function parseStartPayload(p: string): { mode: "tail" | "fade"; callId: number } | undefined {
