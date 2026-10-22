@@ -136,6 +136,43 @@ if (realSlug) {
   await ctx.close();
 }
 
+// ---- the page numbers equal the SQL written in CLAIMS.md ----
+function sqlNumbers(dbPath: string, chatId: number) {
+  const db = new Database(dbPath, { readonly: true });
+  const one = (sql: string) => (db.prepare(sql).get(chatId) as { n: number | null }).n ?? 0;
+  const live = "c.chat_id = ? AND c.status NOT IN ('draft','cancelled')";
+  const r = {
+    calls: one(`SELECT COUNT(*) n FROM calls c WHERE ${live}`),
+    tpHit: one(`SELECT COUNT(*) n FROM calls c WHERE ${live} AND c.status = 'tp_hit'`),
+    slHit: one(`SELECT COUNT(*) n FROM calls c WHERE ${live} AND c.status = 'sl_hit'`),
+    followers: one("SELECT COUNT(DISTINCT t.tg_id) n FROM tails t JOIN calls c ON c.id = t.call_id WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed')"),
+    filled: one(`SELECT COUNT(*) n FROM tails t JOIN calls c ON c.id = t.call_id WHERE ${live} AND t.status IN ('filled','closed') AND t.fill_price IS NOT NULL`),
+    fee: one(`SELECT SUM(CAST(t.size AS REAL) * CAST(t.fill_price AS REAL) * t.fee_bps / 10000.0) n FROM tails t JOIN calls c ON c.id = t.call_id WHERE ${live} AND t.status IN ('filled','closed') AND t.fill_price IS NOT NULL`),
+  };
+  db.close();
+  return r;
+}
+type Pg = { record: Record<string, number>; earnings: Record<string, string | number> };
+const agrees = (page: Pg, sql: ReturnType<typeof sqlNumbers>) =>
+  page.record.calls === sql.calls && page.record.tpHit === sql.tpHit && page.record.slHit === sql.slHit && page.record.followers === sql.followers &&
+  page.earnings.filled === sql.filled && Math.abs(Number(page.earnings.fee) - sql.fee) < 1e-6;
+for (const [label, origin, slug, dbPath, chatId] of [
+  ["fixture", fixture.origin, fixSlug, fixPath, -42],
+  ...(realSlug ? [["real", real.origin, realSlug, realCopy, realChannels[0]!.chat_id] as const] : []),
+] as const) {
+  const sql = sqlNumbers(dbPath, chatId);
+  const page = ((await (await fetch(`${origin}/api/channel/${slug}`)).json()) as { page: Pg }).page;
+  check(`${label}: page numbers equal the SQL in CLAIMS.md`, agrees(page, sql), { sql, page: { ...page.record, fee: page.earnings.fee, filled: page.earnings.filled } });
+}
+// planted controls: the comparison must be able to say "different" for each kind of number
+{
+  const sql = sqlNumbers(fixPath, -42);
+  const page = ((await (await fetch(`${fixture.origin}/api/channel/${fixSlug}`)).json()) as { page: Pg }).page;
+  check("CONTROL a wrong fee is detected", !agrees({ ...page, earnings: { ...page.earnings, fee: String(Number(page.earnings.fee) + 0.01) } }, sql));
+  check("CONTROL a wrong call count is detected", !agrees({ ...page, record: { ...page.record, calls: page.record.calls + 1 } }, sql));
+  check("CONTROL a wrong follower count is detected", !agrees({ ...page, record: { ...page.record, followers: page.record.followers + 1 } }, sql));
+}
+
 // ---- private and unknown pages answer alike and leak nothing ----
 {
   const a = await open(`${fixture.origin}/c/zzzzzzzzzz`, 1280, "dark");
@@ -146,8 +183,9 @@ if (realSlug) {
   const apiPrivate = await fetch(`${fixture.origin}/api/channel/zzzzzzzzzz`);
   check("unknown slug API is 404", apiPrivate.status === 404);
   const bad = await open(`${fixture.origin}/c/NOT-A-SLUG`, 1280, "dark");
-  check("a malformed path is the not-found page", (await text(bad.page)).includes("does not match a Tail page") || (await text(bad.page)).includes("Not Found") || true);
-  await a.ctx.close(); await b.ctx.close(); await bad.ctx.close();
+  check("a malformed page path shows the not-found page", (await text(bad.page)).includes("does not match a Tail page"));
+  await bad.ctx.close();
+  await a.ctx.close(); await b.ctx.close();
 }
 
 // ---- home page ----

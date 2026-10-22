@@ -1,0 +1,622 @@
+{
+  "checkedAt": "2026-10-22T11:54:25.514Z",
+  "checks": [
+    {
+      "name": "CONTROL overflow detector flags a 3000px element",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 320px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 320px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 320px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture dark 375px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 375px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 375px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture 375px: calls table is stacked rows",
+      "pass": true,
+      "detail": {
+        "stacked": "block"
+      }
+    },
+    {
+      "name": "fixture dark 414px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 414px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 414px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture dark 768px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 768px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 768px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture dark 1024px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 1024px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 1024px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture dark 1280px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 1280px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 1280px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture 1280px: calls table is a table",
+      "pass": true,
+      "detail": {
+        "tbl": "table-row"
+      }
+    },
+    {
+      "name": "fixture dark 1440px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 1440px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 1440px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture dark 1920px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture dark 1920px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture dark 1920px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture light 320px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 320px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 320px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture light 375px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 375px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 375px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture 375px: calls table is stacked rows",
+      "pass": true,
+      "detail": {
+        "stacked": "block"
+      }
+    },
+    {
+      "name": "fixture light 414px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 414px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 414px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture light 768px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 768px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 768px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture light 1024px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 1024px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 1024px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture light 1280px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 1280px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 1280px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture 1280px: calls table is a table",
+      "pass": true,
+      "detail": {
+        "tbl": "table-row"
+      }
+    },
+    {
+      "name": "fixture light 1440px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 1440px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 1440px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "fixture light 1920px: no horizontal overflow",
+      "pass": true,
+      "detail": {
+        "overflow": 0
+      }
+    },
+    {
+      "name": "fixture light 1920px: record and fee render",
+      "pass": true
+    },
+    {
+      "name": "fixture light 1920px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 320px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 320px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 375px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 375px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 414px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 414px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 768px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 768px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 1024px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 1024px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 1280px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 1280px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 1440px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 1440px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real dark 1920px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real dark 1920px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 320px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 320px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 375px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 375px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 414px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 414px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 768px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 768px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 1024px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 1024px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 1280px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 1280px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 1440px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 1440px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real light 1920px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "real light 1920px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "real page shows the call count from the API",
+      "pass": true
+    },
+    {
+      "name": "real page says 'No tail has filled yet' when the fee is zero",
+      "pass": true,
+      "detail": {
+        "filled": 0
+      }
+    },
+    {
+      "name": "real page states that payout is not live",
+      "pass": true
+    },
+    {
+      "name": "real page shows the heading with focus",
+      "pass": true
+    },
+    {
+      "name": "fixture: page numbers equal the SQL in CLAIMS.md",
+      "pass": true,
+      "detail": {
+        "sql": {
+          "calls": 8,
+          "tpHit": 3,
+          "slHit": 2,
+          "followers": 3,
+          "filled": 15,
+          "fee": 99.50551454999999
+        },
+        "page": {
+          "calls": 8,
+          "open": 2,
+          "tpHit": 3,
+          "slHit": 2,
+          "expired": 1,
+          "decided": 5,
+          "hitRatePct": "60.0",
+          "avgR": "0.4",
+          "followers": 3,
+          "fee": "99.50551455",
+          "filled": 15
+        }
+      }
+    },
+    {
+      "name": "real: page numbers equal the SQL in CLAIMS.md",
+      "pass": true,
+      "detail": {
+        "sql": {
+          "calls": 1,
+          "tpHit": 0,
+          "slHit": 1,
+          "followers": 0,
+          "filled": 0,
+          "fee": 0
+        },
+        "page": {
+          "calls": 1,
+          "open": 0,
+          "tpHit": 0,
+          "slHit": 1,
+          "expired": 0,
+          "decided": 1,
+          "hitRatePct": "0.0",
+          "avgR": "-1",
+          "followers": 0,
+          "fee": "0",
+          "filled": 0
+        }
+      }
+    },
+    {
+      "name": "CONTROL a wrong fee is detected",
+      "pass": true
+    },
+    {
+      "name": "CONTROL a wrong call count is detected",
+      "pass": true
+    },
+    {
+      "name": "CONTROL a wrong follower count is detected",
+      "pass": true
+    },
+    {
+      "name": "unknown and private slug show the same page",
+      "pass": true
+    },
+    {
+      "name": "unknown slug API is 404",
+      "pass": true
+    },
+    {
+      "name": "a malformed page path shows the not-found page",
+      "pass": true
+    },
+    {
+      "name": "home 320px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 320px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 375px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 375px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 414px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 414px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 768px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 768px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 1024px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 1024px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 1280px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 1280px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 1440px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 1440px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home 1920px: no horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "home 1920px: no console errors",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "home shows the measured totals and the test-activity note",
+      "pass": true,
+      "detail": {
+        "network": "testnet",
+        "channels": 1,
+        "calls": 1,
+        "tailsFilled": 0,
+        "bot": "lidevbot",
+        "note": "Measured from this server's own database. All of it is test activity on Strike testnet, not adoption."
+      }
+    },
+    {
+      "name": "home links to the bot",
+      "pass": true
+    }
+  ]
+}

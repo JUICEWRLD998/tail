@@ -30,7 +30,7 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Builder fee on orders | NEXT | Sent for builder wallets; not yet seen on a fill |
 | Guard rails (rate limits, duplicate window, open-tail cap), ask flow, plain rejection reasons | LIVE | `npm test`. Reasons come from Strike strings seen live. Fade and a follower tap on the new build: NEXT (his taps) |
 | AI fallback for unreadable calls (OpenRouter, caller must confirm) | LIVE | Off without `OPENROUTER_API_KEY`. `docs/proof/p6-ai-live.json`. Numbers in a message are trusted by design; the caller's tap is the gate |
-| Caller record and earnings pages | NOT LIVE | |
+| Caller earnings estimate (`/earnings`) and public record page (`/publish`, `/c/<slug>`), home page | LIVE (local) | Browser-tested at 8 widths in both themes on the real dev data; numbers equal the SQL in `CLAIMS.md`. Not deployed. The fee is an estimate: Strike's fill has no builder-share field |
 | Payout to callers | NOT LIVE | |
 
 ## How it works
