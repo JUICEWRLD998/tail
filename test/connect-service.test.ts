@@ -187,3 +187,43 @@ describe("complete", () => {
     expect(store.getUser(111)!.apiPub).not.toBe("old");
   });
 });
+
+describe("a connect link bound to a caller's builder code", () => {
+  let coded: string;
+  beforeEach(() => {
+    coded = store.createConnectToken(222, new Date(clock).toISOString(), { code: "alpha", feeBps: 25 });
+  });
+
+  it("info shows the caller's code and rate, not the server default", () => {
+    expect(svc.info(coded)).toMatchObject({ ok: true, builderCode: "alpha", feeCapBps: 25 });
+  });
+
+  it("asks Strike for a challenge under the caller's code", async () => {
+    await svc.challenge(coded, { address: ETH, chain: "ethereum" });
+    expect(requested[0]).toMatchObject({ code: "alpha", feeShareBps: 25 });
+  });
+
+  it("completing saves a wallet for that code, and also makes it the default when the follower had none", async () => {
+    const c = await svc.challenge(coded, { address: ETH, chain: "ethereum" });
+    if (!c.ok) throw new Error(c.error);
+    expect(await svc.complete(coded, { nonce: c.nonce, signature: "0xsig" })).toMatchObject({ ok: true });
+    expect(store.walletFor(222, "alpha")).toMatchObject({ builderCode: "alpha", feeBps: 25, apiPub: requested[0].publicKey });
+    expect(store.getUser(222)).toMatchObject({ builderCode: "alpha", apiPub: requested[0].publicKey });
+  });
+
+  it("does not replace a follower's existing default wallet", async () => {
+    store.linkUser({ tgId: 222, chain: "ethereum", address: ETH, strikeAccountId: "acc-0", apiPub: "old", apiPrivEnc: "v1:a:b:c", builderCode: "sigma", linkedAt: "t" });
+    const c = await svc.challenge(coded, { address: ETH, chain: "ethereum" });
+    if (!c.ok) throw new Error(c.error);
+    await svc.complete(coded, { nonce: c.nonce, signature: "0xsig" });
+    expect(store.getUser(222)?.apiPub).toBe("old");
+    expect(store.walletFor(222, "alpha")?.apiPub).toBe(requested[0].publicKey);
+  });
+
+  it("tells the follower which caller code they connected under", async () => {
+    const c = await svc.challenge(coded, { address: ETH, chain: "ethereum" });
+    if (!c.ok) throw new Error(c.error);
+    await svc.complete(coded, { nonce: c.nonce, signature: "0xsig" });
+    expect(notified.at(-1)?.text).toContain("alpha");
+  });
+});
