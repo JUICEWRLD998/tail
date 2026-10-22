@@ -13,12 +13,12 @@ function seed() {
   });
   const a = mk();
   store.openCall(a, 10);
-  store.markEntered(a, T, "2480.00");
-  store.finishCall(a, "tp_hit", "2561.00", T);
+  store.markEntered(a, "2480.00", T);
+  store.finishCall(a, { status: "tp_hit", resultPrice: "2561.00", closedAt: T });
   const b = mk({ symbol: "BTC-USD", entry: "60000.00", tp: "61000.00", sl: "59000.00" });
   store.openCall(b, 11);
-  store.markEntered(b, T, "60000.00");
-  store.finishCall(b, "sl_hit", "58990.00", T);
+  store.markEntered(b, "60000.00", T);
+  store.finishCall(b, { status: "sl_hit", resultPrice: "58990.00", closedAt: T });
   const c = mk();
   store.openCall(c, 12);
   const tail = (callId: number, tgId: number, over = {}) => {
@@ -63,7 +63,7 @@ describe("channel page data", () => {
     expect(p.calls.map((c) => c.symbol)).toEqual(["ETH-USD", "BTC-USD", "ETH-USD"]);
     const first = p.calls.find((c) => c.id === a)!;
     expect(first).toMatchObject({ status: "tp_hit", followers: 2, tails: 2 });
-    expect(first.fee).toBe("0.004464");
+    expect(first.fee).toBe("0.04464");
     const json = JSON.stringify(p);
     for (const secret of ["9001", "5001", "5002", "-1001", "PRIVATE-RAW", "s1", "strategy"]) expect(json).not.toContain(secret);
   });
