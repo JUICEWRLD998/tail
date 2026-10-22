@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { loadConfig } from "../src/config.js";
 import type { StrikeLike } from "../src/bot/service.js";
@@ -31,7 +31,7 @@ const env = (over: Record<string, string> = {}) => ({
 const prodEnv = () => env({ TAIL_MODE: "prod", PUBLIC_URL: "https://tail.example.test", WEBHOOK_SECRET: "s".repeat(40) });
 
 async function make(e: Record<string, string>) {
-  const app = await createApp(loadConfig(e), { publicStrike: strike as never, strikeFor: () => strike, clientForKey: () => strike, botInfo });
+  const app = await createApp(loadConfig(e), { publicStrike: strike as never, strikeFor: () => strike as never, clientForKey: () => strike, botInfo });
   const api: { method: string; payload: any }[] = [];
   app.bot.api.config.use(async (_p, method, payload) => {
     api.push({ method, payload });
@@ -174,5 +174,39 @@ describe("live-state jobs through the app", () => {
     (strike as any).markPrice = async () => { throw new Error("price feed down"); };
     await expect(app.runJobsOnce()).resolves.toBeDefined();
     (strike as any).markPrice = real;
+  });
+});
+
+
+describe("the job schedule", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("startJobs runs reconcile every 15 s and outcomes every 30 s, and stop() ends them", async () => {
+    vi.useFakeTimers();
+    const { app, api } = await make(env());
+    app.store.registerChannel({ chatId: -1001, title: "T", kind: "channel", callerTgId: 900, createdAt: new Date().toISOString() });
+    const callId = app.store.createDraftCall({ chatId: -1001, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: new Date().toISOString() });
+    app.store.openCall(callId, 55);
+    app.store.linkUser({ tgId: 4444, chain: "ethereum", address: "0xabc", strikeAccountId: "a", apiPub: "p", apiPrivEnc: "v1:a:b:c", builderCode: null, linkedAt: "t" });
+    const tail = app.store.createTail({ callId, tgId: 4444, mode: "tail", strategyId: "s1", size: "0.009", notionalUsd: "22", feeBps: 0, createdAt: new Date().toISOString() });
+    app.store.updateTail(tail, { status: "placed", primaryClientOrderId: "pc-live", orderId: "1" });
+    orderResult = { ID: 1, Status: "filled" };
+
+    app.startJobs();
+    await vi.advanceTimersByTimeAsync(14_000);
+    expect(app.store.getTail(tail)?.status).toBe("placed"); // nothing before the first interval
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(app.store.getTail(tail)?.status).toBe("filled"); // reconcile ran at 15 s
+
+    markResult = "2479.00";
+    await vi.advanceTimersByTimeAsync(15_000); // t = 31 s: outcomes ran once, entered
+    expect(app.store.getCall(callId)?.enteredPrice).toBe("2480.00");
+
+    await app.stop();
+    const before = api.length;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(api.length).toBe(before);
+    orderResult = { ID: 1, Status: "open", CloseReason: "" };
+    markResult = "2494.62";
   });
 });
