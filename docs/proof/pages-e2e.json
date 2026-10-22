@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-22T11:54:25.514Z",
+  "checkedAt": "2026-10-22T18:57:26.422Z",
   "checks": [
     {
       "name": "CONTROL overflow detector flags a 3000px element",
@@ -441,7 +441,7 @@
       "name": "real page says 'No tail has filled yet' when the fee is zero",
       "pass": true,
       "detail": {
-        "filled": 0
+        "filled": 1
       }
     },
     {
@@ -484,25 +484,25 @@
       "pass": true,
       "detail": {
         "sql": {
-          "calls": 1,
-          "tpHit": 0,
+          "calls": 3,
+          "tpHit": 2,
           "slHit": 1,
-          "followers": 0,
-          "filled": 0,
+          "followers": 1,
+          "filled": 1,
           "fee": 0
         },
         "page": {
-          "calls": 1,
+          "calls": 3,
           "open": 0,
-          "tpHit": 0,
+          "tpHit": 2,
           "slHit": 1,
           "expired": 0,
-          "decided": 1,
-          "hitRatePct": "0.0",
-          "avgR": "-1",
-          "followers": 0,
+          "decided": 3,
+          "hitRatePct": "66.7",
+          "avgR": "-0.09",
+          "followers": 1,
           "fee": "0",
-          "filled": 0
+          "filled": 1
         }
       }
     },
@@ -608,14 +608,33 @@
       "detail": {
         "network": "testnet",
         "channels": 1,
-        "calls": 1,
-        "tailsFilled": 0,
+        "calls": 3,
+        "tailsFilled": 1,
         "bot": "lidevbot",
-        "note": "Measured from this server's own database. All of it is test activity on Strike testnet, not adoption."
+        "note": "Measured from this server's own database. All of it is test activity on Strike testnet, not adoption.",
+        "featured": {
+          "id": 3,
+          "symbol": "ETH-USD",
+          "side": "long",
+          "entry": null,
+          "tp": "2380.00",
+          "sl": "2365.00",
+          "leverageHint": 5,
+          "status": "tp_hit",
+          "createdAt": "2026-10-22T18:33:11.934Z",
+          "resultR": "0.44",
+          "tails": [
+            {
+              "mode": "tail",
+              "status": "closed",
+              "atMs": 31137
+            }
+          ]
+        }
       }
     },
     {
-      "name": "home links to the bot",
+      "name": "home links to the bot from the hero",
       "pass": true
     }
   ]

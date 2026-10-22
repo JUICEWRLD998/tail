@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { dayLabel, rLabel, statusLabel, usdLabel } from "../lib/format.js";
 import { fetchChannel, type ChannelPage as Data } from "../lib/pages-api.js";
+import { OutcomeBar, RChart } from "../ui/charts.js";
+import { CountUp } from "../ui/CountUp.js";
+import { Ticket } from "../ui/Ticket.js";
 import { Shell } from "./Shell.js";
 import styles from "./pages.module.css";
 
 type View = { kind: "loading" } | { kind: "error"; message: string } | { kind: "ready"; page: Data };
+
+const STATUS_CLASS: Record<string, string | undefined> = { tp_hit: styles.up, sl_hit: styles.down };
 
 export function ChannelPage({ slug }: { slug: string }) {
   const [view, setView] = useState<View>({ kind: "loading" });
@@ -30,42 +35,62 @@ export function ChannelPage({ slug }: { slug: string }) {
   const { page } = view;
   const r = page.record;
   const e = page.earnings;
+  const latest = page.calls[0];
+
   return (
     <Shell title={page.title} documentTitle={page.title}>
-      <p className={styles.meta}>Registered {dayLabel(page.since)}. Every number is computed from stored calls and fills on Strike testnet.</p>
+      <p className={styles.meta}>
+        {page.kind === "group" ? "Group" : "Channel"} registered {dayLabel(page.since)}. Every number on this page is computed from stored calls and Strike fills on testnet.
+      </p>
 
       <section className={styles.section} aria-labelledby="record">
-        <h2 id="record">Record</h2>
+        <h2 id="record" className={styles.kicker}>Record</h2>
         {r.calls === 0 ? (
           <p className={styles.empty}>No calls yet.</p>
         ) : (
-          <dl className={styles.stats}>
-            <div className={styles.stat}><dt>Calls</dt><dd>{r.calls}</dd></div>
-            <div className={styles.stat}><dt>Open</dt><dd>{r.open}</dd></div>
-            <div className={styles.stat}><dt>Target / stop</dt><dd>{r.tpHit} / {r.slHit}</dd></div>
-            <div className={styles.stat}><dt>Hit rate</dt><dd>{r.hitRatePct === null ? "No result yet" : `${r.hitRatePct}%`}</dd></div>
-            <div className={styles.stat}><dt>Average result</dt><dd>{r.avgR === null ? "No result yet" : rLabel(r.avgR)}</dd></div>
-            <div className={styles.stat}><dt>Followers in</dt><dd>{r.followers}</dd></div>
-          </dl>
+          <>
+            <dl className={styles.stats}>
+              <div className={styles.stat}><dt>Calls</dt><dd><CountUp value={r.calls} /></dd></div>
+              <div className={styles.stat}><dt>Hit rate</dt><dd>{r.hitRatePct === null ? "n/a" : `${r.hitRatePct}%`}</dd></div>
+              <div className={styles.stat}><dt>Average result</dt><dd className={r.avgR !== null && r.avgR.startsWith("-") ? styles.down : styles.up}>{r.avgR === null ? "n/a" : rLabel(r.avgR)}</dd></div>
+              <div className={styles.stat}><dt>Followers in</dt><dd><CountUp value={r.followers} /></dd></div>
+            </dl>
+            <div className={styles.charts}>
+              <RChart rows={[...page.calls]} />
+              <OutcomeBar record={r} />
+            </div>
+          </>
         )}
       </section>
 
-      <section className={styles.section} aria-labelledby="earnings">
-        <h2 id="earnings">Builder fee</h2>
-        <div className={styles.earn}>
-          <p className={styles.earnValue} aria-label={`Estimated builder fee ${usdLabel(e.fee)}`}>{usdLabel(e.fee)}</p>
-          <p className={styles.note}>
-            Estimate: entry-fill notional times the builder fee rate. {e.filled === 0
-              ? "No tail has filled yet."
-              : `${e.filled} filled ${e.filled === 1 ? "tail" : "tails"}, ${usdLabel(e.filledNotional)} of entry fills.`}
-            {e.withoutRate > 0 && ` ${e.withoutRate} used a personal wallet and add nothing.`}
-          </p>
-          <p className={`${styles.note} ${styles.warn}`}>Strike's fill record has no builder-share field, and exit fills are not counted. Payout to callers is not live.</p>
+      <section className={styles.split} aria-labelledby="latest">
+        <div className={styles.section}>
+          <h2 id="latest" className={styles.kicker}>Latest call</h2>
+          {latest ? (
+            <Ticket call={latest} label={`${statusLabel(latest.status)} · ${dayLabel(latest.createdAt)}`}
+              tails={[...Array.from({ length: latest.tailed }, () => ({ mode: "tail" as const })), ...Array.from({ length: latest.faded }, () => ({ mode: "fade" as const }))]}
+              showResult />
+          ) : (
+            <p className={styles.empty}>No calls yet.</p>
+          )}
+        </div>
+        <div className={styles.section} aria-labelledby="earnings">
+          <h2 id="earnings" className={styles.kicker}>Builder fee</h2>
+          <div className={styles.earn}>
+            <p className={styles.earnValue} aria-label={`Estimated builder fee ${usdLabel(e.fee)}`}>{usdLabel(e.fee)}</p>
+            <p className={styles.note}>
+              Estimate: entry-fill notional times the builder fee rate. {e.filled === 0
+                ? "No tail has filled yet."
+                : `${e.filled} filled ${e.filled === 1 ? "tail" : "tails"}, ${usdLabel(e.filledNotional)} of entry fills.`}
+              {e.withoutRate > 0 && ` ${e.withoutRate} used a personal wallet and add nothing.`}
+            </p>
+            <p className={`${styles.note} ${styles.warn}`}>Strike's fill record has no builder-share field, and exit fills are not counted. Payout to callers is not live.</p>
+          </div>
         </div>
       </section>
 
       <section className={styles.section} aria-labelledby="calls">
-        <h2 id="calls">Calls</h2>
+        <h2 id="calls" className={styles.kicker}>All calls</h2>
         {page.calls.length === 0 ? (
           <p className={styles.empty}>No calls yet.</p>
         ) : (
@@ -76,19 +101,19 @@ export function ChannelPage({ slug }: { slug: string }) {
                 <tr>
                   <th scope="col">Call</th><th scope="col">Entry</th><th scope="col">Target</th><th scope="col">Stop</th>
                   <th scope="col">Status</th><th scope="col" className={styles.num}>Result</th>
-                  <th scope="col" className={styles.num}>Followers</th><th scope="col" className={styles.num}>Fee</th>
+                  <th scope="col" className={styles.num}>Tailed / faded</th><th scope="col" className={styles.num}>Fee</th>
                 </tr>
               </thead>
               <tbody>
                 {page.calls.map((c) => (
                   <tr key={c.id}>
-                    <td data-label="Call">{c.symbol} {c.side.toUpperCase()}</td>
-                    <td data-label="Entry">{c.entry ?? "Market"}</td>
+                    <td data-label="Call">{c.symbol} <span className={c.side === "long" ? styles.up : styles.down}>{c.side.toUpperCase()}</span></td>
+                    <td data-label="Entry">{c.entry ?? "market"}</td>
                     <td data-label="Target">{c.tp}</td>
                     <td data-label="Stop">{c.sl}</td>
-                    <td data-label="Status">{statusLabel(c.status)}</td>
-                    <td data-label="Result" className={`${styles.num} ${c.status === "tp_hit" ? styles.up : c.status === "sl_hit" ? styles.down : ""}`}>{c.resultR === null ? "n/a" : rLabel(c.resultR)}</td>
-                    <td data-label="Followers" className={styles.num}>{c.followers}</td>
+                    <td data-label="Status"><span className={`${styles.pill} ${STATUS_CLASS[c.status] ?? ""}`}>{statusLabel(c.status)}</span></td>
+                    <td data-label="Result" className={`${styles.num} ${STATUS_CLASS[c.status] ?? ""}`}>{c.resultR === null ? "n/a" : rLabel(c.resultR)}</td>
+                    <td data-label="Tailed / faded" className={styles.num}>{c.tailed} / {c.faded}</td>
                     <td data-label="Fee" className={styles.num}>{usdLabel(c.fee)}</td>
                   </tr>
                 ))}

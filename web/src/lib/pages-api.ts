@@ -5,6 +5,7 @@ export interface PageCall {
   side: "long" | "short";
   entry: string | null;
   entryKind: "limit" | "market";
+  leverageHint: number | null;
   tp: string;
   sl: string;
   status: string;
@@ -13,6 +14,8 @@ export interface PageCall {
   resultR: string | null;
   followers: number;
   tails: number;
+  tailed: number;
+  faded: number;
   fee: string;
 }
 
@@ -27,6 +30,20 @@ export interface ChannelPage {
   calls: PageCall[];
 }
 
+export interface FeaturedCall {
+  id: number;
+  symbol: string;
+  side: "long" | "short";
+  entry: string | null;
+  tp: string;
+  sl: string;
+  leverageHint: number | null;
+  status: string;
+  resultR: string | null;
+  createdAt: string;
+  tails: { mode: "tail" | "fade"; status: string; atMs: number }[];
+}
+
 export interface SitePage {
   network: "testnet";
   channels: number;
@@ -34,6 +51,7 @@ export interface SitePage {
   tailsFilled: number;
   bot: string | null;
   note: string;
+  featured: FeaturedCall | null;
 }
 
 export type Result<T> = { ok: true; page: T } | { ok: false; error: string };

@@ -1,0 +1,309 @@
+/* The call card as a printed ticket: paper, ink, a perforated stub for the people who took it. */
+.wrap {
+  container: ticket / inline-size;
+  position: relative;
+  width: 100%;
+  max-width: 26rem;
+  margin-inline: auto;
+}
+
+.ticket {
+  --notch: 0.85rem;
+  position: relative;
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 oklch(0.3 0.02 255 / 0.25), 0 24px 48px -24px oklch(0.1 0.02 255 / 0.6);
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+}
+
+.head {
+  padding: var(--space-4) var(--space-6) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.title {
+  padding: var(--space-2) var(--space-6) var(--space-4);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+.symbol {
+  font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.side {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+}
+
+.long {
+  color: var(--tail-ink);
+}
+
+.short {
+  color: var(--fade-ink);
+}
+
+.dot {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem;
+  gap: var(--space-4);
+  padding: 0 var(--space-6) var(--space-6);
+  align-items: stretch;
+}
+
+.levels {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.level {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  border-bottom: 1px dashed oklch(from var(--ink) l c h / 0.18);
+  padding-bottom: var(--space-2);
+}
+
+.level dt {
+  font-size: var(--step--1);
+  color: var(--ink-muted);
+}
+
+.level dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.rr {
+  font-family: var(--mono);
+  font-size: var(--step--1);
+  color: var(--ink-muted);
+}
+
+/* Perforation: a dashed tear line with two punched notches at the edges. */
+.perf {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed oklch(from var(--ink) l c h / 0.22);
+  margin-inline: var(--notch);
+}
+
+.perf::before,
+.perf::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--notch) * -1 - 1px);
+  width: calc(var(--notch) * 2);
+  height: calc(var(--notch) * 2);
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.perf::before {
+  left: calc(var(--notch) * -2);
+}
+
+.perf::after {
+  right: calc(var(--notch) * -2);
+}
+
+.stub {
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.counts {
+  display: flex;
+  gap: var(--space-6);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.count b {
+  display: inline-block;
+  min-width: 1.4ch;
+  font-size: 1.35rem;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-right: 0.35em;
+  vertical-align: -0.12em;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 1.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  height: 1.9rem;
+  padding: 0 0.7rem;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border: 1.5px solid currentColor;
+}
+
+.chipTail {
+  color: var(--tail-ink);
+}
+
+.chipFade {
+  color: var(--fade-ink);
+}
+
+.none {
+  font-size: var(--step--1);
+  color: var(--ink-muted);
+}
+
+/* The result lands as a rubber stamp over the levels. */
+.stamp {
+  /* Lands on the stub's empty right side, over nothing that must stay readable. */
+  position: absolute;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  padding: 0.35rem 0.75rem;
+  border: 3px double currentColor;
+  border-radius: 0.4rem;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.2;
+  background: oklch(from var(--paper) l c h / 0.88);
+  pointer-events: none;
+}
+
+.stamp small {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.stampHit {
+  color: var(--tail-ink);
+}
+
+.stampStop {
+  color: var(--fade-ink);
+}
+
+.stampOther {
+  color: var(--ink-muted);
+}
+
+/* The ladder: the three levels on one price axis, drawn to scale. */
+.ladder {
+  width: 100%;
+  height: 100%;
+  min-height: 8.5rem;
+  overflow: visible;
+}
+
+.ladderTrack {
+  stroke: oklch(from var(--ink) l c h / 0.25);
+  stroke-width: 2;
+}
+
+.ladderReward {
+  fill: oklch(from var(--tail-ink) l c h / 0.16);
+}
+
+.ladderRisk {
+  fill: oklch(from var(--fade-ink) l c h / 0.16);
+}
+
+.ladderTp {
+  stroke: var(--tail-ink);
+}
+
+.ladderSl {
+  stroke: var(--fade-ink);
+}
+
+.ladderEntry {
+  stroke: var(--ink);
+}
+
+.ladderTick {
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+@container ticket (max-width: 24rem) {
+  .headNet {
+    display: none;
+  }
+}
+
+@media (max-width: 22rem) {
+  .head,
+  .title,
+  .body,
+  .stub {
+    padding-inline: var(--space-4);
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr) 3rem;
+    gap: var(--space-3);
+  }
+
+  .stamp {
+    right: var(--space-4);
+  }
+}

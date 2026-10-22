@@ -30,6 +30,7 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | The AI fallback never builds an order; the caller must confirm | `npx vitest run test/service.test.ts -t "AI fallback"` | pass |
 | The real model behaves on planted controls | `OPENROUTER_API_KEY=... npx tsx scripts/ai-live.ts` | 9 cases behave; `docs/proof/p6-ai-live.json` |
 | A caller's public page shows numbers that match SQL | `npm run web:build && npx tsx scripts/pages-e2e.ts` | 115 checks pass; SQL below; `docs/proof/pages-e2e.json`; screenshots in `docs/proof/pages/` |
+| The home page replay is a real call, plays in order, and respects reduced motion | `npm run web:build && npx tsx scripts/replay-probe.ts` | all pass; frames in `docs/proof/pages/replay/` |
 | Builder-fee earnings are an estimate, floored, entry fills only | `npx vitest run test/earnings.test.ts` | pass; Strike's fill has no builder-share field (`user-api.yaml` 868-884) |
 | A page is opt-in, and private, unknown and malformed slugs look alike | `npx vitest run test/store.test.ts test/pages.test.ts test/server.test.ts -t "public"` | pass |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |

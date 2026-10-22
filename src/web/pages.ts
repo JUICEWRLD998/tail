@@ -14,6 +14,7 @@ export interface PageCall {
   side: "long" | "short";
   entry: string | null;
   entryKind: "limit" | "market";
+  leverageHint: number | null;
   tp: string;
   sl: string;
   status: string;
@@ -23,6 +24,9 @@ export interface PageCall {
   /** Followers with an entry fill on this call. */
   followers: number;
   tails: number;
+  /** Live follows by kind (placed, filled or closed), as on the channel card's counter. */
+  tailed: number;
+  faded: number;
   /** Estimated builder fee from this call's entry fills, USD. */
   fee: string;
 }
@@ -38,6 +42,21 @@ export interface ChannelPage {
   calls: PageCall[];
 }
 
+/** A real call replayed on the home page. Tails carry only what the animation needs: Tail or Fade, status, timing. */
+export interface FeaturedCall {
+  id: number;
+  symbol: string;
+  side: "long" | "short";
+  entry: string | null;
+  tp: string;
+  sl: string;
+  leverageHint: number | null;
+  status: string;
+  resultR: string | null;
+  createdAt: string;
+  tails: { mode: "tail" | "fade"; status: string; atMs: number }[];
+}
+
 export interface SitePage {
   network: "testnet";
   channels: number;
@@ -46,6 +65,7 @@ export interface SitePage {
   /** The bot to open in Telegram, if known. */
   bot: string | null;
   note: string;
+  featured: FeaturedCall | null;
 }
 
 export interface Pages {
@@ -54,6 +74,20 @@ export interface Pages {
 }
 
 export function createPages(store: Store, o: { botUsername?: string } = {}): Pages {
+  const LIVE = new Set(["placed", "filled", "closed"]);
+  const featured = (): FeaturedCall | null => {
+    const c = store.featuredCall();
+    if (!c) return null;
+    const t0 = Date.parse(c.createdAt);
+    return {
+      id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, tp: c.tp, sl: c.sl, leverageHint: c.leverageHint,
+      status: c.status, createdAt: c.createdAt,
+      resultR: c.status === "tp_hit" || c.status === "sl_hit" ? resultR(c, c.status) : null,
+      tails: store.tailsOfCall(c.id).filter((t) => LIVE.has(t.status)).map((t) => ({
+        mode: t.mode, status: t.status, atMs: Math.max(0, Date.parse(t.createdAt) - t0),
+      })),
+    };
+  };
   return {
     channel(slug) {
       if (!SLUG_RE.test(slug)) return undefined;
@@ -68,10 +102,10 @@ export function createPages(store: Store, o: { botUsername?: string } = {}): Pag
       }));
       const followersOf = (callId: number) => new Set(tails.filter((t) => t.callId === callId && (t.status === "filled" || t.status === "closed")).map((t) => t.tgId)).size;
       const list: PageCall[] = [...calls].reverse().slice(0, MAX_CALLS).map((c) => ({
-        id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, entryKind: c.entryKind, tp: c.tp, sl: c.sl, status: c.status,
+        id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, entryKind: c.entryKind, leverageHint: c.leverageHint, tp: c.tp, sl: c.sl, status: c.status,
         createdAt: c.createdAt, closedAt: c.closedAt,
         resultR: c.status === "tp_hit" || c.status === "sl_hit" ? resultR(c, c.status) : null,
-        followers: followersOf(c.id), tails: tails.filter((t) => t.callId === c.id).length,
+        followers: followersOf(c.id), tails: tails.filter((t) => t.callId === c.id).length, ...store.tailCounts(c.id),
         fee: e.byCall.get(c.id)?.fee ?? "0",
       }));
       return {
@@ -85,6 +119,7 @@ export function createPages(store: Store, o: { botUsername?: string } = {}): Pag
       return {
         network: "testnet", ...store.siteTotals(), bot: o.botUsername ?? null,
         note: "Measured from this server's own database. All of it is test activity on Strike testnet, not adoption.",
+        featured: featured(),
       };
     },
   };

@@ -62,7 +62,7 @@ describe("channel page data", () => {
     const p = createPages(store).channel(slug)!;
     expect(p.calls.map((c) => c.symbol)).toEqual(["ETH-USD", "BTC-USD", "ETH-USD"]);
     const first = p.calls.find((c) => c.id === a)!;
-    expect(first).toMatchObject({ status: "tp_hit", followers: 2, tails: 2 });
+    expect(first).toMatchObject({ status: "tp_hit", followers: 2, tails: 2, tailed: 2, faded: 0 });
     expect(first.fee).toBe("0.04464");
     const json = JSON.stringify(p);
     for (const secret of ["9001", "5001", "5002", "-1001", "PRIVATE-RAW", "s1", "strategy"]) expect(json).not.toContain(secret);
@@ -99,5 +99,48 @@ describe("site data", () => {
 
   it("is all zeros on an empty database, not hidden", () => {
     expect(createPages(store).site()).toMatchObject({ channels: 0, calls: 0, tailsFilled: 0, bot: null });
+  });
+});
+
+describe("featured call (the replay on the home page)", () => {
+  it("is null on an empty database: nothing is staged", () => {
+    expect(createPages(store).site().featured).toBeNull();
+  });
+
+  it("is the newest call that real followers took, not merely the newest call", () => {
+    const { b, c } = seed();
+    // seed(): a has two filled tails, b (newer) has one, c (newest) has none. b wins.
+    const f = createPages(store).site().featured!;
+    expect(f.id).toBe(b);
+    expect(f.id).not.toBe(c);
+    expect(f).toMatchObject({ symbol: "BTC-USD", side: "long", entry: "60000.00", status: "sl_hit", resultR: "-1" });
+  });
+
+  it("lists tails as mode, status and offset only: no ids, no sizes, no people", () => {
+    seed();
+    const f = createPages(store).site().featured!;
+    expect(f.tails.length).toBeGreaterThan(0);
+    for (const t of f.tails) expect(Object.keys(t).sort()).toEqual(["atMs", "mode", "status"]);
+    const json = JSON.stringify(f);
+    for (const secret of ["5001", "9001", "-1001", "PRIVATE-RAW", "0.009"]) expect(json).not.toContain(secret);
+  });
+
+  it("leaves out quotes that never became orders", () => {
+    store.registerChannel({ chatId: -9, title: "Q", kind: "channel", callerTgId: 1, createdAt: T });
+    const id = store.createDraftCall({ chatId: -9, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "short", entryKind: "market", entry: null, tp: "2300.00", sl: "2400.00", leverageHint: null, createdAt: T });
+    store.openCall(id, 1);
+    store.createTail({ callId: id, tgId: 7, mode: "fade", strategyId: "q", size: "1", notionalUsd: "1", feeBps: 0, createdAt: "2026-10-21T12:00:05.000Z" });
+    const t2 = store.createTail({ callId: id, tgId: 8, mode: "tail", strategyId: "r", size: "1", notionalUsd: "1", feeBps: 0, createdAt: "2026-10-21T12:00:09.500Z" });
+    store.updateTail(t2, { status: "filled" });
+    const f = createPages(store).site().featured!;
+    expect(f.tails).toEqual([{ mode: "tail", status: "filled", atMs: 9500 }]);
+    expect(f.entry).toBeNull();
+  });
+
+  it("falls back to the newest posted call when no one has taken any, with no tails", () => {
+    store.registerChannel({ chatId: -9, title: "Q", kind: "channel", callerTgId: 1, createdAt: T });
+    const id = store.createDraftCall({ chatId: -9, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: 5, createdAt: T });
+    store.openCall(id, 1);
+    expect(createPages(store).site().featured).toMatchObject({ id, tails: [], status: "open", leverageHint: 5 });
   });
 });

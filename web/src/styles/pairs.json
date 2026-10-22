@@ -10,7 +10,13 @@
         "accent": "oklch(0.82 0.11 178)",
         "onAccent": "oklch(0.2 0.03 200)",
         "warn": "oklch(0.82 0.13 80)",
-        "danger": "oklch(0.76 0.14 25)"
+        "danger": "oklch(0.76 0.14 25)",
+        "paper": "oklch(0.93 0.022 85)",
+        "ink": "oklch(0.24 0.03 255)",
+        "inkMuted": "oklch(0.46 0.03 255)",
+        "tailInk": "oklch(0.47 0.08 178)",
+        "fadeInk": "oklch(0.5 0.15 32)",
+        "fade": "oklch(0.78 0.12 38)"
       },
       "pairs": [
         {
@@ -96,6 +102,48 @@
           "bg": "bg",
           "min": 4.5,
           "use": "page figures on the page background"
+        },
+        {
+          "fg": "ink",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "ticket text"
+        },
+        {
+          "fg": "inkMuted",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "ticket labels"
+        },
+        {
+          "fg": "tailInk",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "Tail chip and target stamp on a ticket"
+        },
+        {
+          "fg": "fadeInk",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "Fade chip and stop stamp on a ticket"
+        },
+        {
+          "fg": "fade",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "Fade figures on the page"
+        },
+        {
+          "fg": "fade",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "Fade figures on a panel"
+        },
+        {
+          "fg": "line",
+          "bg": "paper",
+          "min": 3,
+          "use": "ticket border and perforation"
         }
       ]
     },
@@ -109,7 +157,13 @@
         "accent": "oklch(0.46 0.07 190)",
         "onAccent": "oklch(0.98 0.01 185)",
         "warn": "oklch(0.47 0.1 70)",
-        "danger": "oklch(0.5 0.17 25)"
+        "danger": "oklch(0.5 0.17 25)",
+        "paper": "oklch(0.99 0.008 85)",
+        "ink": "oklch(0.22 0.03 255)",
+        "inkMuted": "oklch(0.45 0.03 255)",
+        "tailInk": "oklch(0.46 0.08 180)",
+        "fadeInk": "oklch(0.5 0.16 30)",
+        "fade": "oklch(0.52 0.16 32)"
       },
       "pairs": [
         {
@@ -195,6 +249,48 @@
           "bg": "bg",
           "min": 4.5,
           "use": "page figures on the page background"
+        },
+        {
+          "fg": "ink",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "ticket text"
+        },
+        {
+          "fg": "inkMuted",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "ticket labels"
+        },
+        {
+          "fg": "tailInk",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "Tail chip and target stamp on a ticket"
+        },
+        {
+          "fg": "fadeInk",
+          "bg": "paper",
+          "min": 4.5,
+          "use": "Fade chip and stop stamp on a ticket"
+        },
+        {
+          "fg": "fade",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "Fade figures on the page"
+        },
+        {
+          "fg": "fade",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "Fade figures on a panel"
+        },
+        {
+          "fg": "line",
+          "bg": "paper",
+          "min": 3,
+          "use": "ticket border and perforation"
         }
       ]
     }
