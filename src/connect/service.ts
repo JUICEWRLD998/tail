@@ -87,7 +87,7 @@ export function createConnectService(d: ConnectDeps) {
       });
       const address = short(pending.address);
       try {
-        await d.notify(pending.tgId, `Linked ${address}. Tap Tail on a call card to trade.`);
+        await d.notify(pending.tgId, `✅ <b>Linked</b> ${address}\nTap <b>Tail</b> on a call card to trade.`);
       } catch {
         /* the link exists; a failed DM must not undo it */
       }

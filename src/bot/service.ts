@@ -100,25 +100,25 @@ export function createService(d: ServiceDeps) {
       if (r.reason === "not_a_call") return { type: "ignore" };
       if (r.reason === "not_listed") {
         store.recordMiss(r.base, i.chatId);
-        return { type: "dm", tgId: callerTgId, reply: { text: `Not on Strike yet: ${r.base}.` } };
+        return { type: "dm", tgId: callerTgId, reply: { text: `🔍 Not on Strike yet: ${r.base}.` } };
       }
       const { question, options, field } = r.ask;
       if (options && options.length > 0) {
         const askId = store.createAsk({ tgId: callerTgId, chatId: i.chatId, messageId: i.messageId, rawText: i.text, field, options, createdAt: d.now() });
         return {
           type: "dm", tgId: callerTgId,
-          reply: { text: question, buttons: options.map((label, n) => ({ text: label, callback: callbackData("ask", askId, n) })) },
+          reply: { text: `❓ ${question}`, buttons: options.map((label, n) => ({ text: label, callback: callbackData("ask", askId, n) })) },
         };
       }
-      return { type: "dm", tgId: callerTgId, reply: { text: `${question}${FOLLOW_UP[field] ?? ""}` } };
+      return { type: "dm", tgId: callerTgId, reply: { text: `❓ ${question}${FOLLOW_UP[field] ?? ""}` } };
     }
     const dr = r.draft;
     // Abuse limits apply only to a real call about to become a draft, never to chatter or a question.
     if (store.hasRecentCall(i.chatId, i.text, before(duplicateWindowMs))) {
-      return { type: "dm", tgId: callerTgId, reply: { text: "This call was already posted a moment ago." } };
+      return { type: "dm", tgId: callerTgId, reply: { text: "♻️ This call was already posted a moment ago." } };
     }
     if (store.countCallsSince(i.chatId, before(3_600_000)) >= maxCallsPerHour) {
-      return { type: "dm", tgId: callerTgId, reply: { text: `Too many calls in the last hour (limit ${maxCallsPerHour}). Wait before posting another.` } };
+      return { type: "dm", tgId: callerTgId, reply: { text: `⚠️ Too many calls in the last hour (limit ${maxCallsPerHour}). Wait before posting another.` } };
     }
     const id = store.createDraftCall({
       chatId: i.chatId, messageId: i.messageId, rawText: i.text, symbol: dr.symbol, side: dr.side, entryKind: dr.entryKind,
@@ -186,7 +186,7 @@ export function createService(d: ServiceDeps) {
         return { text: "This draft is no longer available." };
       }
       store.cancelDraft(callId);
-      return { text: "Dropped." };
+      return { text: "🗑️ Dropped." };
     },
 
     async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string; needsLink?: true } | { ok: true; tailId: number; reply: Reply }> {
@@ -287,7 +287,7 @@ export function createService(d: ServiceDeps) {
         }
         // The request may or may not have reached Strike. Keep the tail live so a blind retry cannot double up.
         store.updateTail(tail.id, { error: "unconfirmed" });
-        return { text: "Could not confirm with Strike. Check your open orders on Strike before trying again." };
+        return { text: "⚠️ Could not confirm with Strike. Check your open orders on Strike before trying again." };
       }
 
       // A 201 only means "sequenced". Strike can still reject the primary afterwards, so read its final status.
@@ -306,7 +306,7 @@ export function createService(d: ServiceDeps) {
         }
       } catch {
         store.updateTail(tail.id, { primaryClientOrderId: clientId, error: "unconfirmed", ...legs });
-        return { text: "Sent to Strike, but could not read its status. Check your open orders on Strike." };
+        return { text: "⚠️ Sent to Strike, but could not read its status. Check your open orders on Strike." };
       }
       if (primary.Status === "rejected") {
         const code = (primary.CloseReason as string) || "rejected";
@@ -319,10 +319,10 @@ export function createService(d: ServiceDeps) {
         ...(filled ? { filledAt: d.now() } : {}),
       });
       const text = filled
-        ? `Filled. Strike order ${primary.ID} filled.`
+        ? `✅ <b>Filled</b>\nStrike order <code>${primary.ID}</code> filled.`
         : primary.Status === "pending"
-          ? `Sent. Strike order ${primary.ID} is pending.`
-          : `Placed. Strike order ${primary.ID} is open.`;
+          ? `⏳ <b>Sent</b>\nStrike order <code>${primary.ID}</code> is pending.`
+          : `📨 <b>Placed</b>\nStrike order <code>${primary.ID}</code> is open.`;
       return {
         text,
         cardEdit: call.cardMessageId === null ? undefined : {
@@ -336,7 +336,7 @@ export function createService(d: ServiceDeps) {
       const tail = store.getTail(i.tailId);
       if (!tail || tail.tgId !== i.tgId || tail.status !== "quoted") return { text: "This quote is no longer active." };
       store.updateTail(tail.id, { status: "cancelled" });
-      return { text: "Cancelled." };
+      return { text: "🚫 Cancelled." };
     },
 
     async link(tgId: number, privateKeyHex: string): Promise<{ ok: boolean; text: string }> {
@@ -353,7 +353,7 @@ export function createService(d: ServiceDeps) {
         tgId, chain: acct.blockchain, address: acct.blockchain_address, strikeAccountId: acct.account_id,
         apiPub: derivePublicKeyHex(privateKeyHex), apiPrivEnc: encryptSecret(d.kek, privateKeyHex), builderCode: null, linkedAt: d.now(),
       });
-      return { ok: true, text: `Linked ${short(acct.blockchain_address)}. Equity ${acct.margin_balance} USD.` };
+      return { ok: true, text: `✅ <b>Linked</b> ${short(acct.blockchain_address)}\n💼 Equity ${acct.margin_balance} USD` };
     },
 
     async me(tgId: number): Promise<string> {
@@ -366,8 +366,11 @@ export function createService(d: ServiceDeps) {
         /* show the rest */
       }
       return [
-        `Linked ${short(user.address)} (${user.chain})`,
-        `Equity ${equity} USD`,
+        "👤 <b>Your account</b>",
+        `🔗 Linked ${short(user.address)} (${user.chain})`,
+        `💼 Equity ${equity} USD`,
+        "",
+        "⚙️ <b>Limits</b>",
         `Risk ${user.riskPct}% · max leverage ${user.maxLeverage}x · max notional ${user.maxNotionalUsd} USD`,
       ].join("\n");
     },

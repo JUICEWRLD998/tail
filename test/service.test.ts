@@ -112,14 +112,14 @@ describe("caller posts", () => {
     const r = await post("#DOGE/USDT long 0.1 tp 0.2 sl 0.09");
     expect(r).toMatchObject({ type: "dm", tgId: CALLER });
     if (r.type !== "dm") throw new Error();
-    expect(r.reply.text).toBe("Not on Strike yet: DOGE.");
+    expect(r.reply.text).toBe("🔍 Not on Strike yet: DOGE.");
     expect(store.missCount("DOGE", CHAT)).toBe(1);
   });
 
   it("relays a parser question to the caller instead of guessing", async () => {
     const r = await post("ETH 2480 tp 2560 sl 2420");
     if (r.type !== "dm") throw new Error("expected a DM");
-    expect(r.reply.text).toBe("Long or short on ETH-USD?");
+    expect(r.reply.text).toBe("❓ Long or short on ETH-USD?");
     expect(store.getCall(1)).toBeUndefined();
   });
 });
@@ -138,7 +138,7 @@ describe("questions with answers (the ask flow)", () => {
 
   it("an ambiguous side is asked with Long and Short buttons, and the question is stored", async () => {
     const r = await dmOf("ETH 2480 tp 2560 sl 2420");
-    expect(r.reply.text).toBe("Long or short on ETH-USD?");
+    expect(r.reply.text).toBe("❓ Long or short on ETH-USD?");
     expect(r.reply.buttons?.map((b) => b.text)).toEqual(["Long", "Short"]);
     expect(r.reply.buttons?.map((b) => b.callback)).toEqual(["a:1:0", "a:1:1"]);
     expect(store.getCall(1)).toBeUndefined(); // no draft yet
@@ -180,7 +180,7 @@ describe("questions with answers (the ask flow)", () => {
 
   it("two candidate entries are asked as buttons, and the chosen one is used", async () => {
     const r = await dmOf("ETH long 2480 2470 tp 2560 sl 2420");
-    expect(r.reply.text).toBe("Which number is the entry?");
+    expect(r.reply.text).toBe("❓ Which number is the entry?");
     expect(r.reply.buttons?.map((b) => b.text)).toEqual(["2480", "2470"]);
     const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 });
     if (!a.ok) throw new Error();
@@ -197,7 +197,7 @@ describe("questions with answers (the ask flow)", () => {
 
   it("a question without choices has no buttons and says to post the call again", async () => {
     const r = await dmOf("ETH long 2480 tp 2560");
-    expect(r.reply.text).toBe("No stop found. Where is the stop loss? Post the call again with it.");
+    expect(r.reply.text).toBe("❓ No stop found. Where is the stop loss? Post the call again with it.");
     expect(r.reply.buttons).toBeUndefined();
   });
 
@@ -211,7 +211,7 @@ describe("questions with answers (the ask flow)", () => {
 
   it("an unlisted market is still reported, not asked about", async () => {
     const r = await dmOf("#DOGE/USDT long 0.1 tp 0.2 sl 0.09");
-    expect(r.reply.text).toBe("Not on Strike yet: DOGE.");
+    expect(r.reply.text).toBe("🔍 Not on Strike yet: DOGE.");
     expect(r.reply.buttons).toBeUndefined();
   });
 });
@@ -227,7 +227,7 @@ describe("guard rails", () => {
     const blocked = await post(callN(3));
     expect(blocked).toMatchObject({ type: "dm", tgId: CALLER });
     if (blocked.type !== "dm") throw new Error();
-    expect(blocked.reply.text).toBe("Too many calls in the last hour (limit 3). Wait before posting another.");
+    expect(blocked.reply.text).toBe("⚠️ Too many calls in the last hour (limit 3). Wait before posting another.");
     expect(store.getCall(4)).toBeUndefined();
     advance(61);
     expect(await post(callN(4))).toMatchObject({ type: "dm" });
@@ -256,7 +256,7 @@ describe("guard rails", () => {
     await post(callN(0));
     const again = await post(callN(0));
     if (again.type !== "dm") throw new Error();
-    expect(again.reply.text).toBe("This call was already posted a moment ago.");
+    expect(again.reply.text).toBe("♻️ This call was already posted a moment ago.");
     expect(store.getCall(2)).toBeUndefined();
     advance(3);
     await post(callN(0));
@@ -266,7 +266,7 @@ describe("guard rails", () => {
   it("re-posting a call the caller dropped is allowed straight away", async () => {
     build({}, { duplicateWindowMs: 2 * 60_000 });
     await post(callN(0));
-    expect(svc.dropDraft(1, CALLER).text).toBe("Dropped.");
+    expect(svc.dropDraft(1, CALLER).text).toBe("🗑️ Dropped.");
     const again = await post(callN(0));
     if (again.type !== "dm") throw new Error();
     expect(again.reply.text).toContain("Post this call?");
@@ -332,7 +332,7 @@ describe("posting a draft", () => {
 
   it("dropping a draft cancels it", async () => {
     const id = await draft();
-    expect(svc.dropDraft(id, CALLER).text).toBe("Dropped.");
+    expect(svc.dropDraft(id, CALLER).text).toBe("🗑️ Dropped.");
     expect(store.getCall(id)?.status).toBe("cancelled");
   });
 });
@@ -463,7 +463,7 @@ describe("confirm", () => {
   it("places the exact bracket the quote showed and reports the order id", async () => {
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Placed. Strike order 243140841 is open.");
+    expect(r.text).toBe("📨 <b>Placed</b>\nStrike order <code>243140841</code> is open.");
     expect(strike.placed).toEqual([
       { symbol: "ETH-USD", side: "buy", type: "limit", size: "0.009", price: "2480.00", tp: "2560.00", sl: "2420.00", strategyId: store.getTail(tailId)?.strategyId },
     ]);
@@ -519,7 +519,7 @@ describe("confirm", () => {
   it("two concurrent taps place exactly one order", async () => {
     const { tailId } = await quoted();
     const [a, b] = await Promise.all([svc.confirm({ tgId: FOLLOWER, tailId }), svc.confirm({ tgId: FOLLOWER, tailId })]);
-    expect([a.text, b.text].sort()).toEqual(["Already placed.", "Placed. Strike order 243140841 is open."]);
+    expect([a.text, b.text].sort()).toEqual(["Already placed.", "📨 <b>Placed</b>\nStrike order <code>243140841</code> is open."]);
     expect(strike.placed.length).toBe(1);
   });
 
@@ -560,7 +560,7 @@ describe("confirm", () => {
     build({ throwOnPlace: new Error("socket hang up") });
     const { callId, tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Could not confirm with Strike. Check your open orders on Strike before trying again.");
+    expect(r.text).toBe("⚠️ Could not confirm with Strike. Check your open orders on Strike before trying again.");
     expect(store.getTail(tailId)).toMatchObject({ status: "placed", error: "unconfirmed" });
     build();
     expect(await svc.quote({ tgId: FOLLOWER, callId, mode: "tail" })).toEqual({ ok: false, text: "You already took this call." });
@@ -568,7 +568,7 @@ describe("confirm", () => {
 
   it("cancel releases the quote", async () => {
     const { tailId } = await quoted();
-    expect(svc.cancel({ tgId: FOLLOWER, tailId }).text).toBe("Cancelled.");
+    expect(svc.cancel({ tgId: FOLLOWER, tailId }).text).toBe("🚫 Cancelled.");
     expect(store.getTail(tailId)?.status).toBe("cancelled");
     expect((await svc.confirm({ tgId: FOLLOWER, tailId })).text).toBe("This quote is no longer active.");
   });

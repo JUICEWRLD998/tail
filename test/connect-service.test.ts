@@ -130,7 +130,7 @@ describe("complete", () => {
     expect(store.getUser(111)).toMatchObject({ chain: "ethereum", address: ETH, strikeAccountId: "acc-1", builderCode: "sigma", apiPub: requested[0].publicKey });
     expect(decryptSecret(kek, store.getUser(111)!.apiPrivEnc)).toMatch(/^[0-9a-f]{64}$/);
     expect(store.peekConnectToken(token, new Date(clock).toISOString())).toBeUndefined();
-    expect(notified).toEqual([{ tgId: 111, text: "Linked 0x0C3a…741d. Tap Tail on a call card to trade." }]);
+    expect(notified).toEqual([{ tgId: 111, text: "✅ <b>Linked</b> 0x0C3a…741d\nTap <b>Tail</b> on a call card to trade." }]);
   });
 
   it("the signature never reaches storage or the notification", async () => {

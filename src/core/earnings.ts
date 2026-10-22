@@ -87,16 +87,16 @@ export function earnings(tails: EarningTail[]): Earnings {
 
 /** The caller-facing summary of one channel's earnings. Plain: what is counted, what is left out, and that payout is not live. */
 export function earningsText(title: string, e: Earnings): string {
-  const out = [title];
+  const out = [`💰 <b>${title}</b>`];
   if (e.filled === 0) {
     out.push("No filled tails yet, so no builder fee.");
   } else {
-    out.push(`Estimated builder fee: ${e.fee} USD`);
+    out.push(`Estimated builder fee: <b>${e.fee} USD</b>`);
     const rate = e.minBps === null ? "" : e.minBps === e.maxBps ? ` at ${e.minBps} bps` : ` at ${e.minBps} to ${e.maxBps} bps`;
     const tails = (n: number) => `${n} ${n === 1 ? "tail" : "tails"}`;
     const left = e.withoutRate > 0 ? ` ${tails(e.withoutRate)} used a personal wallet and ${e.withoutRate === 1 ? "earns" : "earn"} nothing.` : "";
     out.push(`Entry fills only: ${e.payingNotional} USD${rate}, ${tails(e.paying)}.${left}`);
   }
-  out.push("Payout to callers is not live.");
+  out.push("ℹ️ Payout to callers is not live.");
   return out.join("\n");
 }
