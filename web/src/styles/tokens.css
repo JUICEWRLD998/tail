@@ -10,8 +10,15 @@
   --on-accent: oklch(0.2 0.03 200);
   --warn: oklch(0.82 0.13 80);
   --danger: oklch(0.76 0.14 25);
+  --paper: oklch(0.93 0.022 85);
+  --ink: oklch(0.24 0.03 255);
+  --ink-muted: oklch(0.46 0.03 255);
+  --tail-ink: oklch(0.47 0.08 178);
+  --fade-ink: oklch(0.5 0.15 32);
+  --fade: oklch(0.78 0.12 38);
 
   --font: "Schibsted Grotesk Variable", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --step--1: clamp(0.82rem, 0.8rem + 0.1vw, 0.9rem);
   --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.1rem);
   --step-1: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem);
@@ -46,6 +53,12 @@
     --on-accent: oklch(0.98 0.01 185);
     --warn: oklch(0.47 0.1 70);
     --danger: oklch(0.5 0.17 25);
+    --paper: oklch(0.99 0.008 85);
+    --ink: oklch(0.22 0.03 255);
+    --ink-muted: oklch(0.45 0.03 255);
+    --tail-ink: oklch(0.46 0.08 180);
+    --fade-ink: oklch(0.5 0.16 30);
+    --fade: oklch(0.52 0.16 32);
     color-scheme: light;
   }
 }
@@ -60,6 +73,12 @@
   --on-accent: oklch(0.98 0.01 185);
   --warn: oklch(0.47 0.1 70);
   --danger: oklch(0.5 0.17 25);
+  --paper: oklch(0.99 0.008 85);
+  --ink: oklch(0.22 0.03 255);
+  --ink-muted: oklch(0.45 0.03 255);
+  --tail-ink: oklch(0.46 0.08 180);
+  --fade-ink: oklch(0.5 0.16 30);
+  --fade: oklch(0.52 0.16 32);
   color-scheme: light;
 }
 
@@ -73,6 +92,12 @@
   --on-accent: oklch(0.2 0.03 200);
   --warn: oklch(0.82 0.13 80);
   --danger: oklch(0.76 0.14 25);
+  --paper: oklch(0.93 0.022 85);
+  --ink: oklch(0.24 0.03 255);
+  --ink-muted: oklch(0.46 0.03 255);
+  --tail-ink: oklch(0.47 0.08 178);
+  --fade-ink: oklch(0.5 0.15 32);
+  --fade: oklch(0.78 0.12 38);
   color-scheme: dark;
 }
 
