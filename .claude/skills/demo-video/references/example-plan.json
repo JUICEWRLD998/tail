@@ -1,57 +1,237 @@
 {
-  "product": { "name": "Splitly", "tagline": "Split any bill in seconds", "url": "splitly.app" },
+  "product": {
+    "name": "Splitly",
+    "tagline": "Split any bill in seconds",
+    "url": "splitly.app"
+  },
   "url": "https://splitly.vercel.app",
   "targetSeconds": 120,
   "colorScheme": "light",
   "theme": {
-    "bg": "#f6f3ee", "surface": "#ffffff", "fg": "#1d2321", "muted": "#58625e",
-    "accent": "#1f8a5b", "accent2": "#e0a23a",
-    "font": "\"Manrope\", sans-serif", "display": "\"Bricolage Grotesque\", sans-serif",
+    "bg": "#f6f3ee",
+    "surface": "#ffffff",
+    "fg": "#1d2321",
+    "muted": "#58625e",
+    "accent": "#1f8a5b",
+    "accent2": "#e0a23a",
+    "font": "\"Manrope\", sans-serif",
+    "display": "\"Bricolage Grotesque\", sans-serif",
     "fontUrl": "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Bricolage+Grotesque:wght@650;750&display=swap"
   },
   "transition": 0.5,
   "scenes": [
-    { "id": "s01-hook", "beat": "hook",
+    {
+      "id": "s01-hook",
+      "beat": "hook",
       "vo": "This is Splitly. Split any bill in seconds, and nobody has to chase anyone.",
-      "visual": { "type": "card", "template": "title", "name": "Splitly", "tagline": "Split any bill in *seconds*", "image": "scout/home.png" } },
-
-    { "id": "s02-problem", "beat": "problem",
-      "vo": "You know the feeling. One friend pays for dinner. Then spends a week chasing everyone else.",
-      "visual": { "type": "card", "template": "statement", "lines": ["One friend pays.", { "text": "Then *chases* everyone for a week.", "dim": false }], "image": "scout/old-way.png" } },
-
-    { "id": "s03-solution", "beat": "solution",
-      "vo": "Splitly turns the bill into one link everyone pays from, right at the table.",
-      "visual": { "type": "card", "template": "solution", "name": "Splitly", "line": "One link. Everyone pays their *exact* share.", "points": ["Snap the receipt", "Tap who had what", "Watch it settle"], "image": "scout/home.png" } },
-
-    { "id": "s04-snap", "beat": "demo",
-      "vo": "Snap the receipt. Splitly reads every line for you, prices and all.",
-      "visual": { "type": "page", "url": "/new", "actions": [
-        { "do": "click", "text": "Scan receipt", "onWord": "Snap" },
-        { "do": "waitFor", "text": "Pasta" },
-        { "do": "scroll", "text": "Total", "onWord": "prices" } ] } },
-
-    { "id": "s05-assign", "beat": "demo",
-      "vo": "Now tap who had what. Ada had the pasta. Tobi had the steak. Shared starters split themselves.",
-      "visual": { "type": "page", "actions": [
-        { "do": "click", "text": "Pasta", "onWord": "Ada" },
-        { "do": "click", "text": "Ada" },
-        { "do": "click", "text": "Steak", "onWord": "Tobi" },
-        { "do": "click", "text": "Tobi" } ] } },
-
-    { "id": "s06-send", "beat": "demo", "signature": true, "hold": 1.0,
-      "vo": "Hit send. Everyone gets their exact share. Watch it turn green as people pay.",
-      "visual": { "type": "page", "actions": [
-        { "do": "click", "text": "Send", "onWord": "send" },
-        { "do": "zoom", "text": "Paid", "scale": 1.6, "onWord": "green" },
-        { "do": "focus", "text": "Paid", "onWord": "pay" } ] } },
-
-    { "id": "s07-proof", "beat": "proof",
+      "visual": {
+        "type": "card",
+        "template": "title",
+        "name": "Splitly",
+        "tagline": "Split any bill in *seconds*",
+        "image": "scout/home.png"
+      }
+    },
+    {
+      "id": "s02-problem",
+      "beat": "problem",
+      "vo": "One friend pays for dinner. Then spends a week chasing everyone else.",
+      "visual": {
+        "type": "card",
+        "template": "statement",
+        "lines": [
+          "One friend pays.",
+          {
+            "text": "Then *chases* everyone for a week.",
+            "dim": false
+          }
+        ],
+        "image": "scout/old-way.png"
+      }
+    },
+    {
+      "id": "s02b-today",
+      "beat": "problem",
+      "transition": "smoothleft",
+      "vo": "A group chat, a calculator, and reminders. Or one link.",
+      "visual": {
+        "type": "card",
+        "template": "compare",
+        "head": "A week of chasing becomes one link",
+        "before": {
+          "label": "Today",
+          "cost": "a week",
+          "steps": [
+            {
+              "text": "Someone pays the whole bill",
+              "onWord": "group"
+            },
+            {
+              "text": "Works out who owes what",
+              "onWord": "calculator"
+            },
+            {
+              "text": "Texts everyone",
+              "onWord": "reminders"
+            },
+            {
+              "text": "Chases the late ones"
+            }
+          ]
+        },
+        "after": {
+          "label": "With Splitly",
+          "cost": "one link",
+          "steps": [
+            {
+              "text": "Send one link",
+              "onWord": "link"
+            }
+          ]
+        },
+        "tally": "Everyone pays *at the table*",
+        "tallyOnWord": "link"
+      }
+    },
+    {
+      "id": "s03-solution",
+      "beat": "solution",
+      "vo": "Splitly turns the bill into one link everyone pays from. Snap it, tap who had what, and send.",
+      "visual": {
+        "type": "card",
+        "template": "flow",
+        "head": "How Splitly works",
+        "steps": [
+          {
+            "label": "Snap the receipt",
+            "sub": "every line read for you",
+            "onWord": "snap"
+          },
+          {
+            "label": "Tap who had what",
+            "sub": "shared items split themselves",
+            "onWord": "tap"
+          },
+          {
+            "label": "Send one link",
+            "sub": "everyone pays their share",
+            "onWord": "send"
+          }
+        ]
+      },
+      "transition": "smoothleft"
+    },
+    {
+      "id": "s04-snap",
+      "beat": "demo",
+      "vo": "Snap the receipt. Splitly reads every line for you, prices and all, so nobody types a single number. If a line is unclear, it asks you instead of guessing.",
+      "visual": {
+        "type": "page",
+        "url": "/new",
+        "actions": [
+          {
+            "do": "click",
+            "text": "Scan receipt",
+            "onWord": "Snap"
+          },
+          {
+            "do": "waitFor",
+            "text": "Pasta"
+          },
+          {
+            "do": "scroll",
+            "text": "Total",
+            "onWord": "prices"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s05-assign",
+      "beat": "demo",
+      "vo": "Now tap who had what. Ada had the pasta. Tobi had the steak. Shared starters split themselves, down to the cent, and tax and tip follow each person's share.",
+      "visual": {
+        "type": "page",
+        "actions": [
+          {
+            "do": "click",
+            "text": "Pasta",
+            "onWord": "Ada"
+          },
+          {
+            "do": "click",
+            "text": "Ada"
+          },
+          {
+            "do": "click",
+            "text": "Steak",
+            "onWord": "Tobi"
+          },
+          {
+            "do": "click",
+            "text": "Tobi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s06-send",
+      "beat": "demo",
+      "signature": true,
+      "hold": 1.0,
+      "vo": "Hit send. Everyone gets their exact share on their own phone. Watch it turn green as people pay. You can see who's settled without asking a single person.",
+      "visual": {
+        "type": "page",
+        "actions": [
+          {
+            "do": "click",
+            "text": "Send",
+            "onWord": "send"
+          },
+          {
+            "do": "zoom",
+            "text": "Paid",
+            "scale": 1.6,
+            "onWord": "green"
+          },
+          {
+            "do": "focus",
+            "text": "Paid",
+            "onWord": "pay"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s07-proof",
+      "beat": "proof",
       "vo": "It settles in digital dollars on Base, so fees stay tiny.",
-      "visual": { "type": "page", "url": "/receipt/demo", "actions": [
-        { "do": "hover", "text": "View on Basescan", "onWord": "Base" } ] } },
-
-    { "id": "s08-close", "beat": "close",
+      "visual": {
+        "type": "page",
+        "url": "/receipt/demo",
+        "actions": [
+          {
+            "do": "hover",
+            "text": "View on Basescan",
+            "onWord": "Base"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s08-close",
+      "beat": "close",
       "vo": "Splitly. Settle up before the bill even arrives.",
-      "visual": { "type": "card", "template": "end", "name": "Splitly", "tagline": "Settle up before the bill arrives", "url": "splitly.app", "credit": "Built for ETHGlobal 2026" } }
-  ]
+      "visual": {
+        "type": "card",
+        "template": "end",
+        "name": "Splitly",
+        "tagline": "Settle up before the bill arrives",
+        "url": "splitly.app",
+        "credit": "Built for ETHGlobal 2026"
+      }
+    }
+  ],
+  "deck": true,
+  "transitionStyle": "fade"
 }

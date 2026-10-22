@@ -60,6 +60,66 @@
   .points li::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); transform: translateY(-4px); }
   .solution .shot { width: 760px; transform: translate3d(60px, 0, 0) scale(.92); }
   .center .stage { justify-content: center; text-align: center; }
+
+  /* ---------- pitch-deck slides ---------- */
+  /* Chapter rail: where we are in the story. Quiet, top-left, same on every slide. */
+  .rail { position: absolute; top: 40px; left: 112px; display: flex; gap: 26px; font-size: 19px; font-weight: 600; color: color-mix(in oklab, var(--muted) 70%, transparent); }
+  .rail span { display: inline-flex; align-items: center; gap: 9px; }
+  .rail span::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .5; }
+  .rail .on { color: var(--fg); }
+  .rail .on::before { background: var(--accent); opacity: 1; box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent) 22%, transparent); }
+  .rail .done { color: var(--muted); }
+  .deckbar { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); width: var(--from, 0%); transition: width 1.2s var(--ease) .2s; }
+  body.go .deckbar { width: var(--to, 0%); }
+
+  .head { font-family: var(--display); font-size: 64px; line-height: 1.08; letter-spacing: -.028em; font-weight: 750; max-width: 22ch; text-wrap: balance; }
+  .deck .stage { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; }
+
+  /* problem: the pain as a headline, then up to three pieces of evidence. */
+  .rows { margin-top: 46px; display: grid; gap: 18px; }
+  .row { display: grid; grid-template-columns: 220px 1fr; align-items: baseline; gap: 28px; padding: 22px 28px; border-radius: 16px;
+    background: color-mix(in oklab, var(--fg) 4%, var(--surface)); border: 1px solid color-mix(in oklab, var(--fg) 9%, transparent); }
+  .row .big { font-family: var(--display); font-size: 54px; font-weight: 800; letter-spacing: -.03em; color: var(--accent2); font-variant-numeric: tabular-nums; line-height: 1; }
+  .row .txt { font-size: 30px; line-height: 1.3; }
+  .row .src { display: block; margin-top: 6px; font-size: 18px; color: var(--muted); }
+  .row.noval { grid-template-columns: 1fr; }
+
+  /* compare: today vs with the product. The old steps get struck through, the new path lights up. */
+  .cols { margin-top: 44px; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .col { padding: 30px 32px; border-radius: 18px; background: color-mix(in oklab, var(--fg) 4%, var(--surface)); border: 1px solid color-mix(in oklab, var(--fg) 9%, transparent); }
+  .col.now { border-color: color-mix(in oklab, var(--accent) 55%, transparent); background: color-mix(in oklab, var(--accent) 8%, var(--surface)); }
+  .col h3 { font-size: 24px; font-weight: 700; color: var(--muted); margin-bottom: 18px; display: flex; justify-content: space-between; }
+  .col.now h3 { color: var(--accent); }
+  .col ol { list-style: none; display: grid; gap: 12px; counter-reset: s; }
+  .col li { counter-increment: s; font-size: 28px; line-height: 1.25; display: flex; gap: 14px; position: relative; }
+  .col li::before { content: counter(s); flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; font-weight: 700;
+    background: color-mix(in oklab, var(--fg) 10%, transparent); color: var(--muted); }
+  .col.now li::before { background: var(--accent); color: var(--bg); }
+  .col.was li > span { position: relative; }
+  .col.was li > span::after { content: ""; position: absolute; left: 0; top: 55%; height: 2px; width: 0; background: color-mix(in oklab, var(--accent2) 80%, var(--fg));
+    transition: width .5s var(--ease); transition-delay: var(--x, 99s); }
+  body.go .col.was li > span::after { width: 100%; }
+  .tally { margin-top: 30px; font-family: var(--display); font-size: 38px; font-weight: 750; letter-spacing: -.02em; }
+
+  /* flow: how it works, as nodes on a line. The line draws, each node lights when the voice reaches it. */
+  .flow { margin-top: 70px; position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 24px; }
+  .flow .track { position: absolute; left: calc(50% / var(--n)); right: calc(50% / var(--n)); top: 38px; height: 3px; background: color-mix(in oklab, var(--fg) 12%, transparent); border-radius: 3px; overflow: hidden; }
+  .flow .track i { position: absolute; inset: 0; background: var(--accent); transform-origin: left; transform: scaleX(0); transition: transform var(--draw, 2s) cubic-bezier(.45,0,.2,1) var(--d0, .4s); }
+  body.go .flow .track i { transform: scaleX(1); }
+  .node { position: relative; text-align: center; display: grid; justify-items: center; align-content: start; gap: 14px; }
+  .node .dot { width: 78px; height: 78px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 800;
+    background: var(--surface); border: 3px solid color-mix(in oklab, var(--fg) 16%, transparent); color: var(--muted);
+    transition: background .45s var(--ease), border-color .45s var(--ease), color .45s var(--ease), transform .6s cubic-bezier(.34,1.4,.64,1);
+    transition-delay: var(--d, 0s); }
+  body.go .node .dot { background: var(--accent); border-color: var(--accent); color: var(--bg); transform: scale(1.06); }
+  .node b { font-size: 30px; font-weight: 700; letter-spacing: -.01em; }
+  .node small { font-size: 22px; color: var(--muted); line-height: 1.3; max-width: 15ch; }
+
+  /* quote: a real person's words, with where they said them. */
+  .quote { font-family: var(--display); font-size: 58px; line-height: 1.16; letter-spacing: -.02em; font-weight: 650; max-width: 24ch; text-wrap: balance; }
+  .quote::before { content: "\201C"; display: block; font-size: 140px; line-height: .6; color: var(--accent); margin-bottom: 8px; }
+  .who { margin-top: 34px; font-size: 26px; color: var(--muted); }
+  .who b { color: var(--fg); font-weight: 650; }
   .center .tagline, .center .sub { margin-left: auto; margin-right: auto; }
 
   /* Word reveal: each word rises out of a mask, staggered. */
@@ -145,6 +205,56 @@
           ${one ? `<p class="one">${words(one, at, .05)}</p>` : ''}
           ${pts.length ? `<ul class="points">${pts.map((p, i) => `<li class="fade" style="--d:${(after + i * .35).toFixed(2)}s">${esc(p)}</li>`).join('')}</ul>` : ''}
         </div>${shot}`;
+    } else if (d.template === 'problem') {
+      // The pain as one headline, then evidence rows. A row with a number carries its source on screen.
+      document.body.classList.add('deck');
+      const rows = (d.rows || []).slice(0, 3);
+      let at = .25 + count(d.head) * .06 + .3;
+      html = `${d.kicker ? `<div class="kicker fade" style="--d:0s">${esc(d.kicker)}</div>` : ''}
+        <h2 class="head">${words(d.head, .15, .06)}</h2>
+        <div class="rows">${rows.map((r) => {
+          const t = r.at ?? at; at = t + .55;
+          return `<div class="row fade${r.value ? '' : ' noval'}" style="--d:${t.toFixed(2)}s">
+            ${r.value ? `<span class="big">${esc(r.value)}</span>` : ''}
+            <span class="txt">${esc(r.text)}${r.source ? `<span class="src">${esc(r.source)}</span>` : ''}</span></div>`;
+        }).join('')}</div>`;
+    } else if (d.template === 'compare') {
+      // Today (struck through step by step) vs with the product (lit up). Items may carry onWord timing.
+      document.body.classList.add('deck');
+      const was = (d.before?.steps || []).slice(0, 6), now = (d.after?.steps || []).slice(0, 4);
+      let at = .3 + count(d.head) * .06;
+      const li = (list, cls) => list.map((x) => {
+        const o = typeof x === 'string' ? { text: x } : x; const t = o.at ?? at; at = t + .32;
+        return `<li class="fade" style="--d:${t.toFixed(2)}s; --x:${(t + .35).toFixed(2)}s"><span>${esc(o.text)}</span></li>`;
+      }).join('');
+      const wasHtml = li(was, 'was'); at += .2; const nowHtml = li(now, 'now');
+      html = `${d.kicker ? `<div class="kicker fade" style="--d:0s">${esc(d.kicker)}</div>` : ''}
+        ${d.head ? `<h2 class="head">${words(d.head, .1, .06)}</h2>` : ''}
+        <div class="cols">
+          <div class="col was"><h3><span>${esc(d.before?.label || 'Today')}</span><span>${esc(d.before?.cost || '')}</span></h3><ol>${wasHtml}</ol></div>
+          <div class="col now"><h3><span>${esc(d.after?.label || 'With it')}</span><span>${esc(d.after?.cost || '')}</span></h3><ol>${nowHtml}</ol></div>
+        </div>
+        ${d.tally ? `<p class="tally fade" style="--d:${(d.tallyAt ?? at + .2).toFixed(2)}s">${words(d.tally, d.tallyAt ?? at + .2, .05)}</p>` : ''}`;
+    } else if (d.template === 'flow') {
+      // How it works: 3-4 nodes. The connecting line draws across the scene; each node lights at its own time.
+      document.body.classList.add('deck');
+      const steps = (d.steps || []).slice(0, 4);
+      let at = .4 + count(d.head) * .06;
+      const times = steps.map((st) => { const t = st.at ?? at; at = t + .9; return t; });
+      const draw = Math.max(.6, times.at(-1) - times[0]);
+      html = `${d.kicker ? `<div class="kicker fade" style="--d:0s">${esc(d.kicker)}</div>` : ''}
+        ${d.head ? `<h2 class="head">${words(d.head, .1, .06)}</h2>` : ''}
+        <div class="flow" style="--n:${steps.length}; --d0:${times[0].toFixed(2)}s; --draw:${draw.toFixed(2)}s">
+          <div class="track"><i></i></div>
+          ${steps.map((st, i) => `<div class="node"><span class="dot" style="--d:${times[i].toFixed(2)}s">${i + 1}</span>
+            <b class="fade" style="--d:${times[i].toFixed(2)}s">${esc(st.label)}</b>
+            ${st.sub ? `<small class="fade" style="--d:${(times[i] + .12).toFixed(2)}s">${esc(st.sub)}</small>` : ''}</div>`).join('')}
+        </div>`;
+    } else if (d.template === 'quote') {
+      document.body.classList.add('deck');
+      html = `${d.kicker ? `<div class="kicker fade" style="--d:0s">${esc(d.kicker)}</div>` : ''}
+        <blockquote class="quote">${words(d.text, .2, .045)}</blockquote>
+        <p class="who fade" style="--d:${(.4 + count(d.text) * .045).toFixed(2)}s"><b>${esc(d.who || '')}</b>${d.source ? ` · ${esc(d.source)}` : ''}</p>`;
     } else if (d.template === 'end') {
       document.body.classList.add('center');
       html = `<div class="copy">
@@ -153,6 +263,12 @@
           ${d.url ? `<div class="url fade" style="--d:1.0s">${esc(d.url)}</div>` : ''}
           ${d.credit ? `<p class="credit fade" style="--d:1.4s">${esc(d.credit)}</p>` : ''}
         </div>`;
+    }
+    // Deck chrome: chapter rail and progress line, passed in by record.mjs when plan.deck is on.
+    if (d.deck) {
+      const { chapters = [], current = -1, from = 0, to = 0 } = d.deck;
+      html = `<nav class="rail fade" style="--d:0s">${chapters.map((c, i) => `<span class="${i === current ? 'on' : i < current ? 'done' : ''}">${esc(c)}</span>`).join('')}</nav>`
+        + html + `<i class="deckbar" style="--from:${from}%; --to:${to}%"></i>`;
     }
     s.innerHTML = html;
     const imgs = [...document.images].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; }));
