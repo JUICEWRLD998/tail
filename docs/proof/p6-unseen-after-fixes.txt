@@ -1,0 +1,27 @@
+# P6: same 24 examples AFTER the parser fixes (2026-10-22T11:01:44Z). These are no longer unseen: the parser was tuned to them.
+PASS  cornix-board-1                           want card long BTC-USD @65000.0 tp 66500.0 sl 64000.0
+PASS  corpus-alert-details-reply               want ask(symbol)
+PASS  corpus-alert-only                        want ask(sl)
+PASS  corpus-bare-inline-repeated-tp           want card long XAU-USD @4329.00 tp 4334.00 sl 4320.00
+PASS  corpus-direction-first-price-block       want card long XAU-USD @4345.00 tp 4350.00 sl 4342.00
+PASS  corpus-labelled-fields                   want card long XAU-USD @4345.16 tp 4350.16 sl 4330.16
+PASS  corpus-manage-breakeven-long             want ignore
+PASS  corpus-manage-breakeven-short            want ignore
+PASS  corpus-market-no-levels                  want ask(sl)
+PASS  corpus-minimal-zone-sell                 want card short XAU-USD @4627.50 tp 4623.00 sl 4632.00
+PASS  corpus-named-zone-with-runner            want card long XAU-USD @4435.50 tp 4443.00 sl 4428.00
+PASS  corpus-tolerate-misspelt-stop            want card long XAU-USD @4345.00 tp 4350.00 sl 4330.00
+PASS  corpus-tolerate-more-than-six-targets    want card long XAU-USD @4329.00 tp 4334.00 sl 4320.00
+PASS  corpus-tolerate-numbered-prefix          want card long XAU-USD @4438.00 tp 4443.00 sl 4428.00
+PASS  corpus-tolerate-slash-zone               want card long XAU-USD @4435.50 tp 4443.00 sl 4428.00
+PASS  corpus-tolerate-symbol-glued-to-direction want card short XAU-USD @4626.00 tp 4620.00 sl 4632.00
+PASS  corpus-zone-labelled-blocks              want card short XAU-USD @4627.50 tp 4623.00 sl 4632.00
+PASS  iris-1                                   want card long TAO-USD @187.54 tp 188.81 sl 185.13
+PASS  iris-2                                   want card short BTC-USD @65000.0 tp 63000.0 sl 66000.0
+PASS  iris-3                                   want card long ETH-USD @3500.00 tp 3600.00 sl 3400.00
+PASS  iris-4                                   want ask(tp)
+PASS  iris-5                                   want card long TAO-USD @187.54 tp 188.81 sl 185.13
+PASS  iris-6                                   want card long BTC-USD @65000.0 tp 66000.0 sl 64000.0
+PASS  joost-ctk                                want card long CTK-USD @1.380 tp 1.430 sl 1.280
+
+24 of 24 behave as specified

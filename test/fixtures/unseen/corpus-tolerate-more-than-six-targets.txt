@@ -1,0 +1,13 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'tolerate-more-than-six-targets' (MIT, published by jazzrabbit OU). synthetic, written by the corpus author to test one tolerance rule (label: synthetic)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: tolerance
+BUY XAUUSD 4329
+SL 4320
+TP 4334
+TP 4339
+TP 4344
+TP 4349
+TP 4354
+TP 4359
+TP 4364
+TP 4369

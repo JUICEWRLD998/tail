@@ -1,6 +1,7 @@
 // Telegram message text and callback encoding. Pure functions: every string a user reads is pinned by tests.
 // Copy rules: short lines, plain words, no emoji. HTML parse mode, so dynamic text is always escaped.
 import { rewardRisk, type Side } from "../core/fade.js";
+import { reasonClause } from "../core/reasons.js";
 import type { Binding, SizingResult } from "../core/sizing.js";
 
 export function escapeHtml(s: string): string {
@@ -37,8 +38,9 @@ export function callCard(c: CardCall, counts: { tailed: number; faded: number })
   return `<b>${title(c)}</b>\n${levelsLine(c, true)}\nTailed ${counts.tailed} · Faded ${counts.faded}`;
 }
 
-export function callerConfirmCard(c: CardCall & { extraTargets: string[] }): string {
+export function callerConfirmCard(c: CardCall & { extraTargets: string[] }, aiRead = false): string {
   const lines = ["Post this call?", `<b>${title(c)}</b>`, levelsLine(c, true)];
+  if (aiRead) lines.push("Read by AI from your message. Check every price before you post.");
   if (c.extraTargets.length > 0) lines.push(`Only TP1 is used. Ignored: ${c.extraTargets.join(", ")}`);
   return lines.join("\n");
 }
@@ -97,7 +99,7 @@ export function refusalText(r: Extract<SizingResult, { ok: false }>): string {
 }
 
 export function rejectionText(code: string): string {
-  return `Strike rejected the order: ${escapeHtml(code)}.`;
+  return `Strike rejected the order: ${reasonClause(code, escapeHtml)}`;
 }
 
 export function parseStartPayload(p: string): { mode: "tail" | "fade"; callId: number } | undefined {
@@ -106,16 +108,20 @@ export function parseStartPayload(p: string): { mode: "tail" | "fade"; callId: n
   return { mode: m[1] === "t" ? "tail" : "fade", callId: Number(m[2]) };
 }
 
-const KIND_CODE = { post: "p", drop: "x", confirm: "y", cancel: "n" } as const;
+const KIND_CODE = { post: "p", drop: "x", confirm: "y", cancel: "n", ask: "a" } as const;
 export type CallbackKind = keyof typeof KIND_CODE;
 
-export const callbackData = (kind: CallbackKind, id: number) => `${KIND_CODE[kind]}:${id}`;
+/** `option` is only for answers to a question (kind "ask"): the index of the button that was tapped. */
+export const callbackData = (kind: CallbackKind, id: number, option?: number) =>
+  option === undefined ? `${KIND_CODE[kind]}:${id}` : `${KIND_CODE[kind]}:${id}:${option}`;
 
-export function parseCallbackData(d: string): { kind: CallbackKind; id: number } | undefined {
-  const m = /^([pxyn]):(\d{1,9})$/.exec(d);
+export function parseCallbackData(d: string): { kind: CallbackKind; id: number; option?: number } | undefined {
+  const m = /^([pxyna]):(\d{1,9})(?::(\d{1,2}))?$/.exec(d);
   if (!m) return undefined;
   const kind = (Object.keys(KIND_CODE) as CallbackKind[]).find((k) => KIND_CODE[k] === m[1]) as CallbackKind;
-  return { kind, id: Number(m[2]) };
+  // An option index belongs to "ask" only, and "ask" always carries one.
+  if ((kind === "ask") !== (m[3] !== undefined)) return undefined;
+  return kind === "ask" ? { kind, id: Number(m[2]), option: Number(m[3]) } : { kind, id: Number(m[2]) };
 }
 
 export function tailButtons(botUsername: string, callId: number): { text: string; url: string }[] {

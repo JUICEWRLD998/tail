@@ -142,3 +142,154 @@ describe("properties", () => {
     expect(accepted).toBeGreaterThan(100); // the property is not vacuous
   });
 });
+
+describe("formats found in public examples (P6)", () => {
+  const ok = (t: string) => {
+    const r = parseCall(t, { markets: { ...ctx.markets, "XAU-USD": { tickSize: "0.01" } } });
+    if (!r.ok) throw new Error(`not a draft: ${JSON.stringify(r)}`);
+    return r.draft;
+  };
+
+  it("a target label with an index and a colon is not a price: 'TP 1: 4350'", () => {
+    const d = ok("XAU long 4345\nTP 1: 4350\nTP 2: 4354\nStop Loss: 4342");
+    expect(d).toMatchObject({ tp: "4350.00", sl: "4342.00", extraTargets: ["4354.00"] });
+  });
+
+  it("'Target 1 : 1.43$' style labels work too", () => {
+    const d = ok("ADA long 0.62\nTARGET 1  : 0.70$\nTARGET 2  : 0.75$\nSTOP : 0.58$");
+    expect(d).toMatchObject({ tp: "0.7000", sl: "0.5800", extraTargets: ["0.7500"] });
+  });
+
+  it("a target label with nothing after it ('TP4: Hold') adds no phantom target", () => {
+    const d = ok("XAU long 4345\nSL 4330\nTP1 4350\nTP2 4355\nTP3 4360\nTP4: Hold");
+    expect(d.extraTargets).toEqual(["4355.00", "4360.00"]);
+  });
+
+  it("a bare 'Target :' header line before numbered targets is ignored", () => {
+    const d = ok("ADA long 0.62\nTarget :\nTARGET 1 : 0.70\nSTOP : 0.58");
+    expect(d.tp).toBe("0.7000");
+  });
+
+  it.each(["Stop Lose 4330", "stop los 4330", "STOPLOSS 4330", "Stop-Loss: 4330", "SL: 4330"])("understands the stop spelled %j", (stop) => {
+    expect(ok(`XAU long 4345\n${stop}\nTP 4350`).sl).toBe("4330.00");
+  });
+
+  it.each(["4438/4433", "4438 / 4433", "4438-4433", "4438 to 4433"])("reads the entry zone %j as its midpoint", (zone) => {
+    expect(ok(`GOLD BUY ${zone}\nSL 4428\nTP1 4443`).entry).toBe("4435.50");
+  });
+
+  it("reads a direction glued to the symbol: 'XAUUSDSELL 4626'", () => {
+    expect(ok("XAUUSDSELL 4626\nSL 4632\nTP 4620")).toMatchObject({ symbol: "XAU-USD", side: "short", entry: "4626.00" });
+  });
+
+  it("does not split ordinary words that contain a direction word", () => {
+    expect(parseCall("selling pressure is strong on ADA, shortly", ctx)).toEqual({ ok: false, reason: "not_a_call" });
+  });
+
+  it("'Leverage X10 X25' consumes both multipliers, so they are not mistaken for an entry", () => {
+    const d = ok("ADA long : 0.62\nLeverage X10 X25\nTP 0.70\nSTOP 0.58");
+    expect(d).toMatchObject({ entry: "0.6200", leverageHint: 10 });
+  });
+
+  describe("an alert with no levels yet (the caller is asked for the rest)", () => {
+    it("'GOLD BUY NOW' asks for the stop", () => {
+      expect(parseCall("GOLD BUY NOW", { markets: { "XAU-USD": { tickSize: "0.01" } } })).toMatchObject({ ok: false, reason: "incomplete", ask: { field: "sl" } });
+    });
+    it("'Sell gold now' asks for the stop", () => {
+      expect(parseCall("Sell gold now", { markets: { "XAU-USD": { tickSize: "0.01" } } })).toMatchObject({ ok: false, ask: { field: "sl" } });
+    });
+    it("chatter with a direction and 'now' but no listed market is ignored, not asked about", () => {
+      expect(parseCall("should I buy now or wait", ctx)).toEqual({ ok: false, reason: "not_a_call" });
+      expect(parseCall("sell now", ctx)).toEqual({ ok: false, reason: "not_a_call" });
+    });
+    it("a plain sentence with 'now' and a market but no direction is still ignored", () => {
+      expect(parseCall("ADA is pumping now", ctx)).toEqual({ ok: false, reason: "not_a_call" });
+    });
+  });
+});
+
+describe("Cornix-style blocks and misspelt labels (fragments reported by a public parser project; messages composed from them)", () => {
+  const ctx2 = { markets: { "ETH-USD": { tickSize: "0.01" }, "ADA-USD": { tickSize: "0.0001" }, "BTC-USD": { tickSize: "0.1" } } };
+  const draft = (t: string) => {
+    const r = parseCall(t, ctx2);
+    if (!r.ok) throw new Error(`not a draft: ${JSON.stringify(r)}`);
+    return r.draft;
+  };
+
+  it("'Entry Targets' is the entry, not a take-profit list", () => {
+    const d = draft("#ETH/USDT\nLong\nEntry Targets:\n1) 2480\nTake-Profit Targets:\n1) 2560\n2) 2600\nStop Targets:\n1) 2420\nLeverage: Cross (10x)");
+    expect(d).toMatchObject({ symbol: "ETH-USD", side: "long", entry: "2480.00", tp: "2560.00", sl: "2420.00", extraTargets: ["2600.00"], leverageHint: 10 });
+  });
+
+  it("a numbered entry list is a question, not a guess", () => {
+    const r = parseCall("#ETH/USDT\nLong\nEntry Targets:\n1) 2480\n2) 2470\nTake-Profit Targets:\n1) 2560\nStop Targets:\n1) 2420", ctx2);
+    expect(r).toMatchObject({ ok: false, reason: "ambiguous", ask: { field: "entry", options: ["2480", "2470"] } });
+  });
+
+  it("an explicit entry range with numbered markers is its midpoint", () => {
+    const d = draft("ETH long\nEntries: 2470 - 2490\nTP 2560\nSL 2420");
+    expect(d.entry).toBe("2480.00");
+  });
+
+  it.each(["ENTERY PRICE: 2480", "Entry price: 2480", "ENTRY ZONE 2480"])("reads the entry label %j", (label) => {
+    expect(draft(`ETH long\n${label}\nTP 2560\nSL 2420`).entry).toBe("2480.00");
+  });
+
+  it("reads 'STOPP LOSS'", () => {
+    expect(draft("ETH long 2480\nSTOPP LOSS: 2420\nTP 2560").sl).toBe("2420.00");
+  });
+
+  it("a list marker such as '1) ' is not a price", () => {
+    const d = draft("ETH long 2480\nSL 2420\nTake-Profit Targets:\n1) 2560\n2) 2580\n3) 2600");
+    expect(d).toMatchObject({ tp: "2560.00", extraTargets: ["2580.00", "2600.00"] });
+  });
+
+  it("a hashtag direction with an emoji still works: '#SHORT 🔴'", () => {
+    const d = draft("#SHORT 🔴\nETH/USDT\nEntry: 2480\nTP 2400\nSL 2540");
+    expect(d).toMatchObject({ side: "short", entry: "2480.00" });
+  });
+});
+
+describe("hints: an answer to a question forces one field, deterministically", () => {
+  it("a side hint resolves a call with no side", () => {
+    const r = parseCall("ADA 0.62 tp 0.70 sl 0.58", ctx, { side: "long" });
+    expect(r).toMatchObject({ ok: true, draft: { side: "long", entry: "0.6200", tp: "0.7000", sl: "0.5800" } });
+  });
+
+  it("a side hint resolves a call that names both sides", () => {
+    const r = parseCall("ADA long or short 0.62 tp 0.50 sl 0.66", ctx, { side: "short" });
+    expect(r).toMatchObject({ ok: true, draft: { side: "short" } });
+  });
+
+  it("an entry hint resolves two bare numbers", () => {
+    const r = parseCall("ADA long 0.62 0.63 tp 0.70 sl 0.58", ctx, { entry: "0.63" });
+    expect(r).toMatchObject({ ok: true, draft: { entry: "0.6300" } });
+  });
+
+  it("an entry hint resolves a numbered entry list", () => {
+    const r = parseCall("ETH long\nEntry Targets:\n1) 2480\n2) 2470\nTP 2560\nSL 2420", { markets: { "ETH-USD": { tickSize: "0.01" } } }, { entry: "2470" });
+    expect(r).toMatchObject({ ok: true, draft: { entry: "2470.00" } });
+  });
+
+  it("a symbol hint resolves two mentioned markets", () => {
+    const r = parseCall("ADA long, BTC pumping 0.62 tp 0.70 sl 0.58", ctx, { symbol: "ADA-USD" });
+    expect(r).toMatchObject({ ok: true, draft: { symbol: "ADA-USD" } });
+  });
+
+  it("a hint cannot bypass validation: the levels must still fit the side", () => {
+    const r = parseCall("ADA 0.62 tp 0.70 sl 0.58", ctx, { side: "short" });
+    expect(r).toMatchObject({ ok: false, reason: "inconsistent" });
+  });
+
+  it("a hint for an unlisted symbol is refused", () => {
+    expect(parseCall("ADA long 0.62 tp 0.70 sl 0.58", ctx, { symbol: "DOGE-USD" })).toMatchObject({ ok: false, reason: "not_listed" });
+  });
+
+  it("hints are ignored when the call is not a call at all", () => {
+    expect(parseCall("gm everyone", ctx, { side: "long" })).toEqual({ ok: false, reason: "not_a_call" });
+  });
+
+  it("an answer is only as good as the question: a missing stop is still missing", () => {
+    expect(parseCall("ADA 0.62 tp 0.70", ctx, { side: "long" })).toMatchObject({ ok: false, reason: "incomplete", ask: { field: "sl" } });
+  });
+});

@@ -24,6 +24,11 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | A tail's status comes from Strike, not from our row (fills, rejections, cancellations, closed positions, unconfirmed orders) | `npx vitest run test/reconcile-job.test.ts` | pass; live: the stale tail became `cancelled` from Strike's status |
 | A burst of confirms edits a card at most once per 3 s and a result can never be overwritten | `npx vitest run test/edit-queue.test.ts test/app.test.ts` | pass |
 | The caller record is computed from rows only | `npx vitest run test/record.test.ts`; `/record` in Telegram | pass; says so when there are no results |
+| The parser reads 24 calls in other formats | `npx tsx scripts/unseen-report.ts` | 24/24 (baseline before tuning 16/24, `docs/proof/p6-unseen-baseline.txt`); tuned on these calls |
+| Abuse limits and the ask flow hold | `npx vitest run test/service.test.ts -t "guard rails"` and `-t "ask flow"` | pass |
+| An AI reading is accepted only if every price is in the message and the parser agrees | `npx vitest run test/ai-proposal.test.ts test/ai-reader.test.ts` | pass; includes the known limit |
+| The AI fallback never builds an order; the caller must confirm | `npx vitest run test/service.test.ts -t "AI fallback"` | pass |
+| The real model behaves on planted controls | `OPENROUTER_API_KEY=... npx tsx scripts/ai-live.ts` | 9 cases behave; `docs/proof/p6-ai-live.json` |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |
 
 ## Not yet claimed

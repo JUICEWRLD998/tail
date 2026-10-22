@@ -19,3 +19,4 @@ services:
       - { key: TELEGRAM_BOT_TOKEN, sync: false }
       - { key: TAIL_KEK, sync: false }
       - { key: WEBHOOK_SECRET, sync: false }
+      - { key: OPENROUTER_API_KEY, sync: false }

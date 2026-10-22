@@ -1,0 +1,13 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'named-zone-with-runner' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: named zone on its own line
+GOLD BUY SETUP
+
+Gold Buy Zone 4438 - 4433
+
+SL: 4428
+
+TP1: 4443
+TP2: 4448
+TP3: 4453
+TP4: Hold

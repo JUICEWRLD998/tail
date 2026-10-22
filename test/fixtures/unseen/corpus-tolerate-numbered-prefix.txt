@@ -1,0 +1,7 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'tolerate-numbered-prefix' (MIT, published by jazzrabbit OU). synthetic, written by the corpus author to test one tolerance rule (label: synthetic)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: tolerance
+3. GOLD BUY SETUP
+Entry 4438
+SL 4428
+TP1 4443

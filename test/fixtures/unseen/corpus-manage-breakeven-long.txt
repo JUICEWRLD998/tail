@@ -1,0 +1,4 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'manage-breakeven-long' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: management
+Set Breakeven at lower Part

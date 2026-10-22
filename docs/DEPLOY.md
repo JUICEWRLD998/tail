@@ -32,6 +32,8 @@ New project from the repo (it builds the `Dockerfile`), add a volume mounted at 
 `TAIL_MODE=prod`, `STRIKE_NETWORK=testnet`, `BUILDER_CODE=sigma`, `BUILDER_FEE_BPS=10`, `TAIL_DB=/data/tail.db`, plus the
 three secrets. Generate a public domain; `PUBLIC_URL` comes from `RAILWAY_PUBLIC_DOMAIN`.
 
+Optional: set `OPENROUTER_API_KEY` to turn on the AI fallback for unreadable calls. Leave it unset and the fallback is off.
+
 ## 2. Check it, in this order
 
 ```

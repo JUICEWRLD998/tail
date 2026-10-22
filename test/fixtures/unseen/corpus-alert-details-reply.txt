@@ -1,0 +1,7 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'alert-details-reply' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: alert first, details later
+Entry 4438-4433
+SL 4428
+TP1 4443
+TP2 4448

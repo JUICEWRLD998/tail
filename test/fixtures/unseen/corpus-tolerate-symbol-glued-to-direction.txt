@@ -1,0 +1,6 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'tolerate-symbol-glued-to-direction' (MIT, published by jazzrabbit OU). synthetic, written by the corpus author to test one tolerance rule (label: synthetic)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: tolerance
+XAUUSDSELL 4626
+SL 4632
+TP 4620

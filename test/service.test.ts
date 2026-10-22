@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { callbackData } from "../src/bot/cards.js";
-import { createService, type Service, type StrikeLike } from "../src/bot/service.js";
+import { createService, type Service, type ServiceDeps, type StrikeLike } from "../src/bot/service.js";
 import { decryptSecret } from "../src/db/crypto.js";
 import { openStore, type Store } from "../src/db/store.js";
 import { StrikeError } from "../src/strike/client.js";
@@ -44,12 +44,14 @@ let strike: ReturnType<typeof fakeStrike>;
 let svc: Service;
 let n = 0;
 
-function build(o: FakeOpts = {}) {
+let ai: ServiceDeps["ai"];
+
+function build(o: FakeOpts = {}, limits: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number } = {}) {
   strike = fakeStrike(o);
   svc = createService({
     store, kek, botUsername: "tailbot",
     publicStrike: strike, strikeFor: () => strike, clientForKey: () => strike,
-    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3,
+    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits, ai,
   });
 }
 
@@ -118,6 +120,185 @@ describe("caller posts", () => {
     if (r.type !== "dm") throw new Error("expected a DM");
     expect(r.reply.text).toBe("Long or short on ETH-USD?");
     expect(store.getCall(1)).toBeUndefined();
+  });
+});
+
+describe("questions with answers (the ask flow)", () => {
+  const MARKETS2 = { ...MARKETS, "BTC-USD": { tickSize: "0.1", stepSize: "0.0001", minQty: "0.0001", maxQty: "100", marketMaxQty: "10", minNotional: "10" } };
+  beforeEach(() => {
+    (strike as any).markets = async () => MARKETS2;
+  });
+  const post = (text: string) => svc.onCallerPost({ chatId: CHAT, messageId: 9, text });
+  const dmOf = async (text: string) => {
+    const r = await post(text);
+    if (r.type !== "dm") throw new Error("expected a DM");
+    return r;
+  };
+
+  it("an ambiguous side is asked with Long and Short buttons, and the question is stored", async () => {
+    const r = await dmOf("ETH 2480 tp 2560 sl 2420");
+    expect(r.reply.text).toBe("Long or short on ETH-USD?");
+    expect(r.reply.buttons?.map((b) => b.text)).toEqual(["Long", "Short"]);
+    expect(r.reply.buttons?.map((b) => b.callback)).toEqual(["a:1:0", "a:1:1"]);
+    expect(store.getCall(1)).toBeUndefined(); // no draft yet
+  });
+
+  it("tapping Long answers the question and produces the normal confirm card", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 });
+    expect(a).toMatchObject({ ok: true, chosen: "Long" });
+    if (!a.ok || a.result.type !== "dm") throw new Error();
+    expect(a.result.reply.text).toContain("Post this call?");
+    expect(a.result.reply.buttons?.map((b) => b.callback)).toEqual(["p:1", "x:1"]);
+    expect(store.getCall(1)).toMatchObject({ side: "long", symbol: "ETH-USD", status: "draft", rawText: "ETH 2480 tp 2560 sl 2420" });
+  });
+
+  it("an answer is single use", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 });
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 })).toEqual({ ok: false, text: "This question has expired. Post the call again." });
+    expect(store.getCall(2)).toBeUndefined();
+  });
+
+  it("only the caller who was asked can answer, and a wrong tap does not burn the question", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    expect(await svc.answerAsk({ tgId: 4242, askId: 1, option: 0 })).toEqual({ ok: false, text: "This question has expired. Post the call again." });
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 })).toMatchObject({ ok: true });
+  });
+
+  it("a stale question (over 15 minutes) cannot be answered", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    advance(16);
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 })).toMatchObject({ ok: false });
+  });
+
+  it("an option index that does not exist is refused", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 7 })).toMatchObject({ ok: false });
+  });
+
+  it("two candidate entries are asked as buttons, and the chosen one is used", async () => {
+    const r = await dmOf("ETH long 2480 2470 tp 2560 sl 2420");
+    expect(r.reply.text).toBe("Which number is the entry?");
+    expect(r.reply.buttons?.map((b) => b.text)).toEqual(["2480", "2470"]);
+    const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 });
+    if (!a.ok) throw new Error();
+    expect(store.getCall(1)).toMatchObject({ entry: "2470.00" });
+  });
+
+  it("two mentioned markets are asked as buttons", async () => {
+    const r = await dmOf("ETH long, BTC pumping 2480 tp 2560 sl 2420");
+    expect(r.reply.buttons?.map((b) => b.text).sort()).toEqual(["BTC-USD", "ETH-USD"]);
+    const idx = (r.reply.buttons as { text: string }[]).findIndex((b) => b.text === "ETH-USD");
+    await svc.answerAsk({ tgId: CALLER, askId: 1, option: idx });
+    expect(store.getCall(1)).toMatchObject({ symbol: "ETH-USD" });
+  });
+
+  it("a question without choices has no buttons and says to post the call again", async () => {
+    const r = await dmOf("ETH long 2480 tp 2560");
+    expect(r.reply.text).toBe("No stop found. Where is the stop loss? Post the call again with it.");
+    expect(r.reply.buttons).toBeUndefined();
+  });
+
+  it("an answer that leads to another problem asks the next question instead of guessing", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 }); // Short, but the levels fit a long
+    if (!a.ok || a.result.type !== "dm") throw new Error();
+    expect(a.result.reply.text).toContain("These levels do not fit a short");
+    expect(store.getCall(1)).toBeUndefined();
+  });
+
+  it("an unlisted market is still reported, not asked about", async () => {
+    const r = await dmOf("#DOGE/USDT long 0.1 tp 0.2 sl 0.09");
+    expect(r.reply.text).toBe("Not on Strike yet: DOGE.");
+    expect(r.reply.buttons).toBeUndefined();
+  });
+});
+
+describe("guard rails", () => {
+  const post = (text: string) => svc.onCallerPost({ chatId: CHAT, messageId: 9, text });
+  const callN = (n: number) => `ETH long ${2400 + n} tp ${2600 + n} sl ${2300 + n}`;
+
+  it("limits calls per channel per hour, tells the caller, and recovers after the hour", async () => {
+    build({}, { maxCallsPerHour: 3 });
+    for (let n = 0; n < 3; n++) expect(await post(callN(n))).toMatchObject({ type: "dm" });
+    expect(store.getCall(3)).toBeDefined();
+    const blocked = await post(callN(3));
+    expect(blocked).toMatchObject({ type: "dm", tgId: CALLER });
+    if (blocked.type !== "dm") throw new Error();
+    expect(blocked.reply.text).toBe("Too many calls in the last hour (limit 3). Wait before posting another.");
+    expect(store.getCall(4)).toBeUndefined();
+    advance(61);
+    expect(await post(callN(4))).toMatchObject({ type: "dm" });
+    expect(store.getCall(4)).toBeDefined();
+  });
+
+  it("the call limit is per channel, not global", async () => {
+    build({}, { maxCallsPerHour: 1 });
+    store.registerChannel({ chatId: -2002, title: "Other", kind: "channel", callerTgId: 901, createdAt: new Date(clock).toISOString() });
+    await post(callN(0));
+    const other = await svc.onCallerPost({ chatId: -2002, messageId: 1, text: callN(1) });
+    expect(other).toMatchObject({ type: "dm", tgId: 901 });
+    expect(store.getCall(2)).toMatchObject({ chatId: -2002 });
+  });
+
+  it("a questions or chatter do not count towards the limit", async () => {
+    build({}, { maxCallsPerHour: 2 });
+    for (let n = 0; n < 5; n++) await post("gm everyone");
+    for (let n = 0; n < 5; n++) await post("ETH 2480 tp 2560 sl 2420"); // asks about the side; no draft
+    expect(await post(callN(0))).toMatchObject({ type: "dm" });
+    expect(store.getCall(1)).toBeDefined();
+  });
+
+  it("ignores an identical call posted again within two minutes, then allows it", async () => {
+    build({}, { duplicateWindowMs: 2 * 60_000 });
+    await post(callN(0));
+    const again = await post(callN(0));
+    if (again.type !== "dm") throw new Error();
+    expect(again.reply.text).toBe("This call was already posted a moment ago.");
+    expect(store.getCall(2)).toBeUndefined();
+    advance(3);
+    await post(callN(0));
+    expect(store.getCall(2)).toBeDefined();
+  });
+
+  it("re-posting a call the caller dropped is allowed straight away", async () => {
+    build({}, { duplicateWindowMs: 2 * 60_000 });
+    await post(callN(0));
+    expect(svc.dropDraft(1, CALLER).text).toBe("Dropped.");
+    const again = await post(callN(0));
+    if (again.type !== "dm") throw new Error();
+    expect(again.reply.text).toContain("Post this call?");
+  });
+
+  it("caps a follower's open tails", async () => {
+    build({}, { maxOpenTails: 2 });
+    linkFollower();
+    for (let n = 0; n < 2; n++) {
+      const call = openCall({ entry: String(2480 + n) + ".00" });
+      const t = store.createTail({ callId: call, tgId: FOLLOWER, mode: "tail", strategyId: `s${n}`, size: "0.009", notionalUsd: "22", feeBps: 0, createdAt: new Date(clock).toISOString() });
+      store.updateTail(t, { status: n === 0 ? "placed" : "filled" });
+    }
+    const third = openCall();
+    expect(await svc.quote({ tgId: FOLLOWER, callId: third, mode: "tail" })).toEqual({ ok: false, text: "You have 2 open Tail positions. Wait for one to close first." });
+  });
+
+  it("closed and rejected tails do not count against the cap", async () => {
+    build({}, { maxOpenTails: 1 });
+    linkFollower();
+    const c1 = openCall();
+    const t1 = store.createTail({ callId: c1, tgId: FOLLOWER, mode: "tail", strategyId: "s1", size: "1", notionalUsd: "1", feeBps: 0, createdAt: new Date(clock).toISOString() });
+    store.updateTail(t1, { status: "closed" });
+    const c2 = openCall();
+    expect(await svc.quote({ tgId: FOLLOWER, callId: c2, mode: "tail" })).toMatchObject({ ok: true });
+  });
+
+  it("the defaults are 10 calls an hour and 10 open tails", async () => {
+    build();
+    for (let n = 0; n < 10; n++) await post(callN(n));
+    const blocked = await post(callN(11));
+    if (blocked.type !== "dm") throw new Error();
+    expect(blocked.reply.text).toContain("limit 10");
   });
 });
 
@@ -290,7 +471,7 @@ describe("confirm", () => {
     build({ order: { ID: 5, Status: "rejected", CloseReason: "order_price_out_of_limit" } });
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Strike rejected the order: order_price_out_of_limit.");
+    expect(r.text).toBe("Strike rejected the order: the entry price is too far from the market price.");
     expect(r.cardEdit).toBeUndefined();
     expect(store.getTail(tailId)).toMatchObject({ status: "rejected", error: "order_price_out_of_limit" });
     expect(store.tailCounts(1)).toEqual({ tailed: 0, faded: 0 });
@@ -349,7 +530,7 @@ describe("confirm", () => {
     build({ throwOnPlace: new StrikeError(400, "POST", "/v2/order/strategy", "account has not approved builder \"sigma\"") });
     const { tailId } = await quoted();
     const r = await svc.confirm({ tgId: FOLLOWER, tailId });
-    expect(r.text).toBe("Strike rejected the order: account has not approved builder \"sigma\".");
+    expect(r.text).toBe("Strike rejected the order: your wallet has not approved this builder. Reconnect with /connect.");
     expect(store.getTail(tailId)).toMatchObject({ status: "rejected" });
   });
 
@@ -422,5 +603,76 @@ describe("me, settings, revoke", () => {
     linkFollower();
     expect(svc.revoke(FOLLOWER)).toContain("Removed");
     expect(store.getUser(FOLLOWER)).toBeUndefined();
+  });
+});
+
+describe("AI fallback (a proposal the caller must confirm; the model builds nothing)", () => {
+  const DRAFT = { symbol: "ETH-USD", side: "long" as const, entryKind: "limit" as const, entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, extraTargets: [] };
+  const post = (text: string) => svc.onCallerPost({ chatId: CHAT, messageId: 9, text });
+  const reader = (result: unknown) => ({ enabled: true, read: vi.fn(async () => result) }) as unknown as NonNullable<ServiceDeps["ai"]> & { read: ReturnType<typeof vi.fn> };
+  const NATURAL = "ETH going up from here, I am long 2480 targeting 2560, protect at 2420";
+
+  beforeEach(() => { ai = undefined; });
+
+  it("is not called when the deterministic parser reads the call", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    await post("ETH long 2480 tp 2560 sl 2420");
+    expect(r.read).not.toHaveBeenCalled();
+  });
+
+  it("is not called for chatter", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    expect(await post("gm everyone, ETH looks nice today")).toEqual({ type: "ignore" });
+    expect(r.read).not.toHaveBeenCalled();
+  });
+
+  it("reads a call the parser had to ask about, and shows the caller a labelled confirm card", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    const out = await post(NATURAL);
+    expect(r.read).toHaveBeenCalledWith(NATURAL, expect.anything(), CHAT);
+    if (out.type !== "dm") throw new Error("expected a dm");
+    expect(out.reply.text).toContain("Post this call?");
+    expect(out.reply.text).toContain("Read by AI");
+    expect(out.reply.text).toContain("Check every price");
+    const id = store.getCall(1)?.id as number;
+    expect(store.getCall(id)).toMatchObject({ status: "draft", entry: "2480.00", tp: "2560.00", sl: "2420.00" });
+    expect(out.reply.buttons?.map((b) => b.callback)).toEqual([callbackData("post", id), callbackData("drop", id)]);
+  });
+
+  it("falls back to the parser's own question when the AI cannot read it", async () => {
+    const r = reader({ ok: false, reason: "tp is not in the message" });
+    ai = r; build();
+    const out = await post("ETH long 2480 sl 2420");
+    expect(out).toMatchObject({ type: "dm", reply: { text: expect.stringContaining("Where is the take profit?") } });
+    expect(store.getCall(1)).toBeUndefined();
+  });
+
+  it("tries a not-a-call message that has a listed market and three or more numbers, and ignores it if unreadable", async () => {
+    const r = reader({ ok: false, reason: "the message does not state a direction" });
+    ai = r; build();
+    expect(await post("ETH 2480 2560 2420")).toEqual({ type: "ignore" });
+    expect(r.read).toHaveBeenCalledTimes(1);
+  });
+
+  it("never runs on an answer to a question: hints are final", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    const ask = await post("long or short ETH 2480 tp 2560 sl 2420 buy sell");
+    void ask;
+    r.read.mockClear();
+    const id = store.createAsk({ tgId: CALLER, chatId: CHAT, messageId: 9, rawText: "ETH 2480 tp 2560 sl 2420", field: "side", options: ["Long", "Short"], createdAt: new Date(clock).toISOString() });
+    await svc.answerAsk({ tgId: CALLER, askId: id, option: 0 });
+    expect(r.read).not.toHaveBeenCalled();
+  });
+
+  it("the AI draft still goes through the same duplicate and hourly guard rails", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build({}, { duplicateWindowMs: 120_000 });
+    await post(NATURAL);
+    const again = await post(NATURAL);
+    expect(again).toMatchObject({ type: "dm", reply: { text: expect.stringContaining("already posted") } });
   });
 });

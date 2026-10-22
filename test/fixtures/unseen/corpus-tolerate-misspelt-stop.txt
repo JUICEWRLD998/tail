@@ -1,0 +1,6 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'tolerate-misspelt-stop' (MIT, published by jazzrabbit OU). synthetic, written by the corpus author to test one tolerance rule (label: synthetic)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: tolerance
+BUY XAUUSD 4345
+Stop Lose 4330
+TP 4350

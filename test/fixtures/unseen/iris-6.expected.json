@@ -1,0 +1,12 @@
+{
+ "outcome": "card",
+ "draft": {
+  "symbol": "BTC-USD",
+  "side": "long",
+  "entryKind": "limit",
+  "entry": "65000.0",
+  "tp": "66000.0",
+  "sl": "64000.0",
+  "extraTargets": []
+ }
+}

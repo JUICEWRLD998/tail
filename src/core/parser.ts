@@ -54,18 +54,32 @@ function consume(work: string, m: RegExpMatchArray): string {
   return work.slice(0, start) + " ".repeat(m[0].length) + work.slice(start + m[0].length);
 }
 
-export function parseCall(text: string, ctx: ParseContext): ParseResult {
+/** An answer to a question the parser asked. It fixes one field; every other rule still applies. */
+export interface Hints {
+  side?: Side;
+  symbol?: string;
+  entry?: string;
+}
+
+export function parseCall(text: string, ctx: ParseContext, hints: Hints = {}): ParseResult {
   try {
-    return parse(text, ctx);
+    return parse(text, ctx, hints);
   } catch {
     // A parser bug must never become an order or a crash in the channel handler.
     return { ok: false, reason: "not_a_call" };
   }
 }
 
-function parse(text: string, ctx: ParseContext): ParseResult {
-  const clean = text.replace(/[‐-―−]/g, "-").replace(/[^\x00-\x7F]/g, " ");
-  let work = clean.toLowerCase();
+function parse(text: string, ctx: ParseContext, hints: Hints): ParseResult {
+  const clean = text
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/[^\x00-\x7F]/g, " ")
+    // "XAUUSDSELL" and "BUYBTCUSDT": a direction glued to a quote-asset-suffixed symbol is split off. Only next to a
+    // quote suffix, so ordinary words that merely contain "long" or "sell" are left alone.
+    .replace(/(?<=usdt|usdc|usd|perp)(long|short|buy|sell)\b/gi, " $1")
+    .replace(/\b(long|short|buy|sell)(?=[a-z]{2,8}(?:usdt|usdc|usd|perp)\b)/gi, "$1 ");
+  // A list marker ("1) 2480", "2. 2470") is not a price: blank it when a number follows.
+  let work = clean.toLowerCase().replace(/(^|\n)([ \t]*)\d{1,2}[).][ \t]+(?=\d)/g, (_m, nl: string, sp: string) => `${nl}${sp}   `);
   const listed = Object.keys(ctx.markets);
 
   // Side is read from the whole text first: "buy at 150" is both a side and an entry marker.
@@ -76,7 +90,7 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   // Leverage.
   let leverageHint: number | null = null;
   const lev =
-    work.match(/leverage\s*[:=@]?\s*(?:cross|isolated|iso)?\s*(\d{1,4}(?:\.\d+)?)\s*x?/) ??
+    work.match(/leverage\s*[:=@]?\s*(?:cross|isolated|iso)?\s*x?\s*(\d{1,4}(?:\.\d+)?)(?:\s*x(?!\d))?(?:\s+x\d{1,4}(?:\.\d+)?)*/) ??
     work.match(/(?<![\w.])(\d{1,4}(?:\.\d+)?)\s*x(?![a-z0-9])/);
   if (lev) {
     const n = Number(lev[1]);
@@ -84,45 +98,53 @@ function parse(text: string, ctx: ParseContext): ParseResult {
     work = consume(work, lev);
   }
 
-  // Targets: "tp 0.7", "TP1 0.66 TP2 0.70", "take profit 0.7", "Targets: 0.66 0.70".
-  const targetRe = new RegExp(String.raw`\b(?:tp(\d?)|take[\s-]*profit(\d?)|targets?(\d?))\s*[:@=]?\s*(${NUM_LIST})`, "g");
+  // Targets: "tp 0.7", "TP1 0.66 TP2 0.70", "TP 1: 4350", "Target 1 : 1.43", "take profit 0.7", "Targets: 0.66 0.70".
+  // The optional index must never be read as a price: "tp4: hold" is a label with no number, not a target of 4.
+  const index = String.raw`(?:(\d)(?![\d.])|\s*(\d{1,2})\s*[:.)=-](?=\s)|(?!\d))`;
+  const targetRe = new RegExp(String.raw`(?<!(?:entry|stop)\s*)\b(?:tp|take[\s-]*profit(?:\s*targets?)?|targets?)${index}\s*[:@=]?\s*(${NUM_LIST})`, "g");
   const tpMatches = [...work.matchAll(targetRe)];
-  const labelled = tpMatches.map((m) => ({ label: Number(m[1] || m[2] || m[3] || 0), nums: (m[4] as string).match(new RegExp(NUM, "g")) ?? [] }));
+  const labelled = tpMatches.map((m) => ({ label: Number(m[1] || m[2] || 0), nums: (m[3] as string).match(new RegExp(NUM, "g")) ?? [] }));
   for (const m of tpMatches) work = consume(work, m);
   if (labelled.length > 0 && labelled.every((l) => l.label > 0)) labelled.sort((a, b) => a.label - b.label);
   const targets = labelled.flatMap((l) => l.nums);
+  // A target label left without a number ("TP4: Hold", a bare "Target :" header) must not leave its index behind as a price.
+  work = work.replace(/\b(?:tp|take[\s-]*profit|targets?)\s*\d{0,2}\s*[:.)=-]?/g, (m) => " ".repeat(m.length));
 
   // Stop.
-  const slMatches = [...work.matchAll(new RegExp(String.raw`\b(?:stop[\s-]*loss|stop|sl)\s*[:@=]?\s*(${NUM})`, "g"))];
+  const slMatches = [...work.matchAll(new RegExp(String.raw`\b(?:stopp?[\s-]*(?:loss|lose|los|targets?)|stopp?|sl)\s*[:@=]?\s*(${NUM})`, "g"))];
   const slValues = slMatches.map((m) => m[1] as string);
   for (const m of slMatches) work = consume(work, m);
 
   // Entry: "entry 0.62", "entry 0.61 - 0.63", "@ 150", "buy at 150".
   let entryNums: string[] = [];
+  let entryList: string[] = []; // further numbers listed after the entry ("Entry Targets: 1) 2480 2) 2470"): a choice, not a range
   let hasEntryLabel = false;
   const entryRe = new RegExp(
-    String.raw`(?:\b(?:entry|enter|entries|buy\s+zone|buy\s+at|sell\s+at|at)\b|@)\s*[:=]?\s*(${NUM})(?:\s*(?:-|to)\s*(${NUM}))?`,
+    String.raw`(?:\b(?:entry|entery|enter|entries)(?:\s*(?:targets?|zone|price))?\b|\b(?:buy\s+zone|buy\s+at|sell\s+at|at)\b|@)\s*[:=]?\s*(${NUM})(?:\s*(?:-|to|/)\s*(${NUM}))?((?:[\s,;|]+${NUM})*)`,
   );
   const em = work.match(entryRe);
   if (em) {
     hasEntryLabel = true;
     entryNums = [em[1] as string, ...(em[2] ? [em[2]] : [])];
+    entryList = (em[3] ?? "").match(new RegExp(NUM, "g")) ?? [];
     work = consume(work, em);
   }
-
-  const callLike =
-    tpMatches.length > 0 ||
-    slMatches.length > 0 ||
-    hasEntryLabel ||
-    ((hasLong || hasShort) && /\d/.test(work + targets.join("") + slValues.join("")));
-  if (!callLike) return { ok: false, reason: "not_a_call" };
 
   // Market-entry keywords.
   const marketKw = /\b(?:now|cmp|market|current(?:\s+price)?)\b/.test(work);
 
+  const hardCall =
+    tpMatches.length > 0 ||
+    slMatches.length > 0 ||
+    hasEntryLabel ||
+    ((hasLong || hasShort) && /\d/.test(work + targets.join("") + slValues.join("")));
+  // "GOLD BUY NOW": an alert whose levels follow in a later message. It is a call only if a listed market is named.
+  const softCall = !hardCall && (hasLong || hasShort) && marketKw;
+  if (!hardCall && !softCall) return { ok: false, reason: "not_a_call" };
+
   // Bare numbers left over are the entry (compact style), including a bare range "0.61-0.63".
   if (entryNums.length === 0) {
-    const bareRange = work.match(new RegExp(String.raw`(${NUM})\s*-\s*(${NUM})`));
+    const bareRange = work.match(new RegExp(String.raw`(${NUM})\s*(?:-|to|/)\s*(${NUM})`));
     if (bareRange) {
       entryNums = [bareRange[1] as string, bareRange[2] as string];
       work = consume(work, bareRange);
@@ -145,11 +167,17 @@ function parse(text: string, ctx: ParseContext): ParseResult {
       if (strong && strongUnlisted === undefined) strongUnlisted = r.base;
     }
   }
+  if (hints.symbol !== undefined) {
+    if (ctx.markets[hints.symbol] === undefined) return { ok: false, reason: "not_listed", base: hints.symbol.replace(/-USD$/, "") };
+    found.clear();
+    found.add(hints.symbol);
+  }
   if (found.size > 1) {
     return ask("ambiguous", { field: "symbol", question: "Which market is this call for?", options: [...found] });
   }
   if (found.size === 0) {
     if (strongUnlisted !== undefined) return { ok: false, reason: "not_listed", base: strongUnlisted };
+    if (softCall) return { ok: false, reason: "not_a_call" }; // "sell now" with no market named is chatter
     return ask("ambiguous", { field: "symbol", question: "Which market is this call for?" });
   }
   const symbol = [...found][0] as string;
@@ -159,15 +187,23 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   const fmt = (s: string) => formatToTick(D.of(s), tick, decimals);
 
   // Side.
-  if (hasLong === hasShort) {
+  if (hints.side !== undefined) {
+    // the answer decides the side, whatever the text said
+  } else if (hasLong === hasShort) {
     return ask("ambiguous", { field: "side", question: `Long or short on ${symbol}?`, options: ["Long", "Short"] });
   }
-  const side: Side = hasLong ? "long" : "short";
+  const side: Side = hints.side ?? (hasLong ? "long" : "short");
 
   // Entry.
   let entryKind: "limit" | "market" = "limit";
   let entry: string | null = null;
-  if (entryNums.length > 0) {
+  if (hints.entry !== undefined) {
+    entryNums = [hints.entry];
+    entryList = [];
+  }
+  if (entryNums.length > 0 && entryList.length > 0) {
+    return ask("ambiguous", { field: "entry", question: "Which entry should Tail use?", options: [...entryNums, ...entryList] });
+  } else if (entryNums.length > 0) {
     const mid = D.div(entryNums.map((n) => D.of(n)).reduce(D.add), D.of(String(entryNums.length)));
     entry = formatToTick(mid, tick, decimals);
   } else if (bare.length === 1) {

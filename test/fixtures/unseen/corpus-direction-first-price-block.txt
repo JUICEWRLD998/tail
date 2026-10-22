@@ -1,0 +1,11 @@
+#! source: lukacsaron/telegram-signal-test-corpus, fixture 'direction-first-price-block' (MIT, published by jazzrabbit OU). quoted from live channels (the corpus's own label: spec)
+#! url: https://github.com/lukacsaron/telegram-signal-test-corpus
+#! layout: direction first, price block below
+XAUUSD (Gold)
+BUY NOW
+4346-4344
+
+TP 1: 4350
+TP 2: 4354
+TP 3: 4360
+Stop Loss: 4342

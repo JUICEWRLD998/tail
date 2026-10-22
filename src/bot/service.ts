@@ -1,8 +1,9 @@
 // Tail's application logic: everything a user can do, with Telegram and Strike injected.
 // The model builds nothing here. Every order is parsed and sized by tested deterministic code.
+import type { AiReader } from "../ai/openrouter.js";
 import { fadeOf, rewardRisk } from "../core/fade.js";
 import { bracketFromDraft } from "../core/order.js";
-import { parseCall } from "../core/parser.js";
+import { parseCall, type Hints, type ParseResult } from "../core/parser.js";
 import { sizeTail } from "../core/sizing.js";
 import { roundToTick } from "../core/tick.js";
 import { decryptSecret, encryptSecret } from "../db/crypto.js";
@@ -26,6 +27,8 @@ export interface Reply {
   buttons?: Button[];
 }
 
+export type CallerPostResult = { type: "ignore" } | { type: "dm"; tgId: number; reply: Reply };
+
 export interface ServiceDeps {
   store: Store;
   kek: Buffer;
@@ -38,6 +41,10 @@ export interface ServiceDeps {
   uuid: () => string;
   sleep: (ms: number) => Promise<void>;
   pollAttempts?: number;
+  /** Abuse limits. Defaults: 10 calls per channel per hour, 10 open tails per follower, 2 minutes to repeat a call. */
+  limits?: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number };
+  /** Optional fallback reader for calls the parser could not read. Its output is a proposal the caller must confirm. */
+  ai?: AiReader;
 }
 
 const QUOTE_TTL_MS = 5 * 60_000;
@@ -53,9 +60,79 @@ function strikeMessage(e: unknown): { text: string; strike: boolean } {
   return { text: "Could not reach Strike. Try again.", strike: false };
 }
 
+/** A parse failure is worth an AI reading when it is a question, or free text that names a listed market and has levels. */
+function worthAReading(reason: string, text: string, markets: Readonly<Record<string, unknown>>): boolean {
+  if (reason !== "not_a_call") return true;
+  const numbers = text.match(/\d+(?:\.\d+)?/g) ?? [];
+  const lower = text.toLowerCase();
+  return numbers.length >= 3 && Object.keys(markets).some((m) => lower.includes(m.replace(/-USD$/, "").toLowerCase()));
+}
+
 export function createService(d: ServiceDeps) {
   const { store } = d;
   const attempts = d.pollAttempts ?? 20;
+  const maxOpenTails = d.limits?.maxOpenTails ?? 10;
+  const maxCallsPerHour = d.limits?.maxCallsPerHour ?? 10;
+  const duplicateWindowMs = d.limits?.duplicateWindowMs ?? 2 * 60_000;
+  const before = (ms: number) => new Date(Date.parse(d.now()) - ms).toISOString();
+
+  const FOLLOW_UP: Record<string, string> = {
+    sl: " Post the call again with it.", tp: " Post the call again with it.", entry: " Post the call again with it.",
+    levels: " Post the corrected call again.", symbol: " Post the call again with the market named.",
+  };
+
+  /** Parses a call and turns the result into what the caller sees: a confirm card, a question, or nothing. */
+  async function processCall(callerTgId: number, i: { chatId: number; messageId: number; text: string }, hints: Hints): Promise<CallerPostResult> {
+    const ctx = { markets: await marketMap() };
+    let r: ParseResult = parseCall(i.text, ctx, hints);
+    let aiRead = false;
+    // Only a first reading may use the AI: an answer to a question (hints) is final.
+    if (!r.ok && r.reason !== "not_listed" && d.ai?.enabled && Object.keys(hints).length === 0 && worthAReading(r.reason, i.text, ctx.markets)) {
+      const proposal = await d.ai.read(i.text, ctx, i.chatId);
+      if (proposal.ok) {
+        r = { ok: true, draft: proposal.draft };
+        aiRead = true;
+      }
+    }
+    if (!r.ok) {
+      if (r.reason === "not_a_call") return { type: "ignore" };
+      if (r.reason === "not_listed") {
+        store.recordMiss(r.base, i.chatId);
+        return { type: "dm", tgId: callerTgId, reply: { text: `Not on Strike yet: ${r.base}.` } };
+      }
+      const { question, options, field } = r.ask;
+      if (options && options.length > 0) {
+        const askId = store.createAsk({ tgId: callerTgId, chatId: i.chatId, messageId: i.messageId, rawText: i.text, field, options, createdAt: d.now() });
+        return {
+          type: "dm", tgId: callerTgId,
+          reply: { text: question, buttons: options.map((label, n) => ({ text: label, callback: callbackData("ask", askId, n) })) },
+        };
+      }
+      return { type: "dm", tgId: callerTgId, reply: { text: `${question}${FOLLOW_UP[field] ?? ""}` } };
+    }
+    const dr = r.draft;
+    // Abuse limits apply only to a real call about to become a draft, never to chatter or a question.
+    if (store.hasRecentCall(i.chatId, i.text, before(duplicateWindowMs))) {
+      return { type: "dm", tgId: callerTgId, reply: { text: "This call was already posted a moment ago." } };
+    }
+    if (store.countCallsSince(i.chatId, before(3_600_000)) >= maxCallsPerHour) {
+      return { type: "dm", tgId: callerTgId, reply: { text: `Too many calls in the last hour (limit ${maxCallsPerHour}). Wait before posting another.` } };
+    }
+    const id = store.createDraftCall({
+      chatId: i.chatId, messageId: i.messageId, rawText: i.text, symbol: dr.symbol, side: dr.side, entryKind: dr.entryKind,
+      entry: dr.entry, tp: dr.tp, sl: dr.sl, leverageHint: dr.leverageHint, createdAt: d.now(),
+    });
+    return {
+      type: "dm", tgId: callerTgId,
+      reply: {
+        text: callerConfirmCard({ ...dr, extraTargets: dr.extraTargets }, aiRead),
+        buttons: [
+          { text: "Post", callback: callbackData("post", id) },
+          { text: "Drop", callback: callbackData("drop", id) },
+        ],
+      },
+    };
+  }
 
   const marketMap = async () => {
     const m = await d.publicStrike.markets();
@@ -68,31 +145,23 @@ export function createService(d: ServiceDeps) {
       const channel = store.getChannel(i.chatId);
       if (!channel) return { type: "ignore" as const };
       if (i.senderTgId !== undefined && i.senderTgId !== channel.callerTgId) return { type: "ignore" as const };
-      const r = parseCall(i.text, { markets: await marketMap() });
-      if (!r.ok) {
-        if (r.reason === "not_a_call") return { type: "ignore" as const };
-        if (r.reason === "not_listed") {
-          store.recordMiss(r.base, i.chatId);
-          return { type: "dm" as const, tgId: channel.callerTgId, reply: { text: `Not on Strike yet: ${r.base}.` } };
-        }
-        return { type: "dm" as const, tgId: channel.callerTgId, reply: { text: r.ask.question } };
-      }
-      const dr = r.draft;
-      const id = store.createDraftCall({
-        chatId: i.chatId, messageId: i.messageId, rawText: i.text, symbol: dr.symbol, side: dr.side, entryKind: dr.entryKind,
-        entry: dr.entry, tp: dr.tp, sl: dr.sl, leverageHint: dr.leverageHint, createdAt: d.now(),
-      });
-      return {
-        type: "dm" as const,
-        tgId: channel.callerTgId,
-        reply: {
-          text: callerConfirmCard({ ...dr, extraTargets: dr.extraTargets }),
-          buttons: [
-            { text: "Post", callback: callbackData("post", id) },
-            { text: "Drop", callback: callbackData("drop", id) },
-          ],
-        } as Reply,
-      };
+      return processCall(channel.callerTgId, i, {});
+    },
+
+    /** The caller tapped an answer to a question the parser asked. The answer fixes one field; every rule still applies. */
+    async answerAsk(i: { tgId: number; askId: number; option: number }): Promise<{ ok: false; text: string } | { ok: true; chosen: string; result: CallerPostResult }> {
+      const expired = { ok: false as const, text: "This question has expired. Post the call again." };
+      const pending = store.peekAsk(i.askId, i.tgId, d.now());
+      if (!pending || !Number.isInteger(i.option) || i.option < 0 || i.option >= pending.options.length) return expired;
+      if (!store.getChannel(pending.chatId)) return expired;
+      const taken = store.takeAsk(i.askId, i.tgId, d.now());
+      if (!taken) return expired;
+      const chosen = taken.options[i.option] as string;
+      const hints: Hints =
+        taken.field === "side" ? { side: chosen.toLowerCase() === "short" ? "short" : "long" } :
+        taken.field === "symbol" ? { symbol: chosen } :
+        taken.field === "entry" ? { entry: chosen } : {};
+      return { ok: true, chosen, result: await processCall(i.tgId, { chatId: taken.chatId, messageId: taken.messageId ?? 0, text: taken.rawText }, hints) };
     },
 
     postDraft(callId: number, byTgId: number) {
@@ -124,6 +193,9 @@ export function createService(d: ServiceDeps) {
       const call = store.getCall(i.callId);
       if (!call || call.status !== "open") return { ok: false, text: "This call is closed." };
       if (store.findLiveTail(call.id, i.tgId)) return { ok: false, text: "You already took this call." };
+      if (store.countLiveTails(i.tgId) >= maxOpenTails) {
+        return { ok: false, text: `You have ${maxOpenTails} open Tail positions. Wait for one to close first.` };
+      }
 
       let equity: string;
       let mark: string | null = null;

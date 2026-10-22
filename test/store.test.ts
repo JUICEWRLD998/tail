@@ -320,3 +320,45 @@ describe("receipts that failed to post", () => {
     expect(d).toBeGreaterThan(0); // still open: never listed
   });
 });
+
+
+describe("pending questions (asks)", () => {
+  const ask = (over = {}) => ({ tgId: 111, chatId: -1001, messageId: 9, rawText: "ADA 0.62 tp 0.70 sl 0.58", field: "side", options: ["Long", "Short"], createdAt: T0, ...over });
+
+  it("is returned once, to the same caller, within 15 minutes", () => {
+    const s = fresh();
+    const id = s.createAsk(ask());
+    expect(s.takeAsk(id, 222, at(1))).toBeUndefined(); // someone else
+    expect(s.takeAsk(id, 111, at(1))).toEqual({ chatId: -1001, messageId: 9, rawText: "ADA 0.62 tp 0.70 sl 0.58", field: "side", options: ["Long", "Short"] });
+    expect(s.takeAsk(id, 111, at(2))).toBeUndefined(); // single use
+  });
+
+  it("a wrong-user attempt does not burn the question", () => {
+    const s = fresh();
+    const id = s.createAsk(ask());
+    s.takeAsk(id, 222, at(1));
+    expect(s.takeAsk(id, 111, at(2))).toBeDefined();
+  });
+
+  it("expires after 15 minutes", () => {
+    const s = fresh();
+    const id = s.createAsk(ask());
+    expect(s.takeAsk(id, 111, at(16))).toBeUndefined();
+  });
+
+  it("peekAsk reads a question without using it", () => {
+    const s = fresh();
+    const id = s.createAsk(ask());
+    expect(s.peekAsk(id, 111, at(1))?.options).toEqual(["Long", "Short"]);
+    expect(s.peekAsk(id, 222, at(1))).toBeUndefined();
+    expect(s.takeAsk(id, 111, at(2))).toBeDefined();
+    expect(s.peekAsk(id, 111, at(3))).toBeUndefined();
+  });
+
+  it("keeps the original text and options exactly, including newlines and unicode", () => {
+    const s = fresh();
+    const raw = "ETH long\nEntry Targets:\n1) 2480\n2) 2470 🔴";
+    const id = s.createAsk(ask({ rawText: raw, options: ["2480", "2470"] }));
+    expect(s.takeAsk(id, 111, at(1))?.rawText).toBe(raw);
+  });
+});

@@ -1,0 +1,15 @@
+{
+ "outcome": "card",
+ "draft": {
+  "symbol": "ETH-USD",
+  "side": "long",
+  "entryKind": "limit",
+  "entry": "3500.00",
+  "tp": "3600.00",
+  "sl": "3400.00",
+  "extraTargets": [
+   "3700.00",
+   "3800.00"
+  ]
+ }
+}

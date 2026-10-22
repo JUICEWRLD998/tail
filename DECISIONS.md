@@ -2,6 +2,29 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 P6 built (723 tests); live Fade and follower checks still his taps
+
+- **Parser, tested on 24 calls written in other people's formats** (`test/fixtures/unseen/`, `scripts/unseen-report.ts`):
+  baseline 16/24 (`docs/proof/p6-unseen-baseline.txt`), after tuning 24/24 (`p6-unseen-after-fixes.txt`). Fixes: Cornix-style
+  blocks, a direction glued to a symbol (`XAUUSDSELL`), list markers read as prices, entry lists, soft calls, `TP4: Hold`
+  leaving a phantom target. 24/24 is on calls I tuned against; it is not a claim about calls I have not seen.
+- **Guard rails:** per-user rate limit, at most 10 calls per channel per hour, 10 open tails per follower, a 2-minute
+  duplicate window (cancelled drafts do not block a re-post).
+- **Ask flow:** when a call is ambiguous (which number is the entry, long or short) the caller gets buttons; the answer fixes
+  one field and every rule still applies.
+- **Plain rejection reasons** from strings seen live (`docs/proof/p6-strike-errors.json`), shared by confirm and reconcile.
+- **AI fallback (OpenRouter, `google/gemini-2.5-flash`)** for calls the parser could not read. The model proposes, it builds
+  nothing. A proposal is accepted only if: the market is listed and named in the message; the direction is stated; tp and sl
+  appear in the message; entry appears in the message or is the midpoint of two prices in it; and the deterministic parser
+  re-validates the result. The caller then sees a draft labelled "Read by AI" and must tap Post. Limits: 20 readings per
+  channel per hour, 8 s timeout, text-hash cache, off without `OPENROUTER_API_KEY`, errors never echo the key. Not used for
+  answers to questions. The message text is sent to OpenRouter; say so in the privacy note.
+- **Live check** (`scripts/ai-live.ts`, `docs/proof/p6-ai-live.json`): 9 cases, each planted control rejected.
+- **Correction (my check was wrong, not the app):** an injection control that put `tp 999999` in the message itself was
+  accepted. Numbers typed in the message pass the number check by design. Recorded as a known limit in the proposal test: the
+  caller's confirmation is the gate, and the channel is admin-only. The control now injects without numbers.
+- **Still open:** Fade end to end and a live follower tap (his), deploy (his), P7 onward.
+
 ## 2026-10-22 09:55 UTC: P5 built (551 tests); live exit check partly met
 
 - **Built, test first:** versioned migrations (v2 adds leg order ids, close details, call outcome tracking; the live dev database

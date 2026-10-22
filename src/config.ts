@@ -21,6 +21,9 @@ export interface Config {
   webhookSecret: string | undefined;
   /** Prod only: an unguessable path derived from the secret and the bot token. */
   webhookPath: string | undefined;
+  /** OpenRouter key for the AI parse fallback. Without it the fallback is off. Never logged. */
+  aiApiKey: string | undefined;
+  aiModel: string;
 }
 
 const BASE_URLS = { testnet: "https://api-v2-testnet.strikefinance.org", mainnet: "https://api.strikefinance.org" } as const;
@@ -83,6 +86,9 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     webhookPath = `/telegram/${createHash("sha256").update(`${env.WEBHOOK_SECRET}:${env.TELEGRAM_BOT_TOKEN}`).digest("hex").slice(0, 32)}`;
   }
 
+  const aiModel = env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
+  if (!/^[a-z0-9._-]+\/[a-z0-9._:-]+$/i.test(aiModel)) throw new Error("OPENROUTER_MODEL must look like provider/model");
+
   return {
     network, baseUrl: BASE_URLS[network], mode, token: env.TELEGRAM_BOT_TOKEN, kek,
     dbPath: env.TAIL_DB ?? "data/tail.db",
@@ -90,5 +96,6 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     ownerTgId: mode === "prod" ? undefined : ownerTgId,
     linkKey: mode === "prod" ? undefined : env.SPIKE_API_PRIV || undefined,
     builderCode: env.BUILDER_CODE || undefined, builderFeeBps, publicUrl, port, webhookSecret, webhookPath,
+    aiApiKey: env.OPENROUTER_API_KEY || undefined, aiModel,
   };
 }

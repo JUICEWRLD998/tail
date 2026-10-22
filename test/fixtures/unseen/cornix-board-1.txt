@@ -1,0 +1,6 @@
+#! source: a user's example on Cornix's public feedback board (a feature request, not an official spec; reconstructed line by line from a search-result summary because the page returned 403)
+#! url: https://cornix.nolt.io/762
+LONG BTC/USDT
+Entry: 65000
+TP: 66500
+SL: 64000
