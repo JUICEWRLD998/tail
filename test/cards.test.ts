@@ -114,6 +114,16 @@ describe("deep links and callbacks", () => {
       expect(parseCallbackData(d)).toEqual({ kind, id: 42 });
     }
   });
+  it("encodes an answer to a question as ask id and option index", () => {
+    expect(callbackData("ask", 12, 1)).toBe("a:12:1");
+    expect(parseCallbackData("a:12:1")).toEqual({ kind: "ask", id: 12, option: 1 });
+    expect(parseCallbackData("a:12:0")).toEqual({ kind: "ask", id: 12, option: 0 });
+  });
+
+  it.each(["a:12", "a:12:", "a:12:x", "a:12:100", "p:1:2", "y:3:0", "a:-1:0"])("rejects malformed callback %j", (d) => {
+    expect(parseCallbackData(d)).toBeUndefined();
+  });
+
   it.each(["", "zz:1", "p:", "p:abc", "p:-1", "p:1:2"])("rejects callback %j", (d) => {
     expect(parseCallbackData(d)).toBeUndefined();
   });
