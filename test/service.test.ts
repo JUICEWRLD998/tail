@@ -45,13 +45,14 @@ let svc: Service;
 let n = 0;
 
 let ai: ServiceDeps["ai"];
+let builderFeeBps: number | undefined;
 
 function build(o: FakeOpts = {}, limits: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number } = {}) {
   strike = fakeStrike(o);
   svc = createService({
     store, kek, botUsername: "tailbot",
     publicStrike: strike, strikeFor: () => strike, clientForKey: () => strike,
-    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits, ai,
+    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits, ai, builderFeeBps,
   });
 }
 
@@ -352,6 +353,26 @@ describe("quote", () => {
     expect(r.reply.text).toContain("Risk 0.54 USD (3% of 19.92 USD)");
     expect(store.getTail(r.tailId)).toMatchObject({ status: "quoted", mode: "tail", size: "0.009", callId: id });
     expect(r.reply.buttons?.map((b) => b.callback)).toEqual([callbackData("confirm", r.tailId), callbackData("cancel", r.tailId)]);
+  });
+
+  it("records the builder fee rate the order will carry, only for a builder wallet", async () => {
+    builderFeeBps = 10;
+    build();
+    linkFollower({ builderCode: "sigma" });
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!r.ok) throw new Error(r.text);
+    expect(store.getTail(r.tailId)?.feeBps).toBe(10);
+    builderFeeBps = undefined;
+  });
+
+  it("records no fee for a personal API wallet, even when the server has a rate", async () => {
+    builderFeeBps = 10;
+    build();
+    linkFollower({ builderCode: null });
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!r.ok) throw new Error(r.text);
+    expect(store.getTail(r.tailId)?.feeBps).toBe(0);
+    builderFeeBps = undefined;
   });
 
   it("fade trades the other side with swapped levels", async () => {
