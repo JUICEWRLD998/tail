@@ -1,8 +1,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import styles from "./pages.module.css";
 
-/** Common frame: brand, testnet tag, and a heading that takes focus so a screen reader announces each page. */
-export function Shell({ title, documentTitle, children }: { title: string; documentTitle: string; children: ReactNode }) {
+/** Common frame: brand, testnet tag, optional page title that takes focus so a screen reader announces the page. */
+export function Shell({ title, documentTitle, bot, children }: { title?: string; documentTitle: string; bot?: string | null; children: ReactNode }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     document.title = `${documentTitle} · Tail`;
@@ -14,12 +14,17 @@ export function Shell({ title, documentTitle, children }: { title: string; docum
     <div className={styles.page}>
       <div className={styles.shell}>
         <nav className={styles.nav} aria-label="Tail">
-          <a className={styles.brand} href="/">Tail</a>
-          <span className={styles.tag}>Strike testnet</span>
+          <a className={styles.brand} href="/"><span className={styles.mark} aria-hidden="true" />Tail</a>
+          <div className={styles.navRight}>
+            <span className={styles.tag}>Strike testnet</span>
+            {bot && <a className={styles.navLink} href={`https://t.me/${bot}`} rel="noreferrer">Open the bot</a>}
+          </div>
         </nav>
-        <header className={styles.head}>
-          <h1 className={styles.title} ref={heading} tabIndex={-1}>{title}</h1>
-        </header>
+        {title !== undefined && (
+          <header className={styles.head}>
+            <h1 className={styles.title} ref={heading} tabIndex={-1}>{title}</h1>
+          </header>
+        )}
         {children}
       </div>
     </div>

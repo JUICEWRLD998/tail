@@ -14,6 +14,7 @@ export interface PageCall {
   side: "long" | "short";
   entry: string | null;
   entryKind: "limit" | "market";
+  leverageHint: number | null;
   tp: string;
   sl: string;
   status: string;
@@ -101,7 +102,7 @@ export function createPages(store: Store, o: { botUsername?: string } = {}): Pag
       }));
       const followersOf = (callId: number) => new Set(tails.filter((t) => t.callId === callId && (t.status === "filled" || t.status === "closed")).map((t) => t.tgId)).size;
       const list: PageCall[] = [...calls].reverse().slice(0, MAX_CALLS).map((c) => ({
-        id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, entryKind: c.entryKind, tp: c.tp, sl: c.sl, status: c.status,
+        id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, entryKind: c.entryKind, leverageHint: c.leverageHint, tp: c.tp, sl: c.sl, status: c.status,
         createdAt: c.createdAt, closedAt: c.closedAt,
         resultR: c.status === "tp_hit" || c.status === "sl_hit" ? resultR(c, c.status) : null,
         followers: followersOf(c.id), tails: tails.filter((t) => t.callId === c.id).length, ...store.tailCounts(c.id),

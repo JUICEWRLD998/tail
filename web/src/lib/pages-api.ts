@@ -5,6 +5,7 @@ export interface PageCall {
   side: "long" | "short";
   entry: string | null;
   entryKind: "limit" | "market";
+  leverageHint: number | null;
   tp: string;
   sl: string;
   status: string;
