@@ -327,6 +327,15 @@ describe("confirm", () => {
     expect(strike.placed.length).toBe(0);
   });
 
+  it("confirming after the call has hit its target or stop places nothing", async () => {
+    const { callId, tailId } = await quoted();
+    store.finishCall(callId, { status: "tp_hit", resultPrice: "2561", closedAt: new Date(clock).toISOString() });
+    const r = await svc.confirm({ tgId: FOLLOWER, tailId });
+    expect(r.text).toBe("This call is closed.");
+    expect(strike.placed.length).toBe(0);
+    expect(store.getTail(tailId)?.status).toBe("cancelled");
+  });
+
   it("an expired quote asks the follower to tap again and sends nothing", async () => {
     const { tailId } = await quoted();
     advance(6);
