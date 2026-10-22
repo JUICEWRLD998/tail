@@ -72,6 +72,16 @@ function worthAReading(reason: string, text: string, markets: Readonly<Record<st
 
 export function createService(d: ServiceDeps) {
   const { store } = d;
+
+  /** Which wallet trades a call: the follower's wallet for the caller's own code when the channel has one, else the default. */
+  const traderFor = (tgId: number, chatId: number): { user: User | undefined } | { needs: { code: string; feeBps: number } } => {
+    const ch = store.getChannel(chatId);
+    if (ch?.builderCode && ch.feeBps !== null) {
+      const w = store.walletFor(tgId, ch.builderCode);
+      return w ? { user: w } : { needs: { code: ch.builderCode, feeBps: ch.feeBps } };
+    }
+    return { user: store.getUser(tgId) };
+  };
   const attempts = d.pollAttempts ?? 20;
   const maxOpenTails = d.limits?.maxOpenTails ?? 10;
   const maxCallsPerHour = d.limits?.maxCallsPerHour ?? 10;
@@ -189,10 +199,14 @@ export function createService(d: ServiceDeps) {
       return { text: "🗑️ Dropped." };
     },
 
-    async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string; needsLink?: true } | { ok: true; tailId: number; reply: Reply }> {
-      const user = store.getUser(i.tgId);
-      if (!user) return { ok: false, text: "Link your Strike account first with /link.", needsLink: true };
+    async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string; needsLink?: true; connectCode?: { code: string; feeBps: number } } | { ok: true; tailId: number; reply: Reply }> {
       const call = store.getCall(i.callId);
+      const t = call ? traderFor(i.tgId, call.chatId) : { user: store.getUser(i.tgId) };
+      if ("needs" in t) {
+        return { ok: false, text: "🔗 This caller is paid through their own Strike builder code. Connect once for their calls with /connect.", needsLink: true, connectCode: t.needs };
+      }
+      const user = t.user;
+      if (!user) return { ok: false, text: "Link your Strike account first with /link.", needsLink: true };
       if (!call || call.status !== "open") return { ok: false, text: "This call is closed." };
       if (store.findLiveTail(call.id, i.tgId)) return { ok: false, text: "You already took this call." };
       if (store.countLiveTails(i.tgId) >= maxOpenTails) {
@@ -231,7 +245,9 @@ export function createService(d: ServiceDeps) {
 
       const tailId = store.createTail({
         callId: call.id, tgId: i.tgId, mode: i.mode, strategyId: d.uuid(), size: sizing.size, notionalUsd: sizing.notional,
-        feeBps: user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0, createdAt: d.now(),
+        // A caller-code wallet carries that caller's rate; the default wallet carries the server's, if it is a builder wallet.
+        feeBps: user.feeBps ?? (user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0),
+        builderCode: user.feeBps !== undefined ? user.builderCode : null, createdAt: d.now(),
       });
       const rr = call.entry === null ? null : rewardRisk({ side: levels.side, entry: levels.entry, tp: levels.tp, sl: levels.sl });
       return {
@@ -265,7 +281,8 @@ export function createService(d: ServiceDeps) {
       // Claim before any await: a double tap, or two taps in flight, can send at most one order.
       if (!store.claimTail(tail.id)) return { text: "Already placed." };
 
-      const user = store.getUser(i.tgId);
+      // The same wallet that was quoted: the caller's code if the tail carries one, else the default.
+      const user = tail.builderCode ? store.walletFor(i.tgId, tail.builderCode) : store.getUser(i.tgId);
       const call = store.getCall(tail.callId);
       if (!user || !call) {
         store.updateTail(tail.id, { status: "rejected", error: "unavailable" });

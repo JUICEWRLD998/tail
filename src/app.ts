@@ -55,7 +55,8 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
           baseUrl: cfg.baseUrl,
           privateKeyHex: decryptSecret(cfg.kek, user.apiPrivEnc),
           autoSync: true,
-          ...(user.builderCode && cfg.builderFeeBps ? { builderFeeBps: cfg.builderFeeBps } : {}),
+          // A caller-code wallet carries that caller's rate; the default builder wallet carries the server's.
+          ...(user.feeBps !== undefined ? { builderFeeBps: user.feeBps } : user.builderCode && cfg.builderFeeBps ? { builderFeeBps: cfg.builderFeeBps } : {}),
         });
         clients.set(key, c);
       }

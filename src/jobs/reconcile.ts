@@ -48,7 +48,8 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
   };
 
   async function reconcileTail(tail: Tail): Promise<boolean> {
-    const user = d.store.getUser(tail.tgId);
+    // Read with the wallet that placed the order: a caller-coded tail went through the follower's wallet for that code.
+    const user = tail.builderCode ? d.store.walletFor(tail.tgId, tail.builderCode) : d.store.getUser(tail.tgId);
     const call = d.store.getCall(tail.callId);
     if (!user || !call) return false;
     const strike = d.strikeFor(user);
