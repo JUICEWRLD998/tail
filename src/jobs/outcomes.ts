@@ -18,6 +18,8 @@ export interface OutcomeDeps {
 type Terminal = Extract<Evaluation, { state: "tp_hit" | "sl_hit" | "expired" }>;
 
 const RECEIPT_RETRY_WINDOW_MS = 24 * 3_600_000;
+/** A receipt is only "lost" after this long, so a second instance that finished the call can post it first. */
+const RECEIPT_GRACE_MS = 30_000;
 
 // Calls whose receipt is being posted right now. A concurrent run must not mistake "no receipt id yet" for "lost".
 const receiptsInFlight = new Set<number>();
@@ -89,7 +91,7 @@ export async function runOutcomes(d: OutcomeDeps): Promise<{ evaluated: number; 
   }
 
   // A receipt that failed above (Telegram down, rate limit) is retried until it posts.
-  for (const call of d.store.callsMissingReceipt(nowIso, RECEIPT_RETRY_WINDOW_MS)) {
+  for (const call of d.store.callsMissingReceipt(nowIso, RECEIPT_RETRY_WINDOW_MS, RECEIPT_GRACE_MS)) {
     const ev: Terminal = call.status === "expired"
       ? { state: "expired", entered: call.enteredAt !== null }
       : { state: call.status as "tp_hit" | "sl_hit", resultPrice: call.resultPrice as string };
