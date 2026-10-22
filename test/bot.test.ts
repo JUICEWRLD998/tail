@@ -512,7 +512,7 @@ describe("account commands", () => {
 });
 
 describe("earnings and the public page", () => {
-  const PUBLIC = "https://tail.example.org";
+  const PUBLIC = "https://tail.test";
   const call = (over: Record<string, unknown> = {}) => {
     const id = store.createDraftCall({ chatId: CHAT, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: T, ...over } as never);
     store.openCall(id, 50 + id);
@@ -532,7 +532,7 @@ describe("earnings and the public page", () => {
     expect(lastText()).toBe([
       "Test",
       "Estimated builder fee: 0.04464 USD",
-      "Entry fills only: 22.32 USD x 10 bps, 2 tails. 1 tail used a personal wallet and earns nothing.",
+      "Entry fills only: 44.64 USD at 10 bps, 2 tails. 1 tail used a personal wallet and earns nothing.",
       "Payout to callers is not live.",
     ].join("\n"));
   });
@@ -575,7 +575,7 @@ describe("earnings and the public page", () => {
     await bot.handleUpdate(dm("/publish", CALLER) as never);
     expect(lastText()).toBe("You have several channels. Send /publish with a title: Test, Second");
     await bot.handleUpdate(dm("/publish second", CALLER) as never);
-    expect(lastText()).toContain("Second\nhttps://tail.example.org/c/");
+    expect(lastText()).toContain("Second\nhttps://tail.test/c/");
     expect(store.getChannel(-888)!.isPublic).toBe(true);
     expect(store.getChannel(CHAT)!.isPublic).toBe(false);
   });

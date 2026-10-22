@@ -1,7 +1,8 @@
 // grammY wiring. All decisions live in the service; this file only maps Telegram updates to it and back.
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, type CommandContext, type Context } from "grammy";
 import type { UserFromGetMe } from "grammy/types";
 import type { Store } from "../db/store.js";
+import { earnings, earningsText } from "../core/earnings.js";
 import { recordText, summarize, type RecordCall } from "../core/record.js";
 import { escapeHtml, parseCallbackData, parseStartPayload } from "./cards.js";
 import type { CardEdit } from "./edit-queue.js";
@@ -44,6 +45,9 @@ const HELP = [
   "/addchannel  register a channel or group",
   "/call ETH long 2480 tp 2560 sl 2420  draft a call",
   "/record  your calls, hit rate and followers",
+  "/earnings  estimated builder fee on your followers' fills",
+  "/page  your public record page",
+  "/publish  turn the page on (/unpublish turns it off)",
 ].join("\n");
 const CONNECT_TEXT = "Connect your wallet once to trade. It signs one message and cannot withdraw funds.";
 const WELCOME = "Tail turns a channel call into a Strike order in one tap.\nTap Tail or Fade on a call card to start.\n/me shows your account. /link connects it.";
@@ -164,6 +168,50 @@ export function createBot(o: BotOptions): Bot {
       return recordText(escapeHtml(c.title), summarize(rows, store.followersIn(c.chatId)));
     });
     await ctx.reply(blocks.join("\n\n"), HTML);
+  });
+
+  bot.command("earnings", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const channels = store.channelsOf(ctx.from!.id);
+    if (channels.length === 0) return void (await ctx.reply("No channel yet. Use /addchannel."));
+    await ctx.reply(channels.map((c) => earningsText(escapeHtml(c.title), earnings(store.tailsOfChat(c.chatId)))).join("\n\n"), HTML);
+  });
+
+  // Public pages. A page is opt-in; the caller sees the link, and anyone with it sees the record and the estimate.
+  const pageLink = (slug: string) => `${(o.publicUrl as string).replace(/\/+$/, "")}/c/${slug}`;
+  /** The caller's channel for a page command: their only one, or the one named by the title they sent. */
+  const pageChannels = async (ctx: CommandContext<Context>, command: string) => {
+    const channels = store.channelsOf(ctx.from!.id);
+    if (channels.length === 0) return void (await ctx.reply("No channel yet. Use /addchannel."));
+    if (!o.publicUrl) return void (await ctx.reply("Public pages are not set up on this server."));
+    if (channels.length === 1) return channels;
+    const titles = channels.map((c) => c.title).join(", ");
+    const title = ctx.match.trim().toLowerCase();
+    if (title === "") return void (await ctx.reply(`You have several channels. Send /${command} with a title: ${titles}`));
+    const hit = channels.filter((c) => c.title.toLowerCase() === title);
+    return hit.length === 1 ? hit : void (await ctx.reply(`No channel with that title. Yours: ${titles}`));
+  };
+  bot.command("page", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const picked = await pageChannels(ctx, "page");
+    if (!picked) return;
+    await ctx.reply(picked.map((c) => (c.isPublic && c.slug ? `${escapeHtml(c.title)}\n${pageLink(c.slug)}` : `${escapeHtml(c.title)}\nThe public page is off. /publish turns it on.`)).join("\n\n"), HTML);
+  });
+  bot.command("publish", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const picked = await pageChannels(ctx, "publish");
+    if (!picked) return;
+    await ctx.reply(
+      picked.map((c) => `${escapeHtml(c.title)}\n${pageLink(store.publishChannel(c.chatId))}\nAnyone with the link sees your record and earnings estimate. Not your followers. /unpublish turns it off.`).join("\n\n"),
+      HTML,
+    );
+  });
+  bot.command("unpublish", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const picked = await pageChannels(ctx, "unpublish");
+    if (!picked) return;
+    for (const c of picked) store.unpublishChannel(c.chatId);
+    await ctx.reply(picked.map((c) => `${escapeHtml(c.title)}\nThe public page is off.`).join("\n\n"), HTML);
   });
 
   bot.command("link", async (ctx) => {

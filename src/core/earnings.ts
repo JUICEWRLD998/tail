@@ -30,6 +30,10 @@ export interface Earnings {
   paying: number;
   /** Filled tails with no builder rate (a personal API wallet): they earn the caller nothing. */
   withoutRate: number;
+  /** Entry notional of the paying tails, and the lowest and highest rate among them. */
+  payingNotional: string;
+  minBps: number | null;
+  maxBps: number | null;
   byCall: Map<number, { fee: string; filledNotional: string; filled: number; paying: number }>;
 }
 
@@ -51,12 +55,20 @@ export function earnings(tails: EarningTail[]): Earnings {
   let notional = 0n;
   let filled = 0;
   let paying = 0;
+  let payingNotional = 0n;
+  let minBps: number | null = null;
+  let maxBps: number | null = null;
   const byCall = new Map<number, { fee: Dec; notional: Dec; filled: number; paying: number }>();
   for (const t of tails) {
     const e = estimateTail(t);
     if (!e) continue;
     filled++;
-    if (e.feeBps > 0) paying++;
+    if (e.feeBps > 0) {
+      paying++;
+      payingNotional += D.of(e.notional);
+      minBps = minBps === null ? e.feeBps : Math.min(minBps, e.feeBps);
+      maxBps = maxBps === null ? e.feeBps : Math.max(maxBps, e.feeBps);
+    }
     fee += D.of(e.fee);
     notional += D.of(e.notional);
     const c = byCall.get(t.callId) ?? { fee: 0n, notional: 0n, filled: 0, paying: 0 };
@@ -68,6 +80,23 @@ export function earnings(tails: EarningTail[]): Earnings {
   }
   return {
     basis: BASIS, fee: D.str(fee), filledNotional: D.str(notional), tails: tails.length, filled, paying, withoutRate: filled - paying,
+    payingNotional: D.str(payingNotional), minBps, maxBps,
     byCall: new Map([...byCall].map(([id, c]) => [id, { fee: D.str(c.fee), filledNotional: D.str(c.notional), filled: c.filled, paying: c.paying }])),
   };
+}
+
+/** The caller-facing summary of one channel's earnings. Plain: what is counted, what is left out, and that payout is not live. */
+export function earningsText(title: string, e: Earnings): string {
+  const out = [title];
+  if (e.filled === 0) {
+    out.push("No filled tails yet, so no builder fee.");
+  } else {
+    out.push(`Estimated builder fee: ${e.fee} USD`);
+    const rate = e.minBps === null ? "" : e.minBps === e.maxBps ? ` at ${e.minBps} bps` : ` at ${e.minBps} to ${e.maxBps} bps`;
+    const tails = (n: number) => `${n} ${n === 1 ? "tail" : "tails"}`;
+    const left = e.withoutRate > 0 ? ` ${tails(e.withoutRate)} used a personal wallet and ${e.withoutRate === 1 ? "earns" : "earn"} nothing.` : "";
+    out.push(`Entry fills only: ${e.payingNotional} USD${rate}, ${tails(e.paying)}.${left}`);
+  }
+  out.push("Payout to callers is not live.");
+  return out.join("\n");
 }

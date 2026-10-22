@@ -77,6 +77,12 @@ describe("earnings: totals that match their parts", () => {
     expect(Number(e.fee)).toBeCloseTo(parts, 10);
   });
 
+  it("reports the notional that carried a rate, and the rate range", () => {
+    const e = earnings([t(), t({ tgId: 2, feeBps: 25 }), t({ tgId: 3, feeBps: 0 })]);
+    expect(e).toMatchObject({ payingNotional: "44.64", minBps: 10, maxBps: 25 });
+    expect(earnings([t({ feeBps: 0 })])).toMatchObject({ payingNotional: "0", minBps: null, maxBps: null });
+  });
+
   it("is labelled an estimate and says what it covers", () => {
     const e = earnings([t()]);
     expect(e.basis).toBe("estimate: entry-fill notional x builder fee rate");
