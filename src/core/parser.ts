@@ -64,7 +64,13 @@ export function parseCall(text: string, ctx: ParseContext): ParseResult {
 }
 
 function parse(text: string, ctx: ParseContext): ParseResult {
-  const clean = text.replace(/[‐-―−]/g, "-").replace(/[^\x00-\x7F]/g, " ");
+  const clean = text
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/[^\x00-\x7F]/g, " ")
+    // "XAUUSDSELL" and "BUYBTCUSDT": a direction glued to a quote-asset-suffixed symbol is split off. Only next to a
+    // quote suffix, so ordinary words that merely contain "long" or "sell" are left alone.
+    .replace(/(?<=usdt|usdc|usd|perp)(long|short|buy|sell)\b/gi, " $1")
+    .replace(/\b(long|short|buy|sell)(?=[a-z]{2,8}(?:usdt|usdc|usd|perp)\b)/gi, "$1 ");
   let work = clean.toLowerCase();
   const listed = Object.keys(ctx.markets);
 
@@ -76,7 +82,7 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   // Leverage.
   let leverageHint: number | null = null;
   const lev =
-    work.match(/leverage\s*[:=@]?\s*(?:cross|isolated|iso)?\s*(\d{1,4}(?:\.\d+)?)\s*x?/) ??
+    work.match(/leverage\s*[:=@]?\s*(?:cross|isolated|iso)?\s*x?\s*(\d{1,4}(?:\.\d+)?)(?:\s*x(?!\d))?(?:\s+x\d{1,4}(?:\.\d+)?)*/) ??
     work.match(/(?<![\w.])(\d{1,4}(?:\.\d+)?)\s*x(?![a-z0-9])/);
   if (lev) {
     const n = Number(lev[1]);
@@ -84,16 +90,20 @@ function parse(text: string, ctx: ParseContext): ParseResult {
     work = consume(work, lev);
   }
 
-  // Targets: "tp 0.7", "TP1 0.66 TP2 0.70", "take profit 0.7", "Targets: 0.66 0.70".
-  const targetRe = new RegExp(String.raw`\b(?:tp(\d?)|take[\s-]*profit(\d?)|targets?(\d?))\s*[:@=]?\s*(${NUM_LIST})`, "g");
+  // Targets: "tp 0.7", "TP1 0.66 TP2 0.70", "TP 1: 4350", "Target 1 : 1.43", "take profit 0.7", "Targets: 0.66 0.70".
+  // The optional index must never be read as a price: "tp4: hold" is a label with no number, not a target of 4.
+  const index = String.raw`(?:(\d)(?![\d.])|\s*(\d{1,2})\s*[:.)=-](?=\s)|(?!\d))`;
+  const targetRe = new RegExp(String.raw`\b(?:tp|take[\s-]*profit|targets?)${index}\s*[:@=]?\s*(${NUM_LIST})`, "g");
   const tpMatches = [...work.matchAll(targetRe)];
-  const labelled = tpMatches.map((m) => ({ label: Number(m[1] || m[2] || m[3] || 0), nums: (m[4] as string).match(new RegExp(NUM, "g")) ?? [] }));
+  const labelled = tpMatches.map((m) => ({ label: Number(m[1] || m[2] || 0), nums: (m[3] as string).match(new RegExp(NUM, "g")) ?? [] }));
   for (const m of tpMatches) work = consume(work, m);
   if (labelled.length > 0 && labelled.every((l) => l.label > 0)) labelled.sort((a, b) => a.label - b.label);
   const targets = labelled.flatMap((l) => l.nums);
+  // A target label left without a number ("TP4: Hold", a bare "Target :" header) must not leave its index behind as a price.
+  work = work.replace(/\b(?:tp|take[\s-]*profit|targets?)\s*\d{0,2}\s*[:.)=-]?/g, (m) => " ".repeat(m.length));
 
   // Stop.
-  const slMatches = [...work.matchAll(new RegExp(String.raw`\b(?:stop[\s-]*loss|stop|sl)\s*[:@=]?\s*(${NUM})`, "g"))];
+  const slMatches = [...work.matchAll(new RegExp(String.raw`\b(?:stop[\s-]*(?:loss|lose|los)|stop|sl)\s*[:@=]?\s*(${NUM})`, "g"))];
   const slValues = slMatches.map((m) => m[1] as string);
   for (const m of slMatches) work = consume(work, m);
 
@@ -101,7 +111,7 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   let entryNums: string[] = [];
   let hasEntryLabel = false;
   const entryRe = new RegExp(
-    String.raw`(?:\b(?:entry|enter|entries|buy\s+zone|buy\s+at|sell\s+at|at)\b|@)\s*[:=]?\s*(${NUM})(?:\s*(?:-|to)\s*(${NUM}))?`,
+    String.raw`(?:\b(?:entry|enter|entries|buy\s+zone|buy\s+at|sell\s+at|at)\b|@)\s*[:=]?\s*(${NUM})(?:\s*(?:-|to|/)\s*(${NUM}))?`,
   );
   const em = work.match(entryRe);
   if (em) {
@@ -110,19 +120,21 @@ function parse(text: string, ctx: ParseContext): ParseResult {
     work = consume(work, em);
   }
 
-  const callLike =
+  // Market-entry keywords.
+  const marketKw = /\b(?:now|cmp|market|current(?:\s+price)?)\b/.test(work);
+
+  const hardCall =
     tpMatches.length > 0 ||
     slMatches.length > 0 ||
     hasEntryLabel ||
     ((hasLong || hasShort) && /\d/.test(work + targets.join("") + slValues.join("")));
-  if (!callLike) return { ok: false, reason: "not_a_call" };
-
-  // Market-entry keywords.
-  const marketKw = /\b(?:now|cmp|market|current(?:\s+price)?)\b/.test(work);
+  // "GOLD BUY NOW": an alert whose levels follow in a later message. It is a call only if a listed market is named.
+  const softCall = !hardCall && (hasLong || hasShort) && marketKw;
+  if (!hardCall && !softCall) return { ok: false, reason: "not_a_call" };
 
   // Bare numbers left over are the entry (compact style), including a bare range "0.61-0.63".
   if (entryNums.length === 0) {
-    const bareRange = work.match(new RegExp(String.raw`(${NUM})\s*-\s*(${NUM})`));
+    const bareRange = work.match(new RegExp(String.raw`(${NUM})\s*(?:-|to|/)\s*(${NUM})`));
     if (bareRange) {
       entryNums = [bareRange[1] as string, bareRange[2] as string];
       work = consume(work, bareRange);
@@ -150,6 +162,7 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   }
   if (found.size === 0) {
     if (strongUnlisted !== undefined) return { ok: false, reason: "not_listed", base: strongUnlisted };
+    if (softCall) return { ok: false, reason: "not_a_call" }; // "sell now" with no market named is chatter
     return ask("ambiguous", { field: "symbol", question: "Which market is this call for?" });
   }
   const symbol = [...found][0] as string;
