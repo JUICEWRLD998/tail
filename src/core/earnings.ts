@@ -85,7 +85,7 @@ export function earnings(tails: EarningTail[]): Earnings {
   };
 }
 
-/** The caller-facing summary of one channel's earnings. Plain: what is counted, what is left out, and that payout is not live. */
+/** The caller-facing summary of one channel's earnings. Plain: what is counted, what is left out, and who Strike pays. */
 /** `payee` is the caller's own builder code when they set one: Strike then pays them, not Tail. */
 export function earningsText(title: string, e: Earnings, payee: string | null = null): string {
   const out = [`💰 <b>${title}</b>`];

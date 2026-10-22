@@ -26,7 +26,7 @@ export interface ChannelPage {
   since: string;
   record: { calls: number; open: number; tpHit: number; slHit: number; expired: number; decided: number; hitRatePct: string | null; avgR: string | null; followers: number };
   earnings: { basis: string; fee: string; filledNotional: string; filled: number; paying: number; withoutRate: number };
-  payout: "not live";
+  payout: { to: "caller"; code: string; feeBps: number } | { to: "tail" };
   calls: PageCall[];
 }
 

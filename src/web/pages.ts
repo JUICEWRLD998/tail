@@ -38,7 +38,8 @@ export interface ChannelPage {
   since: string;
   record: Summary;
   earnings: { basis: string; fee: string; filledNotional: string; filled: number; paying: number; withoutRate: number };
-  payout: "not live";
+  /** Who Strike credits the builder fee to: the caller's own code, or Tail's when the caller has not set one. */
+  payout: { to: "caller"; code: string; feeBps: number } | { to: "tail" };
   calls: PageCall[];
 }
 
@@ -112,7 +113,7 @@ export function createPages(store: Store, o: { botUsername?: string } = {}): Pag
         title: ch.title, kind: ch.kind, network: "testnet", since: ch.createdAt,
         record: summarize(rows, store.followersIn(ch.chatId)),
         earnings: { basis: e.basis, fee: e.fee, filledNotional: e.filledNotional, filled: e.filled, paying: e.paying, withoutRate: e.withoutRate },
-        payout: "not live", calls: list,
+        payout: ch.builderCode && ch.feeBps !== null ? { to: "caller", code: ch.builderCode, feeBps: ch.feeBps } : { to: "tail" }, calls: list,
       };
     },
     site() {
