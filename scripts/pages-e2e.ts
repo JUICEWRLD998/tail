@@ -169,8 +169,8 @@ for (const [label, origin, slug, dbPath, chatId] of [
   const sql = sqlNumbers(fixPath, -42);
   const page = ((await (await fetch(`${fixture.origin}/api/channel/${fixSlug}`)).json()) as { page: Pg }).page;
   check("CONTROL a wrong fee is detected", !agrees({ ...page, earnings: { ...page.earnings, fee: String(Number(page.earnings.fee) + 0.01) } }, sql));
-  check("CONTROL a wrong call count is detected", !agrees({ ...page, record: { ...page.record, calls: page.record.calls + 1 } }, sql));
-  check("CONTROL a wrong follower count is detected", !agrees({ ...page, record: { ...page.record, followers: page.record.followers + 1 } }, sql));
+  check("CONTROL a wrong call count is detected", !agrees({ ...page, record: { ...page.record, calls: (page.record.calls ?? 0) + 1 } }, sql));
+  check("CONTROL a wrong follower count is detected", !agrees({ ...page, record: { ...page.record, followers: (page.record.followers ?? 0) + 1 } }, sql));
 }
 
 // ---- private and unknown pages answer alike and leak nothing ----

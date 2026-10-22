@@ -128,6 +128,17 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
       }
     }
 
+    // A market order can fill while Confirm is still waiting, so the placed -> filled step above never ran and no price was
+    // recorded. Fill it in from Strike's own fills, silently: size-weighted over this order's fills, never a guess.
+    if (current === "filled" && (d.store.getTail(tail.id) as Tail).fillPrice === null) {
+      const mine = (await fills()).filter((x) => x.client_order_id === primaryId && x.price && x.size);
+      if (mine.length > 0) {
+        const qty = mine.map((x) => D.of(String(x.size))).reduce(D.add);
+        const cost = mine.map((x) => D.mul(D.of(String(x.price)), D.of(String(x.size)))).reduce(D.add);
+        if (qty > 0n) d.store.updateTail(tail.id, { fillPrice: D.str(D.roundToStep(D.div(cost, qty), D.of("0.00000001"))) });
+      }
+    }
+
     // 2. A filled position closes when its take-profit or stop leg fills.
     if (current === "filled") {
       const legs: [string | null, "tp" | "sl"][] = [[fresh.tpClientOrderId, "tp"], [fresh.slClientOrderId, "sl"]];
