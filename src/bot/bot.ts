@@ -5,6 +5,7 @@ import type { Store } from "../db/store.js";
 import { recordText, summarize, type RecordCall } from "../core/record.js";
 import { escapeHtml, parseCallbackData, parseStartPayload } from "./cards.js";
 import type { CardEdit } from "./edit-queue.js";
+import { createRateLimiter } from "./rate-limit.js";
 import type { Button, Reply, Service } from "./service.js";
 
 export interface BotOptions {
@@ -18,6 +19,9 @@ export interface BotOptions {
   linkKey?: string | undefined;
   /** Routes channel-card edits through a batching queue. Without it, edits are sent immediately. */
   enqueueCardEdit?: (edit: CardEdit) => Promise<void>;
+  /** Per-user limit on DMs and button taps. Default 30 a minute. Channel posts are covered by the call limits instead. */
+  rateLimit?: { max: number; windowMs: number };
+  nowMs?: () => number;
   /** Public https origin of this service. When set, unlinked followers get a wallet-connect button. */
   publicUrl?: string | undefined;
   now: () => string;
@@ -57,6 +61,18 @@ function keyboard(buttons: Button[] | undefined): InlineKeyboard | undefined {
 export function createBot(o: BotOptions): Bot {
   const bot = new Bot(o.token, o.botInfo ? { botInfo: o.botInfo } : {});
   const { service, store } = o;
+  const limiter = createRateLimiter({ ...(o.rateLimit ?? { max: 30, windowMs: 60_000 }), nowMs: o.nowMs ?? Date.now });
+  const SLOW_DOWN = "Slow down. Try again in a minute.";
+
+  // Flooding guard: first middleware, so a limited user never reaches a handler or the Strike API.
+  bot.use(async (ctx, next) => {
+    const isDm = ctx.chat?.type === "private" && ctx.message !== undefined;
+    if (!ctx.from || (!isDm && !ctx.callbackQuery)) return next();
+    const r = limiter.check(String(ctx.from.id));
+    if (r.allowed) return next();
+    if (ctx.callbackQuery) await ctx.answerCallbackQuery(r.notify ? { text: SLOW_DOWN, show_alert: true } : {});
+    else if (r.notify) await ctx.reply(SLOW_DOWN);
+  });
 
   const dmUser = async (tgId: number, reply: Reply) => {
     try {
