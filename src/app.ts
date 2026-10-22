@@ -17,6 +17,7 @@ import { runOutcomes } from "./jobs/outcomes.js";
 import { runReconcile, type ReconcileStrike } from "./jobs/reconcile.js";
 import { createScheduler } from "./jobs/scheduler.js";
 import { StrikeClient } from "./strike/client.js";
+import { createPages } from "./web/pages.js";
 import { buildServer } from "./web/server.js";
 
 /** What the app needs from a Strike client: trading calls for the service and read calls for reconciliation. */
@@ -127,7 +128,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
   );
 
   const server = buildServer({
-    connect, now: Date.now, staticDir: deps.staticDir ?? "web/dist",
+    connect, now: Date.now, staticDir: deps.staticDir ?? "web/dist", pages: createPages(store),
     ...(cfg.mode === "prod" && cfg.webhookPath && cfg.webhookSecret
       ? { webhook: { path: cfg.webhookPath, secretToken: cfg.webhookSecret, handle: (u: unknown) => bot.handleUpdate(u as Update) } }
       : {}),

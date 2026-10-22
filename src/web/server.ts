@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import type { ConnectService } from "../connect/service.js";
+import type { Pages } from "./pages.js";
 
 export interface ServerOptions {
   connect: ConnectService;
@@ -15,6 +16,8 @@ export interface ServerOptions {
   webhook?: { path: string; secretToken: string; handle: (update: unknown) => Promise<void> };
   /** Built web app (Vite output). Skipped when the directory does not exist. */
   staticDir?: string;
+  /** Public record pages. Routes are mounted only when given. */
+  pages?: Pages;
 }
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -37,7 +40,7 @@ function sameSecret(a: string, b: string): boolean {
 
 export function buildServer(o: ServerOptions): FastifyInstance {
   // Ajv coerces types by default (a number would pass as a string); input here must be exactly what the schema says.
-  const app = Fastify({ logger: false, bodyLimit: 16 * 1024, ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
+  const app = Fastify({ logger: false, bodyLimit: 16 * 1024, maxParamLength: 256, ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
   const limit = o.rateLimit ?? { max: 20, windowMs: 60_000 };
   const hits = new Map<string, { count: number; resetAt: number }>();
 
@@ -99,6 +102,20 @@ export function buildServer(o: ServerOptions): FastifyInstance {
     },
   );
 
+  if (o.pages) {
+    const pages = o.pages;
+    const NOT_FOUND = { ok: false, error: "This page does not exist or is not public." };
+    app.get<{ Params: { slug: string } }>("/api/channel/:slug", async (req, reply) => {
+      if (!allowed(`page:${req.ip}`)) return reply.code(429).send({ ok: false, error: "Too many requests. Wait a minute." });
+      const page = pages.channel(req.params.slug);
+      return page ? { ok: true, page } : reply.code(404).send(NOT_FOUND);
+    });
+    app.get("/api/site", async (req, reply) => {
+      if (!allowed(`page:${req.ip}`)) return reply.code(429).send({ ok: false, error: "Too many requests. Wait a minute." });
+      return { ok: true, site: pages.site() };
+    });
+  }
+
   if (o.webhook) {
     const w = o.webhook;
     app.post(w.path, async (req, reply) => {
@@ -115,6 +132,9 @@ export function buildServer(o: ServerOptions): FastifyInstance {
     void app.register(fastifyStatic, { root: staticRoot, wildcard: false });
     // The connect page is a single-page app; /connect?t=... serves index.html.
     app.get("/connect", async (_req, reply) => reply.sendFile("index.html"));
+    if (o.pages) {
+      app.get("/c/:slug", async (_req, reply) => reply.sendFile("index.html"));
+    }
   }
   return app;
 }
