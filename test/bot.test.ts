@@ -341,6 +341,57 @@ describe("/record (a caller's record, from rows)", () => {
   });
 });
 
+describe("answering the parser's question (ask flow through the bot)", () => {
+  it("an ambiguous channel post becomes a DM question with tappable answers", async () => {
+    await bot.handleUpdate(channelPost("ETH 2480 tp 2560 sl 2420") as never);
+    expect(sent()[0]?.payload).toMatchObject({ chat_id: CALLER, text: "Long or short on ETH-USD?" });
+    expect(kbButtons(sent()[0]).map((b) => [b.text, b.callback_data])).toEqual([["Long", "a:1:0"], ["Short", "a:1:1"]]);
+  });
+
+  it("tapping an answer marks the question answered and sends the normal confirm card", async () => {
+    await bot.handleUpdate(channelPost("ETH 2480 tp 2560 sl 2420") as never);
+    calls.length = 0;
+    await bot.handleUpdate(tap("a:1:0", CALLER, "Long or short on ETH-USD?") as never);
+    expect(sent("editMessageText")[0]?.payload.text).toBe("Long or short on ETH-USD?\n\nLong");
+    expect(lastText()).toContain("Post this call?");
+    expect(kbButtons(sent()[0]).map((b) => b.callback_data)).toEqual(["p:1", "x:1"]);
+    expect(store.getCall(1)).toMatchObject({ side: "long", status: "draft" });
+  });
+
+  it("the whole path ends in a posted card when the caller taps Post", async () => {
+    await bot.handleUpdate(channelPost("ETH 2480 tp 2560 sl 2420") as never);
+    await bot.handleUpdate(tap("a:1:0", CALLER) as never);
+    calls.length = 0;
+    await bot.handleUpdate(tap("p:1", CALLER) as never);
+    expect(sent()[0]?.payload.chat_id).toBe(CHAT);
+    expect(store.getCall(1)?.status).toBe("open");
+  });
+
+  it("a second tap on the same question is refused with a plain message", async () => {
+    await bot.handleUpdate(channelPost("ETH 2480 tp 2560 sl 2420") as never);
+    await bot.handleUpdate(tap("a:1:0", CALLER) as never);
+    calls.length = 0;
+    await bot.handleUpdate(tap("a:1:1", CALLER) as never);
+    expect(sent("answerCallbackQuery")[0]?.payload).toMatchObject({ text: "This question has expired. Post the call again.", show_alert: true });
+    expect(sent().length).toBe(0);
+  });
+
+  it("someone else tapping the caller's question is refused and does not use it up", async () => {
+    await bot.handleUpdate(channelPost("ETH 2480 tp 2560 sl 2420") as never);
+    calls.length = 0;
+    await bot.handleUpdate(tap("a:1:0", 31337) as never);
+    expect(sent("answerCallbackQuery")[0]?.payload.text).toBe("This question has expired. Post the call again.");
+    await bot.handleUpdate(tap("a:1:0", CALLER) as never);
+    expect(store.getCall(1)).toMatchObject({ side: "long" });
+  });
+
+  it("malformed answer data is ignored", async () => {
+    await bot.handleUpdate(tap("a:1", CALLER) as never);
+    await bot.handleUpdate(tap("a:x:0", CALLER) as never);
+    expect(sent().length).toBe(0);
+  });
+});
+
 describe("help and fallback", () => {
   it("/help lists the commands", async () => {
     await bot.handleUpdate(dm("/help", FOLLOWER) as never);
