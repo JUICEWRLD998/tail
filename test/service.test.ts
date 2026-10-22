@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { callbackData } from "../src/bot/cards.js";
-import { createService, type Service, type StrikeLike } from "../src/bot/service.js";
+import { createService, type Service, type ServiceDeps, type StrikeLike } from "../src/bot/service.js";
 import { decryptSecret } from "../src/db/crypto.js";
 import { openStore, type Store } from "../src/db/store.js";
 import { StrikeError } from "../src/strike/client.js";
@@ -44,12 +44,14 @@ let strike: ReturnType<typeof fakeStrike>;
 let svc: Service;
 let n = 0;
 
+let ai: ServiceDeps["ai"];
+
 function build(o: FakeOpts = {}, limits: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number } = {}) {
   strike = fakeStrike(o);
   svc = createService({
     store, kek, botUsername: "tailbot",
     publicStrike: strike, strikeFor: () => strike, clientForKey: () => strike,
-    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits,
+    now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits, ai,
   });
 }
 
@@ -601,5 +603,76 @@ describe("me, settings, revoke", () => {
     linkFollower();
     expect(svc.revoke(FOLLOWER)).toContain("Removed");
     expect(store.getUser(FOLLOWER)).toBeUndefined();
+  });
+});
+
+describe("AI fallback (a proposal the caller must confirm; the model builds nothing)", () => {
+  const DRAFT = { symbol: "ETH-USD", side: "long" as const, entryKind: "limit" as const, entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, extraTargets: [] };
+  const post = (text: string) => svc.onCallerPost({ chatId: CHAT, messageId: 9, text });
+  const reader = (result: unknown) => ({ enabled: true, read: vi.fn(async () => result) }) as unknown as NonNullable<ServiceDeps["ai"]> & { read: ReturnType<typeof vi.fn> };
+  const NATURAL = "ETH going up from here, I am long 2480 targeting 2560, protect at 2420";
+
+  beforeEach(() => { ai = undefined; });
+
+  it("is not called when the deterministic parser reads the call", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    await post("ETH long 2480 tp 2560 sl 2420");
+    expect(r.read).not.toHaveBeenCalled();
+  });
+
+  it("is not called for chatter", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    expect(await post("gm everyone, ETH looks nice today")).toEqual({ type: "ignore" });
+    expect(r.read).not.toHaveBeenCalled();
+  });
+
+  it("reads a call the parser had to ask about, and shows the caller a labelled confirm card", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    const out = await post(NATURAL);
+    expect(r.read).toHaveBeenCalledWith(NATURAL, expect.anything(), CHAT);
+    if (out.type !== "dm") throw new Error("expected a dm");
+    expect(out.reply.text).toContain("Post this call?");
+    expect(out.reply.text).toContain("Read by AI");
+    expect(out.reply.text).toContain("Check every price");
+    const id = store.getCall(1)?.id as number;
+    expect(store.getCall(id)).toMatchObject({ status: "draft", entry: "2480.00", tp: "2560.00", sl: "2420.00" });
+    expect(out.reply.buttons?.map((b) => b.callback)).toEqual([callbackData("post", id), callbackData("drop", id)]);
+  });
+
+  it("falls back to the parser's own question when the AI cannot read it", async () => {
+    const r = reader({ ok: false, reason: "tp is not in the message" });
+    ai = r; build();
+    const out = await post("ETH long 2480 sl 2420");
+    expect(out).toMatchObject({ type: "dm", reply: { text: expect.stringContaining("Where is the take profit?") } });
+    expect(store.getCall(1)).toBeUndefined();
+  });
+
+  it("tries a not-a-call message that has a listed market and three or more numbers, and ignores it if unreadable", async () => {
+    const r = reader({ ok: false, reason: "the message does not state a direction" });
+    ai = r; build();
+    expect(await post("ETH 2480 2560 2420")).toEqual({ type: "ignore" });
+    expect(r.read).toHaveBeenCalledTimes(1);
+  });
+
+  it("never runs on an answer to a question: hints are final", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build();
+    const ask = await post("long or short ETH 2480 tp 2560 sl 2420 buy sell");
+    void ask;
+    r.read.mockClear();
+    const id = store.createAsk({ tgId: CALLER, chatId: CHAT, messageId: 9, rawText: "ETH 2480 tp 2560 sl 2420", field: "side", options: ["Long", "Short"], createdAt: new Date(clock).toISOString() });
+    await svc.answerAsk({ tgId: CALLER, askId: id, option: 0 });
+    expect(r.read).not.toHaveBeenCalled();
+  });
+
+  it("the AI draft still goes through the same duplicate and hourly guard rails", async () => {
+    const r = reader({ ok: true, draft: DRAFT });
+    ai = r; build({}, { duplicateWindowMs: 120_000 });
+    await post(NATURAL);
+    const again = await post(NATURAL);
+    expect(again).toMatchObject({ type: "dm", reply: { text: expect.stringContaining("already posted") } });
   });
 });
