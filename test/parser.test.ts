@@ -249,3 +249,47 @@ describe("Cornix-style blocks and misspelt labels (fragments reported by a publi
     expect(d).toMatchObject({ side: "short", entry: "2480.00" });
   });
 });
+
+describe("hints: an answer to a question forces one field, deterministically", () => {
+  it("a side hint resolves a call with no side", () => {
+    const r = parseCall("ADA 0.62 tp 0.70 sl 0.58", ctx, { side: "long" });
+    expect(r).toMatchObject({ ok: true, draft: { side: "long", entry: "0.6200", tp: "0.7000", sl: "0.5800" } });
+  });
+
+  it("a side hint resolves a call that names both sides", () => {
+    const r = parseCall("ADA long or short 0.62 tp 0.50 sl 0.66", ctx, { side: "short" });
+    expect(r).toMatchObject({ ok: true, draft: { side: "short" } });
+  });
+
+  it("an entry hint resolves two bare numbers", () => {
+    const r = parseCall("ADA long 0.62 0.63 tp 0.70 sl 0.58", ctx, { entry: "0.63" });
+    expect(r).toMatchObject({ ok: true, draft: { entry: "0.6300" } });
+  });
+
+  it("an entry hint resolves a numbered entry list", () => {
+    const r = parseCall("ETH long\nEntry Targets:\n1) 2480\n2) 2470\nTP 2560\nSL 2420", { markets: { "ETH-USD": { tickSize: "0.01" } } }, { entry: "2470" });
+    expect(r).toMatchObject({ ok: true, draft: { entry: "2470.00" } });
+  });
+
+  it("a symbol hint resolves two mentioned markets", () => {
+    const r = parseCall("ADA long, BTC pumping 0.62 tp 0.70 sl 0.58", ctx, { symbol: "ADA-USD" });
+    expect(r).toMatchObject({ ok: true, draft: { symbol: "ADA-USD" } });
+  });
+
+  it("a hint cannot bypass validation: the levels must still fit the side", () => {
+    const r = parseCall("ADA 0.62 tp 0.70 sl 0.58", ctx, { side: "short" });
+    expect(r).toMatchObject({ ok: false, reason: "inconsistent" });
+  });
+
+  it("a hint for an unlisted symbol is refused", () => {
+    expect(parseCall("ADA long 0.62 tp 0.70 sl 0.58", ctx, { symbol: "DOGE-USD" })).toMatchObject({ ok: false, reason: "not_listed" });
+  });
+
+  it("hints are ignored when the call is not a call at all", () => {
+    expect(parseCall("gm everyone", ctx, { side: "long" })).toEqual({ ok: false, reason: "not_a_call" });
+  });
+
+  it("an answer is only as good as the question: a missing stop is still missing", () => {
+    expect(parseCall("ADA 0.62 tp 0.70", ctx, { side: "long" })).toMatchObject({ ok: false, reason: "incomplete", ask: { field: "sl" } });
+  });
+});
