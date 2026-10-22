@@ -121,6 +121,98 @@ describe("caller posts", () => {
   });
 });
 
+describe("questions with answers (the ask flow)", () => {
+  const MARKETS2 = { ...MARKETS, "BTC-USD": { tickSize: "0.1", stepSize: "0.0001", minQty: "0.0001", maxQty: "100", marketMaxQty: "10", minNotional: "10" } };
+  beforeEach(() => {
+    (strike as any).markets = async () => MARKETS2;
+  });
+  const post = (text: string) => svc.onCallerPost({ chatId: CHAT, messageId: 9, text });
+  const dmOf = async (text: string) => {
+    const r = await post(text);
+    if (r.type !== "dm") throw new Error("expected a DM");
+    return r;
+  };
+
+  it("an ambiguous side is asked with Long and Short buttons, and the question is stored", async () => {
+    const r = await dmOf("ETH 2480 tp 2560 sl 2420");
+    expect(r.reply.text).toBe("Long or short on ETH-USD?");
+    expect(r.reply.buttons?.map((b) => b.text)).toEqual(["Long", "Short"]);
+    expect(r.reply.buttons?.map((b) => b.callback)).toEqual(["a:1:0", "a:1:1"]);
+    expect(store.getCall(1)).toBeUndefined(); // no draft yet
+  });
+
+  it("tapping Long answers the question and produces the normal confirm card", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 });
+    expect(a).toMatchObject({ ok: true, chosen: "Long" });
+    if (!a.ok || a.result.type !== "dm") throw new Error();
+    expect(a.result.reply.text).toContain("Post this call?");
+    expect(a.result.reply.buttons?.map((b) => b.callback)).toEqual(["p:1", "x:1"]);
+    expect(store.getCall(1)).toMatchObject({ side: "long", symbol: "ETH-USD", status: "draft", rawText: "ETH 2480 tp 2560 sl 2420" });
+  });
+
+  it("an answer is single use", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 });
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 })).toEqual({ ok: false, text: "This question has expired. Post the call again." });
+    expect(store.getCall(2)).toBeUndefined();
+  });
+
+  it("only the caller who was asked can answer, and a wrong tap does not burn the question", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    expect(await svc.answerAsk({ tgId: 4242, askId: 1, option: 0 })).toEqual({ ok: false, text: "This question has expired. Post the call again." });
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 })).toMatchObject({ ok: true });
+  });
+
+  it("a stale question (over 15 minutes) cannot be answered", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    advance(16);
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 0 })).toMatchObject({ ok: false });
+  });
+
+  it("an option index that does not exist is refused", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    expect(await svc.answerAsk({ tgId: CALLER, askId: 1, option: 7 })).toMatchObject({ ok: false });
+  });
+
+  it("two candidate entries are asked as buttons, and the chosen one is used", async () => {
+    const r = await dmOf("ETH long 2480 2470 tp 2560 sl 2420");
+    expect(r.reply.text).toBe("Which number is the entry?");
+    expect(r.reply.buttons?.map((b) => b.text)).toEqual(["2480", "2470"]);
+    const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 });
+    if (!a.ok) throw new Error();
+    expect(store.getCall(1)).toMatchObject({ entry: "2470.00" });
+  });
+
+  it("two mentioned markets are asked as buttons", async () => {
+    const r = await dmOf("ETH long, BTC pumping 2480 tp 2560 sl 2420");
+    expect(r.reply.buttons?.map((b) => b.text).sort()).toEqual(["BTC-USD", "ETH-USD"]);
+    const idx = (r.reply.buttons as { text: string }[]).findIndex((b) => b.text === "ETH-USD");
+    await svc.answerAsk({ tgId: CALLER, askId: 1, option: idx });
+    expect(store.getCall(1)).toMatchObject({ symbol: "ETH-USD" });
+  });
+
+  it("a question without choices has no buttons and says to post the call again", async () => {
+    const r = await dmOf("ETH long 2480 tp 2560");
+    expect(r.reply.text).toBe("No stop found. Where is the stop loss? Post the call again with it.");
+    expect(r.reply.buttons).toBeUndefined();
+  });
+
+  it("an answer that leads to another problem asks the next question instead of guessing", async () => {
+    await post("ETH 2480 tp 2560 sl 2420");
+    const a = await svc.answerAsk({ tgId: CALLER, askId: 1, option: 1 }); // Short, but the levels fit a long
+    if (!a.ok || a.result.type !== "dm") throw new Error();
+    expect(a.result.reply.text).toContain("These levels do not fit a short");
+    expect(store.getCall(1)).toBeUndefined();
+  });
+
+  it("an unlisted market is still reported, not asked about", async () => {
+    const r = await dmOf("#DOGE/USDT long 0.1 tp 0.2 sl 0.09");
+    expect(r.reply.text).toBe("Not on Strike yet: DOGE.");
+    expect(r.reply.buttons).toBeUndefined();
+  });
+});
+
 describe("posting a draft", () => {
   async function draft(): Promise<number> {
     await svc.onCallerPost({ chatId: CHAT, messageId: 9, text: "ETH long 2480 tp 2560 sl 2420" });
