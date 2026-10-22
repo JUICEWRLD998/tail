@@ -27,6 +27,7 @@ export function checkProposal(raw: unknown, text: string, ctx: ParseContext): Pr
   const no = (reason: string): ProposalResult => ({ ok: false, reason });
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return no("the reading is not an object");
   const p = raw as Record<string, unknown>;
+  if ("error" in p) return no("the reader found no call");
   const lower = text.toLowerCase();
 
   if (typeof p.symbol !== "string") return no("market is missing");
@@ -70,7 +71,7 @@ export function buildPrompt(text: string, markets: readonly string[]): { system:
   const system = [
     "You read one trade call written in a chat and report what it says. Reply with JSON only:",
     '{"symbol": string, "side": "long"|"short", "entry": string|null, "tp": string, "sl": string}.',
-    `symbol is one of: ${markets.join(", ")}. entry is null only when the message says to enter now or at market.`,
+    `symbol is one of: ${markets.join(", ")}. entry is a single price: if the message gives a zone of two prices, use the midpoint of the zone. It is null only when the message says to enter now or at market.`,
     "tp is the first take-profit, sl is the stop loss. Copy every price exactly as written in the message.",
     "Never invent or compute a price, and never infer a direction the message does not state.",
     'If the message is not a trade call, or any field is missing, reply {"error": "not a call"}.',

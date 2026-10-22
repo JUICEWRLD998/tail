@@ -1,0 +1,96 @@
+{
+  "model": "google/gemini-2.5-flash",
+  "at": "2026-10-22T11:14:11.397Z",
+  "results": [
+    {
+      "name": "natural language call",
+      "expect": "call",
+      "got": "call",
+      "pass": true,
+      "draft": {
+        "symbol": "ETH-USD",
+        "side": "long",
+        "entryKind": "limit",
+        "entry": "2480.00",
+        "tp": "2560.00",
+        "sl": "2420.00",
+        "leverageHint": null,
+        "extraTargets": []
+      }
+    },
+    {
+      "name": "reordered words",
+      "expect": "call",
+      "got": "call",
+      "pass": true,
+      "draft": {
+        "symbol": "ETH-USD",
+        "side": "long",
+        "entryKind": "limit",
+        "entry": "2480.00",
+        "tp": "2560.00",
+        "sl": "2420.00",
+        "leverageHint": null,
+        "extraTargets": []
+      }
+    },
+    {
+      "name": "CONTROL contradictory direction",
+      "expect": "none",
+      "got": "none",
+      "pass": true,
+      "reason": "the reader found no call"
+    },
+    {
+      "name": "gold alias is unlisted here",
+      "expect": "none",
+      "got": "none",
+      "pass": true,
+      "reason": "the reader found no call"
+    },
+    {
+      "name": "CONTROL missing target",
+      "expect": "none",
+      "got": "none",
+      "pass": true,
+      "reason": "the reader found no call"
+    },
+    {
+      "name": "CONTROL no direction",
+      "expect": "none",
+      "got": "none",
+      "pass": true,
+      "reason": "the reader found no call"
+    },
+    {
+      "name": "CONTROL injection with numbers absent",
+      "expect": "none",
+      "got": "none",
+      "pass": true,
+      "reason": "tp is missing"
+    },
+    {
+      "name": "CONTROL chatter",
+      "expect": "none",
+      "got": "none",
+      "pass": true,
+      "reason": "the reader found no call"
+    },
+    {
+      "name": "SOL zone midpoint",
+      "expect": "call",
+      "got": "call",
+      "pass": true,
+      "draft": {
+        "symbol": "SOL-USD",
+        "side": "long",
+        "entryKind": "limit",
+        "entry": "142.00",
+        "tp": "155.00",
+        "sl": "135.00",
+        "leverageHint": null,
+        "extraTargets": []
+      }
+    }
+  ]
+}
