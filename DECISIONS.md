@@ -2,6 +2,19 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 10:20 UTC: he saw only the receipt; my card probe was wrong and altered the card
+
+- He reported seeing only the receipt reply in the channel. The bot logged no errors, so every Telegram call was accepted.
+- **My mistake:** to check card 7 without seeing his chat I sent `editMessageText` with a hand-written "expected" text. It
+  omitted the call's `5x` leverage hint (`leverage_hint` 5), so Telegram edited the card and I removed "· 5x" from its title.
+  I restored the exact text the job generates and confirmed it: re-sending it returns "message is not modified".
+- **What that did and did not show:** the first probe's "edited" result came from my wrong text, so it says nothing about
+  whether the job's own card edit landed. Not verified: whether the result line and the removed buttons appeared from the job.
+  The next live run will show it.
+- **Rule for probes:** compute the expected text with the code under test (`callCard`, `resultLine`), never by hand, and do
+  not write to a user's chat to find out what is in it. A probe that edits state can hide the very thing it checks.
+- Side finding: an `editMessageText` without `reply_markup` removes the inline keyboard (my probe removed the buttons).
+
 ## 2026-10-22 09:55 UTC: P5 built (551 tests); live exit check partly met
 
 - **Built, test first:** versioned migrations (v2 adds leg order ids, close details, call outcome tracking; the live dev database
