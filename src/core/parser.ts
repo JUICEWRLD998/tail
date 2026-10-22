@@ -71,7 +71,8 @@ function parse(text: string, ctx: ParseContext): ParseResult {
     // quote suffix, so ordinary words that merely contain "long" or "sell" are left alone.
     .replace(/(?<=usdt|usdc|usd|perp)(long|short|buy|sell)\b/gi, " $1")
     .replace(/\b(long|short|buy|sell)(?=[a-z]{2,8}(?:usdt|usdc|usd|perp)\b)/gi, "$1 ");
-  let work = clean.toLowerCase();
+  // A list marker ("1) 2480", "2. 2470") is not a price: blank it when a number follows.
+  let work = clean.toLowerCase().replace(/(^|\n)([ \t]*)\d{1,2}[).][ \t]+(?=\d)/g, (_m, nl: string, sp: string) => `${nl}${sp}   `);
   const listed = Object.keys(ctx.markets);
 
   // Side is read from the whole text first: "buy at 150" is both a side and an entry marker.
@@ -93,7 +94,7 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   // Targets: "tp 0.7", "TP1 0.66 TP2 0.70", "TP 1: 4350", "Target 1 : 1.43", "take profit 0.7", "Targets: 0.66 0.70".
   // The optional index must never be read as a price: "tp4: hold" is a label with no number, not a target of 4.
   const index = String.raw`(?:(\d)(?![\d.])|\s*(\d{1,2})\s*[:.)=-](?=\s)|(?!\d))`;
-  const targetRe = new RegExp(String.raw`\b(?:tp|take[\s-]*profit|targets?)${index}\s*[:@=]?\s*(${NUM_LIST})`, "g");
+  const targetRe = new RegExp(String.raw`(?<!(?:entry|stop)\s*)\b(?:tp|take[\s-]*profit(?:\s*targets?)?|targets?)${index}\s*[:@=]?\s*(${NUM_LIST})`, "g");
   const tpMatches = [...work.matchAll(targetRe)];
   const labelled = tpMatches.map((m) => ({ label: Number(m[1] || m[2] || 0), nums: (m[3] as string).match(new RegExp(NUM, "g")) ?? [] }));
   for (const m of tpMatches) work = consume(work, m);
@@ -103,20 +104,22 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   work = work.replace(/\b(?:tp|take[\s-]*profit|targets?)\s*\d{0,2}\s*[:.)=-]?/g, (m) => " ".repeat(m.length));
 
   // Stop.
-  const slMatches = [...work.matchAll(new RegExp(String.raw`\b(?:stop[\s-]*(?:loss|lose|los)|stop|sl)\s*[:@=]?\s*(${NUM})`, "g"))];
+  const slMatches = [...work.matchAll(new RegExp(String.raw`\b(?:stopp?[\s-]*(?:loss|lose|los|targets?)|stopp?|sl)\s*[:@=]?\s*(${NUM})`, "g"))];
   const slValues = slMatches.map((m) => m[1] as string);
   for (const m of slMatches) work = consume(work, m);
 
   // Entry: "entry 0.62", "entry 0.61 - 0.63", "@ 150", "buy at 150".
   let entryNums: string[] = [];
+  let entryList: string[] = []; // further numbers listed after the entry ("Entry Targets: 1) 2480 2) 2470"): a choice, not a range
   let hasEntryLabel = false;
   const entryRe = new RegExp(
-    String.raw`(?:\b(?:entry|enter|entries|buy\s+zone|buy\s+at|sell\s+at|at)\b|@)\s*[:=]?\s*(${NUM})(?:\s*(?:-|to|/)\s*(${NUM}))?`,
+    String.raw`(?:\b(?:entry|entery|enter|entries)(?:\s*(?:targets?|zone|price))?\b|\b(?:buy\s+zone|buy\s+at|sell\s+at|at)\b|@)\s*[:=]?\s*(${NUM})(?:\s*(?:-|to|/)\s*(${NUM}))?((?:[\s,;|]+${NUM})*)`,
   );
   const em = work.match(entryRe);
   if (em) {
     hasEntryLabel = true;
     entryNums = [em[1] as string, ...(em[2] ? [em[2]] : [])];
+    entryList = (em[3] ?? "").match(new RegExp(NUM, "g")) ?? [];
     work = consume(work, em);
   }
 
@@ -180,7 +183,9 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   // Entry.
   let entryKind: "limit" | "market" = "limit";
   let entry: string | null = null;
-  if (entryNums.length > 0) {
+  if (entryNums.length > 0 && entryList.length > 0) {
+    return ask("ambiguous", { field: "entry", question: "Which entry should Tail use?", options: [...entryNums, ...entryList] });
+  } else if (entryNums.length > 0) {
     const mid = D.div(entryNums.map((n) => D.of(n)).reduce(D.add), D.of(String(entryNums.length)));
     entry = formatToTick(mid, tick, decimals);
   } else if (bare.length === 1) {
