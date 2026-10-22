@@ -2,6 +2,13 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 Correction in the README (marked): "API wallets cannot withdraw"
+
+- The README said Strike API wallets cannot withdraw. Strike's builder-code docs (VERIFIED, `api/builder-codes/withdraw.md`) say
+  the Builder Connect API wallet can request a withdrawal quote, but the user's own wallet must sign the confirmation, and the
+  destination is locked to the account's registered address. The claim is now worded that way in the README. The bot's connect
+  text ("cannot withdraw funds") stays: true in effect, since it cannot complete one alone.
+
 ## 2026-10-22 P9: hardening checklist (each item run, with its result)
 
 | # | Item | Result |
