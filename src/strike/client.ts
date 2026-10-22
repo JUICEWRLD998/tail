@@ -207,6 +207,11 @@ export class StrikeClient {
     return this.send("GET", `/v2/order?${p}`, { signed: true });
   }
 
+  /** Past orders with their final status and `strategy_id`; used to find an order whose creation was never confirmed. */
+  orderHistory(symbol: string): Promise<any> {
+    return this.send("GET", `/v2/history/order?symbol=${encodeURIComponent(symbol)}`, { signed: true });
+  }
+
   fills(q: { symbol?: string; sinceTradeId?: string; fromId?: string } = {}): Promise<any> {
     const p = new URLSearchParams();
     if (q.symbol) p.set("symbol", q.symbol);
