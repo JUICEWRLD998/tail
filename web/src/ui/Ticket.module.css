@@ -1,5 +1,6 @@
 /* The call card as a printed ticket: paper, ink, a perforated stub for the people who took it. */
 .wrap {
+  container: ticket / inline-size;
   position: relative;
   width: 100%;
   max-width: 26rem;
@@ -209,9 +210,10 @@
 
 /* The result lands as a rubber stamp over the levels. */
 .stamp {
+  /* Lands on the stub's empty right side, over nothing that must stay readable. */
   position: absolute;
   right: var(--space-6);
-  top: 4.6rem;
+  bottom: var(--space-6);
   padding: 0.35rem 0.75rem;
   border: 3px double currentColor;
   border-radius: 0.4rem;
@@ -280,6 +282,12 @@
 .ladderTick {
   stroke-width: 3;
   stroke-linecap: round;
+}
+
+@container ticket (max-width: 24rem) {
+  .headNet {
+    display: none;
+  }
 }
 
 @media (max-width: 22rem) {

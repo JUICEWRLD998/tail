@@ -1,0 +1,98 @@
+{
+  "checkedAt": "2026-10-22T18:57:02.331Z",
+  "results": [
+    {
+      "name": "dark: starts with no follows and no stamp",
+      "pass": true,
+      "detail": {
+        "at": 150,
+        "chips": 0,
+        "none": false,
+        "stamp": false
+      }
+    },
+    {
+      "name": "dark: follows land strictly before the stamp, and the stamp lands",
+      "pass": true,
+      "detail": [
+        "150:0",
+        "400:0",
+        "650:0",
+        "800:1",
+        "950:1",
+        "1100:1",
+        "1250:1",
+        "1400:1S",
+        "1550:1S",
+        "1700:1S",
+        "2000:1S",
+        "2600:1S",
+        "3500:1S"
+      ]
+    },
+    {
+      "name": "dark: never claims \"no one has taken\" a call that has follows",
+      "pass": true
+    },
+    {
+      "name": "dark: Replay resets and plays again",
+      "pass": true,
+      "detail": {
+        "chips": 0,
+        "none": false,
+        "stamp": false
+      }
+    },
+    {
+      "name": "light: starts with no follows and no stamp",
+      "pass": true,
+      "detail": {
+        "at": 150,
+        "chips": 0,
+        "none": false,
+        "stamp": false
+      }
+    },
+    {
+      "name": "light: follows land strictly before the stamp, and the stamp lands",
+      "pass": true,
+      "detail": [
+        "150:0",
+        "400:0",
+        "650:0",
+        "800:1",
+        "950:1",
+        "1100:1",
+        "1250:1",
+        "1400:1S",
+        "1550:1S",
+        "1700:1S",
+        "2000:1S",
+        "2600:1S",
+        "3500:1S"
+      ]
+    },
+    {
+      "name": "light: never claims \"no one has taken\" a call that has follows",
+      "pass": true
+    },
+    {
+      "name": "light: Replay resets and plays again",
+      "pass": true,
+      "detail": {
+        "chips": 0,
+        "none": false,
+        "stamp": false
+      }
+    },
+    {
+      "name": "CONTROL reduced motion shows the final state at once",
+      "pass": true,
+      "detail": {
+        "chips": 1,
+        "none": false,
+        "stamp": true
+      }
+    }
+  ]
+}

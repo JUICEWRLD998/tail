@@ -84,7 +84,8 @@ async function open(url: string, width: number, scheme: "dark" | "light") {
   return { page, ctx, errors };
 }
 const overflow = (page: Page) => page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") as Promise<number>;
-const text = (page: Page) => page.locator("body").innerText();
+// textContent, not innerText: innerText applies CSS text-transform, so an uppercase label would read "BUILDER FEE".
+const text = (page: Page) => page.locator("body").evaluate((b) => b.textContent ?? "");
 
 // ---- planted control: the overflow detector must be able to fail ----
 {
@@ -201,7 +202,7 @@ for (const w of WIDTHS) {
   const { page, ctx } = await open(`${real.origin}/`, 1280, "dark");
   const t = await text(page);
   check("home shows the measured totals and the test-activity note", t.includes(site.site.note) && t.includes("Measured on this server"), site.site);
-  check("home links to the bot", (await page.locator(`a[href="https://t.me/lidevbot"]`).count()) === 1);
+  check("home links to the bot from the hero", (await page.locator(`a[href="https://t.me/lidevbot"]`, { hasText: "Open the bot in Telegram" }).count()) === 1);
   await ctx.close();
 }
 

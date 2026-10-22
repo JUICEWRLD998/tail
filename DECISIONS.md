@@ -2,6 +2,26 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 P8 built: ticket design, real-call replay, charts
+
+- **Direction: the call as a printed ticket.** Signal channels trade in call cards and receipts, so the card is a paper
+  ticket (warm paper, ink, IBM Plex Mono numerals) with a perforated stub where follows land and a rubber-stamp result.
+  Not terminal, not neon. Tail is mint, Fade is coral, everywhere (hero, buttons, chips, charts).
+- **Signature moment, real only:** the home page replays the newest call real followers took (today: call 3, one tail,
+  target hit +0.44R). Follows drop onto the stub in their real order and rough rhythm (compressed to under 2.5 s), then the
+  stamp lands. No call: it says so. Reduced motion: final state at once. API gives mode, status and timing only.
+- **Charts (hand-drawn SVG, `motion`):** running result in R as a step line that draws itself in; where calls ended as a
+  segmented bar; each call's levels drawn to scale on a ladder inside the ticket. Charts render at their real width so axis
+  text stays readable on a phone.
+- **Checks:** `scripts/pages-e2e.ts` 115/115 (8 widths x 2 themes, SQL parity, planted controls);
+  `scripts/replay-probe.ts` with motion ON samples the replay every ~150 ms in both themes: starts empty, follows land
+  strictly before the stamp, Replay resets; control: reduced motion shows the final state at once. Contrast: every new
+  pair measured (ticket text 13.4:1 / 16.8:1; Tail and Fade inks on paper 5.3:1 and above).
+- **Bugs the probes found:** mid-replay the ticket said "No one has taken this call yet" before the real tail landed (false;
+  fixed with the call's real total); my probes misread uppercase labels through `innerText` and counted the chip list as a
+  chip (both probe bugs, fixed: `textContent`, `li` selector).
+- Not redone: the connect page keeps its P4 design (same tokens).
+
 ## 2026-10-22 Telegram copy pass (his request: "not properly structured, no emojis, just bland")
 
 - One vocabulary across every message: a side marker (green circle long, red circle short), one marker emoji per line at

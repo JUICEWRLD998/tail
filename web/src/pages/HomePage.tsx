@@ -16,7 +16,7 @@ function Replay({ call }: { call: FeaturedCall }) {
   const faded = call.tails.length - tailed;
   return (
     <div className={styles.heroCard} ref={ref}>
-      <Ticket call={call} tails={call.tails.slice(0, shown)} showResult={stamped} />
+      <Ticket call={call} tails={call.tails.slice(0, shown)} total={call.tails.length} showResult={stamped} />
       <p className={styles.caption}>
         Replayed from a real call on Strike testnet: {plural(tailed, "tail")}, {plural(faded, "fade")}, in the order they came. Timing compressed.
       </p>
@@ -51,7 +51,7 @@ export function HomePage() {
       <section className={styles.hero} aria-labelledby="hero">
         <div className={styles.heroText}>
           <motion.p className={styles.eyebrow} {...t(0)}>Telegram calls · Strike brackets</motion.p>
-          <motion.h1 id="hero" className={styles.display} ref={heading} tabIndex={-1} {...t(0.05)}>Tail the call.<br /><em>Or fade it.</em></motion.h1>
+          <motion.h1 id="hero" className={styles.display} ref={heading} tabIndex={-1} {...t(0.05)}><strong>Tail</strong> the call.<br /><em>Or fade it.</em></motion.h1>
           <motion.p className={styles.lead} {...t(0.12)}>
             A caller posts a trade in their channel. Tail turns it into a ticket. One tap places the entry, take profit and stop on Strike, sized to your own risk.
           </motion.p>

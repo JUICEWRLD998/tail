@@ -1,5 +1,5 @@
 import { motion, useInView, useReducedMotion } from "motion/react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cumulativeR, outcomeSegments, type OutcomeKey, type RRow } from "../lib/series.js";
 import styles from "./charts.module.css";
 
@@ -12,8 +12,17 @@ export function RChart({ rows }: { rows: RRow[] }) {
   const reduce = useReducedMotion();
   const pts = cumulativeR(rows);
   const last = pts.at(-1)?.r ?? 0;
+  // Draw at the container's real width so axis text stays 11px on a phone instead of scaling down to 5px.
+  const [W, setW] = useState(600);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => { if (e) setW(Math.max(260, Math.round(e.contentRect.width))); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-  const W = 600, H = 200, padL = 40, padR = 16, padT = 14, padB = 26;
+  const H = W < 420 ? 170 : 200, padL = 40, padR = 16, padT = 14, padB = 26;
   const rs = pts.map((p) => p.r);
   const hi = Math.max(1, ...rs), lo = Math.min(-1, ...rs);
   const n = Math.max(1, pts.length - 1);

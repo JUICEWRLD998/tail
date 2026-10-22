@@ -52,7 +52,7 @@ const STAMP: Record<string, { label: string; cls: string }> = {
  * A call as a printed ticket. `tails` are the follows to show (the replay reveals them one by one); `showResult` drops
  * the result stamp. Everything shown comes from the call's own rows.
  */
-export function Ticket({ call, tails, showResult, label }: { call: TicketCall; tails: { mode: "tail" | "fade" }[]; showResult: boolean; label?: string }) {
+export function Ticket({ call, tails, showResult, label, total }: { call: TicketCall; tails: { mode: "tail" | "fade" }[]; showResult: boolean; label?: string; total?: number }) {
   const reduce = useReducedMotion();
   const tailed = tails.filter((t) => t.mode === "tail").length;
   const faded = tails.length - tailed;
@@ -65,7 +65,7 @@ export function Ticket({ call, tails, showResult, label }: { call: TicketCall; t
       <article className={styles.ticket} aria-label={`Call ${call.symbol} ${call.side}`}>
         <div className={styles.head}>
           <span>{label ?? `Call · No. ${call.id}`}</span>
-          <span>Strike testnet</span>
+          <span className={styles.headNet}>Strike testnet</span>
         </div>
         <div className={styles.title}>
           <span className={styles.symbol}>{call.symbol}</span>
@@ -103,7 +103,7 @@ export function Ticket({ call, tails, showResult, label }: { call: TicketCall; t
               Faded
             </span>
           </div>
-          {tails.length === 0 ? (
+          {(total ?? tails.length) === 0 ? (
             <p className={styles.none}>No one has taken this call yet.</p>
           ) : (
             <ul className={styles.chips} aria-label="Follows, in the order they came">

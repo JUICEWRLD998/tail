@@ -37,7 +37,7 @@
   width: 1.5rem;
   height: 1.05rem;
   border-radius: 0.25rem;
-  background: var(--paper);
+  background: var(--text);
   position: relative;
   -webkit-mask: radial-gradient(circle at 0 50%, transparent 0.22rem, black 0.23rem) left / 51% 100% no-repeat,
     radial-gradient(circle at 100% 50%, transparent 0.22rem, black 0.23rem) right / 51% 100% no-repeat;
@@ -102,6 +102,11 @@
 
 .display em {
   font-style: normal;
+  color: var(--fade);
+}
+
+.display strong {
+  font-weight: inherit;
   color: var(--accent);
 }
 
