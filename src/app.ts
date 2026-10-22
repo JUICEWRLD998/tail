@@ -70,6 +70,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
   const service = createService({
     store, kek: cfg.kek, botUsername: me.username as string, publicStrike, strikeFor, clientForKey,
     now, uuid: randomUUID, sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    builderFeeBps: cfg.builderFeeBps,
     ai: cfg.aiApiKey ? createAiReader({ apiKey: cfg.aiApiKey, model: cfg.aiModel }) : undefined,
   });
 

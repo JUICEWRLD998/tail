@@ -45,6 +45,8 @@ export interface ServiceDeps {
   limits?: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number };
   /** Optional fallback reader for calls the parser could not read. Its output is a proposal the caller must confirm. */
   ai?: AiReader;
+  /** The builder fee rate sent with a builder wallet's orders (the same value the Strike client is given). */
+  builderFeeBps?: number;
 }
 
 const QUOTE_TTL_MS = 5 * 60_000;
@@ -229,7 +231,7 @@ export function createService(d: ServiceDeps) {
 
       const tailId = store.createTail({
         callId: call.id, tgId: i.tgId, mode: i.mode, strategyId: d.uuid(), size: sizing.size, notionalUsd: sizing.notional,
-        feeBps: 0, createdAt: d.now(),
+        feeBps: user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0, createdAt: d.now(),
       });
       const rr = call.entry === null ? null : rewardRisk({ side: levels.side, entry: levels.entry, tp: levels.tp, sl: levels.sl });
       return {
