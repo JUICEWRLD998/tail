@@ -197,6 +197,14 @@ export function createBot(o: BotOptions): Bot {
     if (!cb) return void (await ctx.answerCallbackQuery());
     const original = escapeHtml((ctx.callbackQuery.message as { text?: string } | undefined)?.text ?? "");
 
+    if (cb.kind === "ask") {
+      const a = await service.answerAsk({ tgId: from, askId: cb.id, option: cb.option as number });
+      if (!a.ok) return void (await ctx.answerCallbackQuery({ text: a.text, show_alert: true }));
+      await ctx.editMessageText(`${original}\n\n${escapeHtml(a.chosen)}`, HTML);
+      await ctx.answerCallbackQuery();
+      if (a.result.type === "dm") await dmUser(a.result.tgId, a.result.reply);
+      return;
+    }
     if (cb.kind === "post") {
       const r = service.postDraft(cb.id, from);
       if (!r.ok) return void (await ctx.answerCallbackQuery({ text: r.text, show_alert: true }));
