@@ -227,3 +227,12 @@ describe("Builder Connect calls (unsigned)", () => {
     expect(calls.length).toBe(0);
   });
 });
+
+describe("order history", () => {
+  it("reads /v2/history/order for a symbol", async () => {
+    const { client, calls } = mk({ "GET /v2/history/order?symbol=ETH-USD": { json: { count: 1, orders: [{ strategy_id: "s1", status: "rejected" }] } } });
+    expect(await client.orderHistory("ETH-USD")).toEqual({ count: 1, orders: [{ strategy_id: "s1", status: "rejected" }] });
+    expect((calls[0] as Call).url).toContain("/v2/history/order?symbol=ETH-USD");
+    expect((calls[0] as Call).headers["X-API-Wallet-Signature"]).toBeDefined();
+  });
+});
