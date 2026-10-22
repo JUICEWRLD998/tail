@@ -299,6 +299,48 @@ describe("connecting a wallet (when the service has a public URL)", () => {
   });
 });
 
+describe("/record (a caller's record, from rows)", () => {
+  const callRow = (status: "tp_hit" | "sl_hit" | "expired" | null, over: Record<string, unknown> = {}) => {
+    const id = store.createDraftCall({ chatId: CHAT, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: T, ...over } as never);
+    store.openCall(id, 50 + id);
+    if (status) store.finishCall(id, { status, resultPrice: "1", closedAt: T });
+    return id;
+  };
+
+  it("says there is nothing yet for a caller with no results", async () => {
+    await bot.handleUpdate(dm("/record", CALLER) as never);
+    expect(lastText()).toBe("Test\nNo calls with a result yet.\nTestnet.");
+  });
+
+  it("shows hit rate, average R and followers computed from the rows", async () => {
+    const a = callRow("tp_hit");
+    callRow("sl_hit");
+    callRow(null);
+    store.updateTail(store.createTail({ callId: a, tgId: 31, mode: "tail", strategyId: "s1", size: "1", notionalUsd: "1", feeBps: 0, createdAt: T }), { status: "filled" });
+    store.updateTail(store.createTail({ callId: a, tgId: 32, mode: "fade", strategyId: "s2", size: "1", notionalUsd: "1", feeBps: 0, createdAt: T }), { status: "placed" });
+    await bot.handleUpdate(dm("/record", CALLER) as never);
+    expect(lastText()).toBe("Test\n3 calls · 1 open · 1 target · 1 stop\nHit rate 50.0% · average 0.17R\nFollowers in: 2\nTestnet.");
+  });
+
+  it("someone who runs no channel is pointed to /addchannel", async () => {
+    await bot.handleUpdate(dm("/record", 4444) as never);
+    expect(lastText()).toBe("No channel yet. Use /addchannel.");
+  });
+
+  it("escapes a channel title that contains HTML", async () => {
+    store.registerChannel({ chatId: -777, title: "<b>Alpha</b> & co", kind: "channel", callerTgId: 4444, createdAt: T });
+    await bot.handleUpdate(dm("/record", 4444) as never);
+    expect(lastText()).toBe("&lt;b&gt;Alpha&lt;/b&gt; &amp; co\nNo calls with a result yet.\nTestnet.");
+  });
+
+  it("only works in a private chat and is listed in /help", async () => {
+    await bot.handleUpdate(groupMsg("/record", CALLER) as never);
+    expect(calls.length).toBe(0);
+    await bot.handleUpdate(dm("/help", CALLER) as never);
+    expect(lastText()).toContain("/record");
+  });
+});
+
 describe("help and fallback", () => {
   it("/help lists the commands", async () => {
     await bot.handleUpdate(dm("/help", FOLLOWER) as never);
