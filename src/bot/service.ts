@@ -182,6 +182,12 @@ export function createService(d: ServiceDeps) {
         store.updateTail(tail.id, { status: "cancelled" });
         return { text: "This quote expired. Tap Tail on the card again." };
       }
+      // The quote may be minutes old; the call can have hit its target or stop since. Never trade a finished call.
+      const live = store.getCall(tail.callId);
+      if (!live || live.status !== "open") {
+        store.updateTail(tail.id, { status: "cancelled" });
+        return { text: "This call is closed." };
+      }
       // Claim before any await: a double tap, or two taps in flight, can send at most one order.
       if (!store.claimTail(tail.id)) return { text: "Already placed." };
 
