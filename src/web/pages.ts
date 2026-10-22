@@ -38,6 +38,21 @@ export interface ChannelPage {
   calls: PageCall[];
 }
 
+/** A real call replayed on the home page. Tails carry only what the animation needs: Tail or Fade, status, timing. */
+export interface FeaturedCall {
+  id: number;
+  symbol: string;
+  side: "long" | "short";
+  entry: string | null;
+  tp: string;
+  sl: string;
+  leverageHint: number | null;
+  status: string;
+  resultR: string | null;
+  createdAt: string;
+  tails: { mode: "tail" | "fade"; status: string; atMs: number }[];
+}
+
 export interface SitePage {
   network: "testnet";
   channels: number;
@@ -46,6 +61,7 @@ export interface SitePage {
   /** The bot to open in Telegram, if known. */
   bot: string | null;
   note: string;
+  featured: FeaturedCall | null;
 }
 
 export interface Pages {
@@ -54,6 +70,20 @@ export interface Pages {
 }
 
 export function createPages(store: Store, o: { botUsername?: string } = {}): Pages {
+  const LIVE = new Set(["placed", "filled", "closed"]);
+  const featured = (): FeaturedCall | null => {
+    const c = store.featuredCall();
+    if (!c) return null;
+    const t0 = Date.parse(c.createdAt);
+    return {
+      id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, tp: c.tp, sl: c.sl, leverageHint: c.leverageHint,
+      status: c.status, createdAt: c.createdAt,
+      resultR: c.status === "tp_hit" || c.status === "sl_hit" ? resultR(c, c.status) : null,
+      tails: store.tailsOfCall(c.id).filter((t) => LIVE.has(t.status)).map((t) => ({
+        mode: t.mode, status: t.status, atMs: Math.max(0, Date.parse(t.createdAt) - t0),
+      })),
+    };
+  };
   return {
     channel(slug) {
       if (!SLUG_RE.test(slug)) return undefined;
@@ -85,6 +115,7 @@ export function createPages(store: Store, o: { botUsername?: string } = {}): Pag
       return {
         network: "testnet", ...store.siteTotals(), bot: o.botUsername ?? null,
         note: "Measured from this server's own database. All of it is test activity on Strike testnet, not adoption.",
+        featured: featured(),
       };
     },
   };

@@ -241,6 +241,11 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     followersIn: db.prepare(`
       SELECT COUNT(DISTINCT t.tg_id) n FROM tails t JOIN calls c ON c.id = t.call_id
       WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed')`),
+    featuredCall: db.prepare(`
+      SELECT c.* FROM calls c WHERE c.status NOT IN ('draft','cancelled')
+      ORDER BY EXISTS (SELECT 1 FROM tails t WHERE t.call_id = c.id AND t.status IN ('placed','filled','closed')) DESC, c.id DESC
+      LIMIT 1`),
+    tailsOfCall: db.prepare("SELECT * FROM tails WHERE call_id = ? ORDER BY created_at, id"),
     tailsOfChat: db.prepare(`
       SELECT t.* FROM tails t JOIN calls c ON c.id = t.call_id
       WHERE c.chat_id = ? AND c.status NOT IN ('draft','cancelled') ORDER BY t.id`),
@@ -409,6 +414,12 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     callsMissingReceipt: (nowIso: string, windowMs: number, graceMs: number): Call[] =>
       q.missingReceipt.all(new Date(Date.parse(nowIso) - windowMs).toISOString(), new Date(Date.parse(nowIso) - graceMs).toISOString()).map(mapCall),
     activeTails: (): Tail[] => q.activeTails.all().map(mapTail),
+    /** The newest posted call that real followers took (placed or better); else the newest posted call; else none. */
+    featuredCall: (): Call | undefined => {
+      const r = q.featuredCall.get();
+      return r ? mapCall(r) : undefined;
+    },
+    tailsOfCall: (callId: number): Tail[] => q.tailsOfCall.all(callId).map(mapTail),
     tailsOfChat: (chatId: number): Tail[] => q.tailsOfChat.all(chatId).map(mapTail),
     channelBySlug: (slug: string): Channel | undefined => {
       const r = typeof slug === "string" ? q.channelBySlug.get(slug) : undefined;
