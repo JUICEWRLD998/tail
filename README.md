@@ -6,7 +6,7 @@ builder fee on every follower fill.
 
 Tail the call. Strike does the rest.
 
-Built for the Strike Hackathon (2026-10-21 to 2026-10-23) by Mustapha Fadhlullah — independent security researcher.
+Built for the Strike Hackathon (2026-10-21 to 2026-10-23).
 Testnet only. The build order is in [implementation.md](implementation.md); decisions and spike results are in
 [DECISIONS.md](DECISIONS.md); every claim below maps to a command in [CLAIMS.md](CLAIMS.md).
 

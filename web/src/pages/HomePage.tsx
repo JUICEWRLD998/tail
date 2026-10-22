@@ -133,7 +133,7 @@ export function HomePage() {
       </section>
 
       <footer className={styles.foot}>
-        <span>Built for the Strike Hackathon by Mustapha Fadhlullah, independent security researcher.</span>
+        <span>Built for the Strike Hackathon.</span>
         <span>Testnet only.</span>
       </footer>
     </Shell>
