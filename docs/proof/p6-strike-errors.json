@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-10-22T11:07:44.723Z",
+  "symbol": "ETH-USD",
+  "mark": 2400.82945635,
+  "results": [
+    {
+      "case": "valid bracket (control)",
+      "size": "0.006",
+      "http": 201,
+      "primaryStatus": "open",
+      "closeReason": ""
+    },
+    {
+      "case": "oversize: needs far more margin than the account has",
+      "size": "40",
+      "http": 201,
+      "primaryStatus": "rejected",
+      "closeReason": "position_notional_exceed"
+    },
+    {
+      "case": "below the minimum notional",
+      "size": "0.001",
+      "http": 201,
+      "primaryStatus": "rejected",
+      "closeReason": "order_less_than_min_notional"
+    },
+    {
+      "case": "not a multiple of the lot step",
+      "size": "0.0065",
+      "http": 201,
+      "primaryStatus": "rejected",
+      "closeReason": "order_size_not_multiple_of_step"
+    },
+    {
+      "case": "zero size",
+      "size": "0",
+      "http": 201,
+      "primaryStatus": "rejected",
+      "closeReason": "order_less_than_min_size"
+    },
+    {
+      "case": "take-profit below the stop (inconsistent legs)",
+      "size": "0.006",
+      "http": 400,
+      "strikeError": "invalid_secondary_order"
+    },
+    {
+      "case": "stop above a buy entry that would trigger at once",
+      "size": "0.006",
+      "http": 201,
+      "primaryStatus": "open",
+      "closeReason": ""
+    },
+    {
+      "case": "price far from the book",
+      "size": "0.006",
+      "http": 201,
+      "primaryStatus": "open",
+      "closeReason": ""
+    }
+  ]
+}
