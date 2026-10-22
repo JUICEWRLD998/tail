@@ -210,3 +210,62 @@ describe("the job schedule", () => {
     markResult = "2494.62";
   });
 });
+
+describe("card edits are batched across confirm, reconcile and outcomes", () => {
+  afterEach(() => vi.useRealTimers());
+
+  const tapMsg = (data: string, id: number) => ({
+    update_id: 9,
+    callback_query: { id: `c${id}`, from: { id, is_bot: false, first_name: "x" }, chat_instance: "ci", data, message: { message_id: 3, date: 0, chat: { id, type: "private", first_name: "x" }, text: "card" } },
+  });
+
+  async function setupCard() {
+    const { app, api } = await make(env());
+    app.store.registerChannel({ chatId: -1001, title: "T", kind: "channel", callerTgId: 900, createdAt: new Date().toISOString() });
+    const callId = app.store.createDraftCall({ chatId: -1001, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: new Date().toISOString() });
+    app.store.openCall(callId, 55);
+    for (const tg of [4001, 4002, 4003]) {
+      app.store.linkUser({ tgId: tg, chain: "ethereum", address: "0xabc", strikeAccountId: "a", apiPub: "p", apiPrivEnc: "v1:a:b:c", builderCode: null, linkedAt: "t" });
+      app.store.setSetting(tg, "riskPct", "3");
+    }
+    return { app, api, callId };
+  }
+
+  it("three quick confirms edit the channel card twice (first at once, one trailing), not three times", async () => {
+    vi.useFakeTimers();
+    const { app, api, callId } = await setupCard();
+    let tailIds: number[] = [];
+    for (const tg of [4001, 4002, 4003]) {
+      await app.bot.handleUpdate(privateMsg(`/start t_${callId}`, tg) as never);
+      tailIds.push(Number(api.filter((c) => c.method === "sendMessage" && c.payload.chat_id === tg).at(-1)?.payload.reply_markup.inline_keyboard[0][0].callback_data.split(":")[1]));
+    }
+    for (let i = 0; i < 3; i++) await app.bot.handleUpdate(tapMsg(`y:${tailIds[i]}`, [4001, 4002, 4003][i] as number) as never);
+    const cardEdits = () => api.filter((c) => c.method === "editMessageText" && c.payload.chat_id === -1001);
+    expect(cardEdits().length).toBe(1);
+    expect(cardEdits()[0]!.payload.text).toContain("Tailed 1 · Faded 0");
+    await vi.advanceTimersByTimeAsync(3500);
+    expect(cardEdits().length).toBe(2);
+    expect(cardEdits()[1]!.payload.text).toContain("Tailed 3 · Faded 0");
+  });
+
+  it("a pending counter edit never overwrites the call's result", async () => {
+    vi.useFakeTimers();
+    const { app, api, callId } = await setupCard();
+    const ids: number[] = [];
+    for (const tg of [4001, 4002]) {
+      await app.bot.handleUpdate(privateMsg(`/start t_${callId}`, tg) as never);
+      ids.push(Number(api.filter((c) => c.method === "sendMessage" && c.payload.chat_id === tg).at(-1)?.payload.reply_markup.inline_keyboard[0][0].callback_data.split(":")[1]));
+    }
+    await app.bot.handleUpdate(tapMsg(`y:${ids[0]}`, 4001) as never); // immediate card edit
+    await app.bot.handleUpdate(tapMsg(`y:${ids[1]}`, 4002) as never); // pending (inside the window)
+    markResult = "2479.00";
+    await app.runJobsOnce(); // enters
+    markResult = "2561.10";
+    await app.runJobsOnce(); // target: final edit
+    await vi.advanceTimersByTimeAsync(10_000);
+    const cardEdits = api.filter((c) => c.method === "editMessageText" && c.payload.chat_id === -1001);
+    expect(cardEdits.at(-1)!.payload.text).toContain("Result: take profit hit");
+    expect(cardEdits.some((c) => c.payload.text.includes("Tailed 2") && !c.payload.text.includes("Result"))).toBe(false);
+    markResult = "2494.62";
+  });
+});
