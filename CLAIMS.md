@@ -29,7 +29,27 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | An AI reading is accepted only if every price is in the message and the parser agrees | `npx vitest run test/ai-proposal.test.ts test/ai-reader.test.ts` | pass; includes the known limit |
 | The AI fallback never builds an order; the caller must confirm | `npx vitest run test/service.test.ts -t "AI fallback"` | pass |
 | The real model behaves on planted controls | `OPENROUTER_API_KEY=... npx tsx scripts/ai-live.ts` | 9 cases behave; `docs/proof/p6-ai-live.json` |
+| A caller's public page shows numbers that match SQL | `npm run web:build && npx tsx scripts/pages-e2e.ts` | 115 checks pass; SQL below; `docs/proof/pages-e2e.json`; screenshots in `docs/proof/pages/` |
+| Builder-fee earnings are an estimate, floored, entry fills only | `npx vitest run test/earnings.test.ts` | pass; Strike's fill has no builder-share field (`user-api.yaml` 868-884) |
+| A page is opt-in, and private, unknown and malformed slugs look alike | `npx vitest run test/store.test.ts test/pages.test.ts test/server.test.ts -t "public"` | pass |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |
+
+## SQL behind the caller page (run against `data/tail.db`; `?` is the channel's chat id)
+
+```sql
+-- calls, target hits, stop hits (a draft or cancelled call is not part of the record)
+SELECT COUNT(*) FROM calls WHERE chat_id = ? AND status NOT IN ('draft','cancelled');
+SELECT COUNT(*) FROM calls WHERE chat_id = ? AND status = 'tp_hit';
+SELECT COUNT(*) FROM calls WHERE chat_id = ? AND status = 'sl_hit';
+-- followers in
+SELECT COUNT(DISTINCT t.tg_id) FROM tails t JOIN calls c ON c.id = t.call_id
+ WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed');
+-- filled tails, and the estimated builder fee: entry fill notional x the rate the order carried (USD)
+SELECT COUNT(*), SUM(CAST(t.size AS REAL) * CAST(t.fill_price AS REAL) * t.fee_bps / 10000.0)
+  FROM tails t JOIN calls c ON c.id = t.call_id
+ WHERE c.chat_id = ? AND c.status NOT IN ('draft','cancelled')
+   AND t.status IN ('filled','closed') AND t.fill_price IS NOT NULL;
+```
 
 ## Not yet claimed
 

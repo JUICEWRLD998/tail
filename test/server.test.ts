@@ -178,3 +178,61 @@ describe("static web app", () => {
     expect((await a.inject({ method: "GET", url: "/connect" })).statusCode).toBe(404);
   });
 });
+
+describe("public page API", () => {
+  const pages = {
+    channel: (slug: string) => (slug === "abcdefghij" ? { title: "Alpha", network: "testnet" } : undefined),
+    site: () => ({ network: "testnet", channels: 1, calls: 2, tailsFilled: 3, note: "test activity" }),
+  };
+
+  it("serves a published channel's page data", async () => {
+    const r = await app({ pages }).inject({ method: "GET", url: "/api/channel/abcdefghij" });
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ ok: true, page: { title: "Alpha", network: "testnet" } });
+    expect(r.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("answers an unknown, private and malformed slug with the same 404", async () => {
+    const a = app({ pages });
+    const bodies = [];
+    for (const slug of ["zzzzzzzzzz", "short", "' OR 1=1 --", "A".repeat(200)]) {
+      const r = await a.inject({ method: "GET", url: `/api/channel/${encodeURIComponent(slug)}` });
+      expect(r.statusCode).toBe(404);
+      bodies.push(r.body);
+    }
+    expect(new Set(bodies).size).toBe(1);
+    expect(JSON.parse(bodies[0]!)).toEqual({ ok: false, error: "This page does not exist or is not public." });
+  });
+
+  it("serves site totals", async () => {
+    const r = await app({ pages }).inject({ method: "GET", url: "/api/site" });
+    expect(r.json()).toEqual({ ok: true, site: { network: "testnet", channels: 1, calls: 2, tailsFilled: 3, note: "test activity" } });
+  });
+
+  it("page reads have their own, roomier limit than the connect flow", async () => {
+    const a = app({ pages, rateLimit: { max: 2, windowMs: 60_000 } });
+    const codes = [];
+    for (let i = 0; i < 10; i++) codes.push((await a.inject({ method: "GET", url: "/api/site" })).statusCode);
+    expect(codes.every((c) => c === 200)).toBe(true);
+  });
+
+  it("is not mounted when no pages service is given", async () => {
+    expect((await app().inject({ method: "GET", url: "/api/site" })).statusCode).toBe(404);
+  });
+
+  it("rate-limits one client across the page routes", async () => {
+    const a = app({ pages, pageRateLimit: { max: 3, windowMs: 60_000 } });
+    const codes = [];
+    for (let i = 0; i < 5; i++) codes.push((await a.inject({ method: "GET", url: "/api/site" })).statusCode);
+    expect(codes).toEqual([200, 200, 200, 429, 429]);
+  });
+
+  it("serves the single-page app for / and /c/<slug> when a built app exists", async () => {
+    const a = app({ pages, staticDir: "web/dist" });
+    for (const url of ["/", "/c/abcdefghij"]) {
+      const r = await a.inject({ method: "GET", url });
+      if (r.statusCode === 404) continue; // web/dist is built in CI by `npm run web:build`; skip when absent
+      expect(r.headers["content-type"]).toContain("text/html");
+    }
+  });
+});

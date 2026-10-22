@@ -510,3 +510,93 @@ describe("account commands", () => {
     expect(lastText()).toBe("Usage: /risk 1");
   });
 });
+
+describe("earnings and the public page", () => {
+  const PUBLIC = "https://tail.test";
+  const call = (over: Record<string, unknown> = {}) => {
+    const id = store.createDraftCall({ chatId: CHAT, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: T, ...over } as never);
+    store.openCall(id, 50 + id);
+    return id;
+  };
+  const filled = (callId: number, tg: number, feeBps: number) =>
+    store.updateTail(store.createTail({ callId, tgId: tg, mode: "tail", strategyId: `s${tg}`, size: "0.009", notionalUsd: "22", feeBps, createdAt: T }), { status: "filled", fillPrice: "2480" });
+
+  beforeEach(() => setup({ ownerTgId: OWNER, linkKey: KEY, publicUrl: PUBLIC }));
+
+  it("/earnings shows the estimate with its basis, the counts, and that payout is not live", async () => {
+    const id = call();
+    filled(id, 31, 10);
+    filled(id, 32, 10);
+    filled(id, 33, 0);
+    await bot.handleUpdate(dm("/earnings", CALLER) as never);
+    expect(lastText()).toBe([
+      "Test",
+      "Estimated builder fee: 0.04464 USD",
+      "Entry fills only: 44.64 USD at 10 bps, 2 tails. 1 tail used a personal wallet and earns nothing.",
+      "Payout to callers is not live.",
+    ].join("\n"));
+  });
+
+  it("/earnings says plainly when nothing has filled", async () => {
+    call();
+    await bot.handleUpdate(dm("/earnings", CALLER) as never);
+    expect(lastText()).toBe("Test\nNo filled tails yet, so no builder fee.\nPayout to callers is not live.");
+  });
+
+  it("/earnings points a non-caller to /addchannel", async () => {
+    await bot.handleUpdate(dm("/earnings", 4444) as never);
+    expect(lastText()).toBe("No channel yet. Use /addchannel.");
+  });
+
+  it("/page says the page is private and how to publish", async () => {
+    await bot.handleUpdate(dm("/page", CALLER) as never);
+    expect(lastText()).toBe("Test\nThe public page is off. /publish turns it on.");
+  });
+
+  it("/publish makes the page public and replies with its link", async () => {
+    await bot.handleUpdate(dm("/publish", CALLER) as never);
+    const slug = store.getChannel(CHAT)!.slug as string;
+    expect(lastText()).toBe(`Test\n${PUBLIC}/c/${slug}\nAnyone with the link sees your record and earnings estimate. Not your followers. /unpublish turns it off.`);
+    expect(store.channelBySlug(slug)).toBeDefined();
+  });
+
+  it("/page then shows the link, and /unpublish hides it", async () => {
+    await bot.handleUpdate(dm("/publish", CALLER) as never);
+    const slug = store.getChannel(CHAT)!.slug as string;
+    await bot.handleUpdate(dm("/page", CALLER) as never);
+    expect(lastText()).toContain(`${PUBLIC}/c/${slug}`);
+    await bot.handleUpdate(dm("/unpublish", CALLER) as never);
+    expect(lastText()).toBe("Test\nThe public page is off.");
+    expect(store.channelBySlug(slug)).toBeUndefined();
+  });
+
+  it("with several channels, a title picks one and no title lists them", async () => {
+    store.registerChannel({ chatId: -888, title: "Second", kind: "group", callerTgId: CALLER, createdAt: T });
+    await bot.handleUpdate(dm("/publish", CALLER) as never);
+    expect(lastText()).toBe("You have several channels. Send /publish with a title: Test, Second");
+    await bot.handleUpdate(dm("/publish second", CALLER) as never);
+    expect(lastText()).toContain("Second\nhttps://tail.test/c/");
+    expect(store.getChannel(-888)!.isPublic).toBe(true);
+    expect(store.getChannel(CHAT)!.isPublic).toBe(false);
+  });
+
+  it("only the channel's caller can publish it", async () => {
+    await bot.handleUpdate(dm("/publish", 4444) as never);
+    expect(lastText()).toBe("No channel yet. Use /addchannel.");
+    expect(store.getChannel(CHAT)!.isPublic).toBe(false);
+  });
+
+  it("without a public URL the page commands say pages are not set up", async () => {
+    setup({ ownerTgId: OWNER, linkKey: KEY });
+    await bot.handleUpdate(dm("/publish", CALLER) as never);
+    expect(lastText()).toBe("Public pages are not set up on this server.");
+    expect(store.getChannel(CHAT)!.isPublic).toBe(false);
+  });
+
+  it("works only in a private chat and is listed in /help", async () => {
+    await bot.handleUpdate(groupMsg("/publish", CALLER) as never);
+    expect(calls.length).toBe(0);
+    await bot.handleUpdate(dm("/help", CALLER) as never);
+    for (const c of ["/earnings", "/publish", "/unpublish", "/page"]) expect(lastText()).toContain(c);
+  });
+});

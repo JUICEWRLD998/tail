@@ -2,6 +2,27 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 P7 built (795 tests + 115 browser checks); not deployed
+
+- **Fee rate is now stored per tail.** Every tail recorded `fee_bps` 0 until now, so no earnings could be computed. A tail takes
+  the configured rate only when the follower is a builder wallet (the same condition as the `X-Builder-Fee-Bps` header).
+  Tails placed before this change keep 0 and show as "personal wallet": their earnings are understated, not invented.
+- **Earnings are an estimate and say so.** Strike's fill has no builder-share field (VERIFIED, `user-api.yaml` 868-884), so the
+  figure is entry-fill notional x rate, floored at 8 decimals, entry fills only; exit fills would add more. Payout to callers
+  is NOT LIVE: all fees accrue to the one registered code (`sigma`); per-caller codes need a $100 deposit each (UNVERIFIED
+  beyond that).
+- **Public pages are opt-in.** Migration v4 adds `slug` and `is_public`. `/publish` creates an unguessable 10-character slug,
+  `/unpublish` hides it, `/page` shows the state. A private, unknown or malformed slug returns the same 404. Pages carry no
+  Telegram ids, chat ids, raw call text or order ids.
+- **Home page** shows totals measured from this server's database and says they are test activity.
+- **Verified in a browser** (`scripts/pages-e2e.ts`, 115 checks): the real dev database (copied with SQLite's backup API),
+  plus a clearly labelled layout fixture. 8 widths x 2 themes, no overflow, stacked rows under 40rem, console clean. Page
+  numbers equal the SQL in `CLAIMS.md`; planted controls (overflow detector, wrong fee, call count, followers) all fire.
+- **Two mistakes of mine, caught by the checks:** a vacuous `|| true` in my own check for the malformed path (replaced with a
+  real assertion); and the first run hit the connect flow's 20/min limit because page reads shared it (page reads now have
+  their own 120/min bucket, tested).
+- **Not done:** the P8 design pass (this is structurally clean, not yet the final look), screenshots in the README, deploy.
+
 ## 2026-10-22 P6 built (723 tests); live Fade and follower checks still his taps
 
 - **Parser, tested on 24 calls written in other people's formats** (`test/fixtures/unseen/`, `scripts/unseen-report.ts`):

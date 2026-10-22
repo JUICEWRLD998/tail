@@ -362,3 +362,80 @@ describe("pending questions (asks)", () => {
     expect(s.takeAsk(id, 111, at(1))?.rawText).toBe(raw);
   });
 });
+
+describe("public channel pages", () => {
+  const reg = (s: Store, chatId = -1001) => s.registerChannel({ chatId, title: "Alpha", kind: "channel", callerTgId: 9, createdAt: T0 });
+
+  it("a channel is private until its caller publishes it", () => {
+    const s = fresh();
+    reg(s);
+    expect(s.getChannel(-1001)).toMatchObject({ isPublic: false, slug: null });
+  });
+
+  it("publishing gives an unguessable slug that resolves to the channel", () => {
+    const s = fresh();
+    reg(s);
+    const slug = s.publishChannel(-1001);
+    expect(slug).toMatch(/^[a-z0-9]{10}$/);
+    expect(s.channelBySlug(slug)).toMatchObject({ chatId: -1001, isPublic: true });
+  });
+
+  it("publishing twice keeps the same link", () => {
+    const s = fresh();
+    reg(s);
+    expect(s.publishChannel(-1001)).toBe(s.publishChannel(-1001));
+  });
+
+  it("unpublishing hides the page, and publishing again brings back the same link", () => {
+    const s = fresh();
+    reg(s);
+    const slug = s.publishChannel(-1001);
+    s.unpublishChannel(-1001);
+    expect(s.channelBySlug(slug)).toBeUndefined();
+    expect(s.publishChannel(-1001)).toBe(slug);
+  });
+
+  it("an unknown or malformed slug resolves to nothing", () => {
+    const s = fresh();
+    reg(s);
+    s.publishChannel(-1001);
+    expect(s.channelBySlug("nope")).toBeUndefined();
+    expect(s.channelBySlug("' OR 1=1 --")).toBeUndefined();
+  });
+
+  it("two channels never share a slug", () => {
+    const s = fresh();
+    reg(s, -1);
+    reg(s, -2);
+    expect(s.publishChannel(-1)).not.toBe(s.publishChannel(-2));
+  });
+
+  it("publishing a channel that is not registered does nothing", () => {
+    expect(() => fresh().publishChannel(-5)).toThrow(/not registered/);
+  });
+
+  it("tailsOfChat returns the tails of that channel's calls only", () => {
+    const s = fresh();
+    reg(s, -1);
+    reg(s, -2);
+    const a = s.createDraftCall({ ...callDraft, chatId: -1 });
+    const b = s.createDraftCall({ ...callDraft, chatId: -2 });
+    s.openCall(a, 1);
+    s.openCall(b, 2);
+    s.createTail({ callId: a, tgId: 1, mode: "tail", strategyId: "x", size: "1", notionalUsd: "1", feeBps: 10, createdAt: T0 });
+    s.createTail({ callId: b, tgId: 2, mode: "tail", strategyId: "y", size: "1", notionalUsd: "1", feeBps: 10, createdAt: T0 });
+    expect(s.tailsOfChat(-1).map((t) => t.tgId)).toEqual([1]);
+  });
+
+  it("siteTotals counts what happened, not what is hoped", () => {
+    const s = fresh();
+    expect(s.siteTotals()).toEqual({ channels: 0, calls: 0, tailsFilled: 0 });
+    reg(s);
+    const id = s.createDraftCall({ ...callDraft, chatId: -1001 });
+    expect(s.siteTotals()).toMatchObject({ channels: 1, calls: 0 });
+    s.openCall(id, 5);
+    const t = s.createTail({ callId: id, tgId: 1, mode: "tail", strategyId: "x", size: "1", notionalUsd: "1", feeBps: 10, createdAt: T0 });
+    s.updateTail(t, { status: "filled" });
+    expect(s.siteTotals()).toEqual({ channels: 1, calls: 1, tailsFilled: 1 });
+  });
+});
