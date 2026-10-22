@@ -28,6 +28,8 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Deployment (Docker, Render blueprint, `docs/DEPLOY.md`) | NEXT | Files written; waiting on a host and the prod bot token |
 | Live card state: counters from Strike's real order status, call results with a receipt, caller record (`/record`) | LIVE | Ran on testnet against the real dev database: `docs/proof/p5-live.json`. A fresh fill-to-close run with a follower is still to do |
 | Builder fee on orders | NEXT | Sent for builder wallets; not yet seen on a fill |
+| Guard rails (rate limits, duplicate window, open-tail cap), ask flow, plain rejection reasons | LIVE | `npm test`. Reasons come from Strike strings seen live. Fade and a follower tap on the new build: NEXT (his taps) |
+| AI fallback for unreadable calls (OpenRouter, caller must confirm) | LIVE | Off without `OPENROUTER_API_KEY`. `docs/proof/p6-ai-live.json`. Numbers in a message are trusted by design; the caller's tap is the gate |
 | Caller record and earnings pages | NOT LIVE | |
 | Payout to callers | NOT LIVE | |
 
