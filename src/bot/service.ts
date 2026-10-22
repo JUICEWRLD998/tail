@@ -45,6 +45,8 @@ export interface ServiceDeps {
   limits?: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number };
   /** Optional fallback reader for calls the parser could not read. Its output is a proposal the caller must confirm. */
   ai?: AiReader;
+  /** Asks Strike whether a builder code exists. Unknown codes are refused before they reach a channel. */
+  checkBuilderCode?: (code: string, feeBps: number) => Promise<"ok" | "unknown" | "unreachable">;
   /** The builder fee rate sent with a builder wallet's orders (the same value the Strike client is given). */
   builderFeeBps?: number;
 }
@@ -406,6 +408,28 @@ export function createService(d: ServiceDeps) {
       if (!valid) return { ok: false, text: `${l.label} must be a number above ${key === "maxLeverage" ? "0.99" : "0"} and at most ${l.max}.` };
       store.setSetting(tgId, key, v);
       return { ok: true, text: `${l.label} set to ${v}${l.unit}.` };
+    },
+
+    /** Sets (or with null, removes) a channel's own builder code, after Strike confirms the code exists. */
+    async setCode(chatId: number, c: { code: string; feeBps: number } | null): Promise<string> {
+      const ch = store.getChannel(chatId);
+      if (!ch) return "No channel yet. Use /addchannel.";
+      const title = escapeHtml(ch.title);
+      if (c === null) {
+        store.setChannelCode(chatId, null);
+        return `🗑️ <b>Builder code removed</b> for ${title}\nNew follows go through Tail's code again.`;
+      }
+      const check = d.checkBuilderCode ? await d.checkBuilderCode(c.code, c.feeBps) : "unreachable";
+      if (check === "unknown") return `❌ Strike does not know the builder code <code>${escapeHtml(c.code)}</code>. Register it at app.strikefinance.org/builder-codes first.`;
+      if (check !== "ok") return "⚠️ Could not reach Strike to check that code. Try again.";
+      store.setChannelCode(chatId, c);
+      return [
+        `✅ <b>Builder code set</b> for ${title}`,
+        `🏷️ <code>${escapeHtml(c.code)}</code> at ${c.feeBps} bps`,
+        "",
+        `Strike credits the builder fee on your followers' fills straight to the account that owns <code>${escapeHtml(c.code)}</code>.`,
+        "Followers connect once for your calls. Use the rate you registered with Strike.",
+      ].join("\n");
     },
 
     revoke(tgId: number): string {

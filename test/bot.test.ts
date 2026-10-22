@@ -525,7 +525,7 @@ describe("earnings and the public page", () => {
 
   beforeEach(() => setup({ ownerTgId: OWNER, linkKey: KEY, publicUrl: PUBLIC }));
 
-  it("/earnings shows the estimate with its basis, the counts, and that payout is not live", async () => {
+  it("/earnings shows the estimate with its basis, the counts, and who gets paid", async () => {
     const id = call();
     filled(id, 31, 10);
     filled(id, 32, 10);
@@ -535,14 +535,14 @@ describe("earnings and the public page", () => {
       "💰 <b>Test</b>",
       "Estimated builder fee: <b>0.04464 USD</b>",
       "Entry fills only: 44.64 USD at 10 bps, 2 tails. 1 tail used a personal wallet and earns nothing.",
-      "ℹ️ Payout to callers is not live.",
+      "ℹ️ Fees go to Tail's builder code, not to you. Set your own with /setcode to be paid by Strike directly.",
     ].join("\n"));
   });
 
   it("/earnings says plainly when nothing has filled", async () => {
     call();
     await bot.handleUpdate(dm("/earnings", CALLER) as never);
-    expect(lastText()).toBe("💰 <b>Test</b>\nNo filled tails yet, so no builder fee.\nℹ️ Payout to callers is not live.");
+    expect(lastText()).toBe("💰 <b>Test</b>\nNo filled tails yet, so no builder fee.\nℹ️ Fees go to Tail's builder code, not to you. Set your own with /setcode to be paid by Strike directly.");
   });
 
   it("/earnings points a non-caller to /addchannel", async () => {

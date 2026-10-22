@@ -86,7 +86,8 @@ export function earnings(tails: EarningTail[]): Earnings {
 }
 
 /** The caller-facing summary of one channel's earnings. Plain: what is counted, what is left out, and that payout is not live. */
-export function earningsText(title: string, e: Earnings): string {
+/** `payee` is the caller's own builder code when they set one: Strike then pays them, not Tail. */
+export function earningsText(title: string, e: Earnings, payee: string | null = null): string {
   const out = [`💰 <b>${title}</b>`];
   if (e.filled === 0) {
     out.push("No filled tails yet, so no builder fee.");
@@ -97,6 +98,8 @@ export function earningsText(title: string, e: Earnings): string {
     const left = e.withoutRate > 0 ? ` ${tails(e.withoutRate)} used a personal wallet and ${e.withoutRate === 1 ? "earns" : "earn"} nothing.` : "";
     out.push(`Entry fills only: ${e.payingNotional} USD${rate}, ${tails(e.paying)}.${left}`);
   }
-  out.push("ℹ️ Payout to callers is not live.");
+  out.push(payee
+    ? `💸 Strike pays these to the account that owns <code>${payee}</code>.`
+    : "ℹ️ Fees go to Tail's builder code, not to you. Set your own with /setcode to be paid by Strike directly.");
   return out.join("\n");
 }
