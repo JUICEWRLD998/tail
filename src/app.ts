@@ -17,6 +17,7 @@ import { runOutcomes } from "./jobs/outcomes.js";
 import { runReconcile, type ReconcileStrike } from "./jobs/reconcile.js";
 import { createScheduler } from "./jobs/scheduler.js";
 import { StrikeClient } from "./strike/client.js";
+import { checkBuilderCode } from "./strike/code-check.js";
 import { createPages } from "./web/pages.js";
 import { buildServer } from "./web/server.js";
 
@@ -55,7 +56,8 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
           baseUrl: cfg.baseUrl,
           privateKeyHex: decryptSecret(cfg.kek, user.apiPrivEnc),
           autoSync: true,
-          ...(user.builderCode && cfg.builderFeeBps ? { builderFeeBps: cfg.builderFeeBps } : {}),
+          // A caller-code wallet carries that caller's rate; the default builder wallet carries the server's.
+          ...(user.feeBps !== undefined ? { builderFeeBps: user.feeBps } : user.builderCode && cfg.builderFeeBps ? { builderFeeBps: cfg.builderFeeBps } : {}),
         });
         clients.set(key, c);
       }
@@ -72,6 +74,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
     store, kek: cfg.kek, botUsername: me.username as string, publicStrike, strikeFor, clientForKey,
     now, uuid: randomUUID, sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
     builderFeeBps: cfg.builderFeeBps,
+    checkBuilderCode: (code, feeBps) => checkBuilderCode(publicStrike, code, feeBps),
     ai: cfg.aiApiKey ? createAiReader({ apiKey: cfg.aiApiKey, model: cfg.aiModel }) : undefined,
   });
 

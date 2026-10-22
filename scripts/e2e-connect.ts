@@ -18,7 +18,7 @@ const OUT = "docs/proof/connect";
 const WIDTHS = [320, 375, 414, 768, 1024, 1280, 1440, 1920];
 const kek = randomBytes(32).toString("base64");
 const cfg = loadConfig({
-  TELEGRAM_BOT_TOKEN: "123:dummy", TAIL_KEK: kek, TAIL_DB: ":memory:", TAIL_MODE: "dev", PORT: String(PORT),
+  TELEGRAM_BOT_TOKEN: "123:local-browser-check-no-telegram", TAIL_KEK: kek, TAIL_DB: ":memory:", TAIL_MODE: "dev", PORT: String(PORT),
   PUBLIC_URL: `http://localhost:${PORT}`, BUILDER_CODE: requireEnv("BUILDER_CODE").BUILDER_CODE as string, BUILDER_FEE_BPS: "10",
 });
 const botInfo = { id: 1, is_bot: true, first_name: "Tail", username: "tailbot" } as never;

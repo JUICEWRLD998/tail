@@ -50,6 +50,7 @@ const HELP = [
   "💰 /earnings  estimated builder fee on your followers' fills",
   "🌐 /page  your public record page",
   "📣 /publish  turn the page on (/unpublish turns it off)",
+  "🏷️ /setcode YOURCODE 10  get paid by Strike directly",
 ].join("\n");
 const CONNECT_TEXT = "Connect your wallet once to trade. It signs one message and cannot withdraw funds.";
 const WELCOME = "👋 <b>Tail</b> turns a channel call into a Strike order in one tap.\n\nTap <b>Tail</b> or <b>Fade</b> on a call card to start.\n/me shows your account · /connect links your wallet.";
@@ -89,10 +90,14 @@ export function createBot(o: BotOptions): Bot {
     }
   };
 
-  const connectReply = async (ctx: { from?: { id: number }; reply: (t: string, o?: object) => Promise<unknown> }) => {
-    const token = store.createConnectToken(ctx.from!.id, o.now());
+  /** `code` binds the link to a caller's builder code (their card's follows trade under it, so Strike pays them). */
+  const connectReply = async (ctx: { from?: { id: number }; reply: (t: string, o?: object) => Promise<unknown> }, code?: { code: string; feeBps: number }) => {
+    const token = store.createConnectToken(ctx.from!.id, o.now(), code);
     const url = `${(o.publicUrl as string).replace(/\/+$/, "")}/connect?t=${token}`;
-    await ctx.reply(CONNECT_TEXT, { reply_markup: new InlineKeyboard().url("Connect wallet", url) });
+    const text = code
+      ? `🔗 This caller is paid through their own Strike builder code <code>${escapeHtml(code.code)}</code>.\nConnect once for their calls. It signs one message and cannot withdraw funds.`
+      : CONNECT_TEXT;
+    await ctx.reply(text, { ...HTML, reply_markup: new InlineKeyboard().url("Connect wallet", url) });
   };
 
   // ---- registration and calls: channel posts and group messages ----
@@ -123,7 +128,7 @@ export function createBot(o: BotOptions): Bot {
     if (!link) return void (await ctx.reply(WELCOME, HTML));
     const q = await service.quote({ tgId: ctx.from!.id, callId: link.callId, mode: link.mode });
     if (!q.ok) {
-      if (q.needsLink && o.publicUrl) return void (await connectReply(ctx));
+      if (q.needsLink && o.publicUrl) return void (await connectReply(ctx, q.connectCode));
       return void (await ctx.reply(q.text, HTML));
     }
     await ctx.reply(q.reply.text, { ...HTML, reply_markup: keyboard(q.reply.buttons) });
@@ -176,7 +181,7 @@ export function createBot(o: BotOptions): Bot {
     if (ctx.chat.type !== "private") return;
     const channels = store.channelsOf(ctx.from!.id);
     if (channels.length === 0) return void (await ctx.reply("No channel yet. Use /addchannel."));
-    await ctx.reply(channels.map((c) => earningsText(escapeHtml(c.title), earnings(store.tailsOfChat(c.chatId)))).join("\n\n"), HTML);
+    await ctx.reply(channels.map((c) => earningsText(escapeHtml(c.title), earnings(store.tailsOfChat(c.chatId)), c.builderCode ? escapeHtml(c.builderCode) : null)).join("\n\n"), HTML);
   });
 
   // Public pages. A page is opt-in; the caller sees the link, and anyone with it sees the record and the estimate.
@@ -214,6 +219,33 @@ export function createBot(o: BotOptions): Bot {
     if (!picked) return;
     for (const c of picked) store.unpublishChannel(c.chatId);
     await ctx.reply(picked.map((c) => `🌐 <b>${escapeHtml(c.title)}</b>\nThe public page is off.`).join("\n\n"), HTML);
+  });
+
+  const SETCODE_USAGE = "Usage: /setcode YOURCODE 10\nYOURCODE is the builder code you registered on Strike, 10 the rate in bps you registered (1 to 100).\n/setcode off removes it.";
+  bot.command("setcode", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const channels = store.channelsOf(ctx.from!.id);
+    if (channels.length === 0) return void (await ctx.reply("No channel yet. Use /addchannel."));
+    const arg = ctx.match.trim();
+    // CODE, then an optional whole-number rate, then an optional channel title. Anything rate-like that is not a whole
+    // number from 1 to 100 is a usage error, never part of a title.
+    const [first = "", second, ...rest] = arg.split(/\s+/).filter(Boolean);
+    const off = first.toLowerCase() === "off";
+    const rateGiven = second !== undefined && /^[\d.,]+$/.test(second);
+    const bps = rateGiven ? Number(second) : 10;
+    const code = off ? "" : first;
+    if (!off && (!/^[A-Za-z0-9_-]{2,32}$/.test(code) || !Number.isInteger(bps) || bps < 1 || bps > 100 || (rateGiven && !/^\d{1,3}$/.test(second)))) {
+      return void (await ctx.reply(SETCODE_USAGE));
+    }
+    const title = [...(rateGiven || second === undefined ? [] : [second]), ...rest].join(" ").trim().toLowerCase() || undefined;
+    const titles = channels.map((c) => c.title).join(", ");
+    const ch = channels.length === 1 && !title ? channels[0] : channels.find((c) => c.title.toLowerCase() === title);
+    if (!ch) {
+      return void (await ctx.reply(channels.length > 1 && !title
+        ? `You have several channels. Send /setcode CODE RATE TITLE, for example /setcode ${code || "alpha"} ${bps} ${channels[0]!.title}. Yours: ${titles}`
+        : `No channel with that title. Yours: ${titles}`));
+    }
+    await ctx.reply(await service.setCode(ch.chatId, off ? null : { code, feeBps: bps }), HTML);
   });
 
   bot.command("link", async (ctx) => {

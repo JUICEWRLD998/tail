@@ -19,6 +19,7 @@ let calls: ApiCall[];
 let placed: any[];
 let bot: ReturnType<typeof createBot>;
 let uid = 0;
+let codeChecks: string[] = [];
 
 let nowMsForBot = Date.parse("2026-10-21T12:00:00.000Z");
 function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefined; equity?: string; publicUrl?: string | undefined; rateLimit?: { max: number; windowMs: number } } = {}) {
@@ -36,6 +37,7 @@ function setup(opts: { ownerTgId?: number | undefined; linkKey?: string | undefi
   const service = createService({
     store, kek: randomBytes(32), botUsername: "tailbot", publicStrike: strike, strikeFor: () => strike, clientForKey: () => strike,
     now: () => T, uuid: () => `u${++uid}`, sleep: async () => {}, pollAttempts: 2,
+    checkBuilderCode: async (code: string) => (codeChecks.push(code), code === "alpha" ? "ok" : code === "down" ? "unreachable" : "unknown"),
   });
   bot = createBot({
     token: "123:abc", service, store, ownerTgId: opts.ownerTgId, linkKey: opts.linkKey, publicUrl: opts.publicUrl, now: () => T, ...(opts.rateLimit ? { rateLimit: opts.rateLimit, nowMs: () => nowMsForBot } : {}),
@@ -523,7 +525,7 @@ describe("earnings and the public page", () => {
 
   beforeEach(() => setup({ ownerTgId: OWNER, linkKey: KEY, publicUrl: PUBLIC }));
 
-  it("/earnings shows the estimate with its basis, the counts, and that payout is not live", async () => {
+  it("/earnings shows the estimate with its basis, the counts, and who gets paid", async () => {
     const id = call();
     filled(id, 31, 10);
     filled(id, 32, 10);
@@ -533,14 +535,14 @@ describe("earnings and the public page", () => {
       "💰 <b>Test</b>",
       "Estimated builder fee: <b>0.04464 USD</b>",
       "Entry fills only: 44.64 USD at 10 bps, 2 tails. 1 tail used a personal wallet and earns nothing.",
-      "ℹ️ Payout to callers is not live.",
+      "ℹ️ Fees go to Tail's builder code, not to you. Set your own with /setcode to be paid by Strike directly.",
     ].join("\n"));
   });
 
   it("/earnings says plainly when nothing has filled", async () => {
     call();
     await bot.handleUpdate(dm("/earnings", CALLER) as never);
-    expect(lastText()).toBe("💰 <b>Test</b>\nNo filled tails yet, so no builder fee.\nℹ️ Payout to callers is not live.");
+    expect(lastText()).toBe("💰 <b>Test</b>\nNo filled tails yet, so no builder fee.\nℹ️ Fees go to Tail's builder code, not to you. Set your own with /setcode to be paid by Strike directly.");
   });
 
   it("/earnings points a non-caller to /addchannel", async () => {
@@ -598,5 +600,88 @@ describe("earnings and the public page", () => {
     expect(calls.length).toBe(0);
     await bot.handleUpdate(dm("/help", CALLER) as never);
     for (const c of ["/earnings", "/publish", "/unpublish", "/page"]) expect(lastText()).toContain(c);
+  });
+});
+
+describe("callers set their own builder code (/setcode)", () => {
+  const PUBLIC = "https://tail.test";
+  beforeEach(() => { setup({ ownerTgId: OWNER, linkKey: KEY, publicUrl: PUBLIC }); codeChecks = []; });
+
+  it("checks the code with Strike, stores it on the channel with the rate, and says who gets paid", async () => {
+    await bot.handleUpdate(dm("/setcode alpha 25", CALLER) as never);
+    expect(codeChecks).toEqual(["alpha"]);
+    expect(store.getChannel(CHAT)).toMatchObject({ builderCode: "alpha", feeBps: 25 });
+    expect(lastText()).toContain("✅ <b>Builder code set</b>");
+    expect(lastText()).toContain("Strike credits the builder fee on your followers' fills straight to the account that owns <code>alpha</code>");
+  });
+
+  it("defaults the rate to 10 bps", async () => {
+    await bot.handleUpdate(dm("/setcode alpha", CALLER) as never);
+    expect(store.getChannel(CHAT)).toMatchObject({ builderCode: "alpha", feeBps: 10 });
+  });
+
+  it("refuses a code Strike does not know, and stores nothing", async () => {
+    await bot.handleUpdate(dm("/setcode nosuch 10", CALLER) as never);
+    expect(lastText()).toBe("❌ Strike does not know the builder code <code>nosuch</code>. Register it at app.strikefinance.org/builder-codes first.");
+    expect(store.getChannel(CHAT)?.builderCode).toBeNull();
+  });
+
+  it("says so when Strike cannot be reached, and stores nothing", async () => {
+    await bot.handleUpdate(dm("/setcode down 10", CALLER) as never);
+    expect(lastText()).toBe("⚠️ Could not reach Strike to check that code. Try again.");
+    expect(store.getChannel(CHAT)?.builderCode).toBeNull();
+  });
+
+  it.each(["/setcode", "/setcode a", "/setcode bad!code", "/setcode alpha 0", "/setcode alpha 101", "/setcode alpha 2.5"])("rejects %j with usage, before asking Strike", async (cmd) => {
+    await bot.handleUpdate(dm(cmd, CALLER) as never);
+    expect(lastText()).toContain("Usage: /setcode YOURCODE 10");
+    expect(codeChecks).toEqual([]);
+  });
+
+  it("/setcode off removes it", async () => {
+    store.setChannelCode(CHAT, { code: "alpha", feeBps: 25 });
+    await bot.handleUpdate(dm("/setcode off", CALLER) as never);
+    expect(store.getChannel(CHAT)?.builderCode).toBeNull();
+    expect(lastText()).toContain("Builder code removed");
+  });
+
+  it("only a caller can set a code", async () => {
+    await bot.handleUpdate(dm("/setcode alpha 25", 4444) as never);
+    expect(lastText()).toBe("No channel yet. Use /addchannel.");
+  });
+
+  it("with several channels, the title comes after the code", async () => {
+    store.registerChannel({ chatId: -888, title: "Second", kind: "group", callerTgId: CALLER, createdAt: T });
+    await bot.handleUpdate(dm("/setcode alpha 25", CALLER) as never);
+    expect(lastText()).toBe("You have several channels. Send /setcode CODE RATE TITLE, for example /setcode alpha 25 Test. Yours: Test, Second");
+    await bot.handleUpdate(dm("/setcode alpha 25 Second", CALLER) as never);
+    expect(store.getChannel(-888)?.builderCode).toBe("alpha");
+    expect(store.getChannel(CHAT)?.builderCode).toBeNull();
+  });
+
+  it("a follower tapping a coded channel's card gets a connect link bound to that caller's code", async () => {
+    store.setChannelCode(CHAT, { code: "alpha", feeBps: 25 });
+    const id = store.createDraftCall({ chatId: CHAT, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: T } as never);
+    store.openCall(id, 50);
+    await bot.handleUpdate(dm(`/start t_${id}`, FOLLOWER) as never);
+    const msg = sent().at(-1)!;
+    expect(msg.payload.text).toContain("alpha");
+    const url = kbButtons(msg)[0].url as string;
+    const token = new URL(url).searchParams.get("t") as string;
+    expect(store.connectTokenCode(token, T)).toEqual({ code: "alpha", feeBps: 25 });
+  });
+
+  it("/earnings says who gets paid: the caller's own code, or the server's when none is set", async () => {
+    await bot.handleUpdate(dm("/earnings", CALLER) as never);
+    expect(lastText()).toContain("Fees go to Tail's builder code, not to you. Set your own with /setcode to be paid by Strike directly.");
+    store.setChannelCode(CHAT, { code: "alpha", feeBps: 25 });
+    await bot.handleUpdate(dm("/earnings", CALLER) as never);
+    expect(lastText()).toContain("Strike pays these to the account that owns <code>alpha</code>.");
+    expect(lastText()).not.toContain("not live");
+  });
+
+  it("is listed in /help", async () => {
+    await bot.handleUpdate(dm("/help", CALLER) as never);
+    expect(lastText()).toContain("/setcode");
   });
 });

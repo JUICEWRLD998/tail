@@ -22,6 +22,8 @@ export interface User {
   maxLeverage: string;
   maxNotionalUsd: string;
   linkedAt: string;
+  /** Set when this is a caller-code wallet: the fee rate its orders carry. Undefined for the default wallet. */
+  feeBps?: number;
 }
 
 export interface Channel {
@@ -89,6 +91,8 @@ export interface Tail {
   realizedPnl: string | null;
   /** "tp" or "sl" when a protective leg closed the position. */
   closeReason: string | null;
+  /** The caller's builder code the order carried; null when it went through the default wallet. */
+  builderCode: string | null;
 }
 
 const SETTING_COLUMNS = { riskPct: "risk_pct", maxLeverage: "max_leverage", maxNotionalUsd: "max_notional_usd" } as const;
@@ -124,7 +128,7 @@ const mapTail = (r: any): Tail => ({
   primaryClientOrderId: r.primary_client_order_id, orderId: r.order_id, size: r.size, notionalUsd: r.notional_usd,
   feeBps: r.fee_bps, status: r.status, fillPrice: r.fill_price, error: r.error, createdAt: r.created_at, filledAt: r.filled_at,
   tpClientOrderId: r.tp_client_order_id ?? null, slClientOrderId: r.sl_client_order_id ?? null, closedAt: r.closed_at ?? null,
-  realizedPnl: r.realized_pnl ?? null, closeReason: r.close_reason ?? null,
+  realizedPnl: r.realized_pnl ?? null, closeReason: r.close_reason ?? null, builderCode: r.builder_code ?? null,
 });
 
 /**
@@ -158,6 +162,22 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE channels ADD COLUMN slug TEXT;
    ALTER TABLE channels ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
    CREATE UNIQUE INDEX IF NOT EXISTS channels_slug ON channels(slug) WHERE slug IS NOT NULL;`,
+  // v5 (P9): callers' own builder codes. A follower holds one API wallet per caller code; Strike pays that caller directly.
+  `ALTER TABLE connect_tokens ADD COLUMN builder_code TEXT;
+   ALTER TABLE connect_tokens ADD COLUMN fee_bps INTEGER;
+   ALTER TABLE tails ADD COLUMN builder_code TEXT;
+   CREATE TABLE IF NOT EXISTS user_wallets (
+     tg_id             INTEGER NOT NULL,
+     builder_code      TEXT NOT NULL,
+     fee_bps           INTEGER NOT NULL,
+     chain             TEXT NOT NULL,
+     address           TEXT NOT NULL,
+     strike_account_id TEXT NOT NULL,
+     api_pub           TEXT NOT NULL,
+     api_priv_enc      TEXT NOT NULL,
+     linked_at         TEXT NOT NULL,
+     PRIMARY KEY (tg_id, builder_code)
+   );`,
 ];
 const SLUG_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 const newSlug = (): string => Array.from(randomBytes(10), (b) => SLUG_ALPHABET[b % SLUG_ALPHABET.length]).join("");
@@ -213,15 +233,26 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     openCall: db.prepare("UPDATE calls SET status = 'open', card_message_id = ? WHERE id = ? AND status = 'draft'"),
     cancelDraft: db.prepare("UPDATE calls SET status = 'cancelled' WHERE id = ? AND status = 'draft'"),
     newTail: db.prepare(`
-      INSERT INTO tails (call_id, tg_id, mode, strategy_id, size, notional_usd, fee_bps, status, created_at)
-      VALUES (@callId, @tgId, @mode, @strategyId, @size, @notionalUsd, @feeBps, 'quoted', @createdAt)`),
+      INSERT INTO tails (call_id, tg_id, mode, strategy_id, size, notional_usd, fee_bps, builder_code, status, created_at)
+      VALUES (@callId, @tgId, @mode, @strategyId, @size, @notionalUsd, @feeBps, @builderCode, 'quoted', @createdAt)`),
+    setChannelCode: db.prepare("UPDATE channels SET builder_code = ?, fee_bps = ? WHERE chat_id = ?"),
+    tokenCode: db.prepare("SELECT builder_code, fee_bps FROM connect_tokens WHERE token = ? AND used_at IS NULL AND expires_at > ?"),
+    saveWallet: db.prepare(`
+      INSERT INTO user_wallets (tg_id, builder_code, fee_bps, chain, address, strike_account_id, api_pub, api_priv_enc, linked_at)
+      VALUES (@tgId, @builderCode, @feeBps, @chain, @address, @strikeAccountId, @apiPub, @apiPrivEnc, @linkedAt)
+      ON CONFLICT(tg_id, builder_code) DO UPDATE SET fee_bps = excluded.fee_bps, chain = excluded.chain, address = excluded.address,
+        strike_account_id = excluded.strike_account_id, api_pub = excluded.api_pub, api_priv_enc = excluded.api_priv_enc,
+        linked_at = excluded.linked_at`),
+    getWallet: db.prepare("SELECT * FROM user_wallets WHERE tg_id = ? AND builder_code = ?"),
+    walletsOf: db.prepare("SELECT * FROM user_wallets WHERE tg_id = ?"),
+    dropWallets: db.prepare("DELETE FROM user_wallets WHERE tg_id = ?"),
     getTail: db.prepare("SELECT * FROM tails WHERE id = ?"),
     liveTail: db.prepare("SELECT * FROM tails WHERE call_id = ? AND tg_id = ? AND status IN ('placed','filled','closed')"),
     counts: db.prepare(`
       SELECT mode, COUNT(*) n FROM tails WHERE call_id = ? AND status IN ('placed','filled','closed') GROUP BY mode`),
     liveCount: db.prepare("SELECT COUNT(*) n FROM tails WHERE tg_id = ? AND status IN ('placed','filled')"),
     retireTokens: db.prepare("UPDATE connect_tokens SET used_at = ? WHERE tg_id = ? AND used_at IS NULL"),
-    newToken: db.prepare("INSERT INTO connect_tokens (token, tg_id, expires_at) VALUES (?, ?, ?)"),
+    newToken: db.prepare("INSERT INTO connect_tokens (token, tg_id, expires_at, builder_code, fee_bps) VALUES (?, ?, ?, ?, ?)"),
     getToken: db.prepare("SELECT tg_id FROM connect_tokens WHERE token = ? AND used_at IS NULL AND expires_at > ?"),
     useToken: db.prepare("UPDATE connect_tokens SET used_at = ? WHERE token = ? AND used_at IS NULL"),
     newPending: db.prepare(`
@@ -280,8 +311,29 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     },
     rawUserRow: (tgId: number) => q.rawUser.get(tgId) as Record<string, unknown> | undefined,
     revokeUser(tgId: number, now: string) {
-      q.revoke.run(now, tgId);
+      db.transaction(() => {
+        q.revoke.run(now, tgId);
+        q.dropWallets.run(tgId);
+      })();
     },
+    setChannelCode(chatId: number, c: { code: string; feeBps: number } | null) {
+      q.setChannelCode.run(c?.code ?? null, c?.feeBps ?? null, chatId);
+    },
+    saveWallet(w: { tgId: number; builderCode: string; feeBps: number; chain: string; address: string; strikeAccountId: string; apiPub: string; apiPrivEnc: string; linkedAt: string }) {
+      q.saveWallet.run(w);
+    },
+    /** The follower's wallet for a caller's code, shaped as a trading user with the follower's own settings. */
+    walletFor(tgId: number, code: string): User | undefined {
+      const w = q.getWallet.get(tgId, code) as any;
+      if (!w) return undefined;
+      const u = q.rawUser.get(tgId) as any;
+      return {
+        tgId, chain: w.chain, address: w.address, strikeAccountId: w.strike_account_id, apiPub: w.api_pub, apiPrivEnc: w.api_priv_enc,
+        builderCode: w.builder_code, feeBps: w.fee_bps, linkedAt: w.linked_at,
+        riskPct: u?.risk_pct ?? "1", maxLeverage: u?.max_leverage ?? "5", maxNotionalUsd: u?.max_notional_usd ?? "500",
+      };
+    },
+    rawWalletRows: (tgId: number) => q.walletsOf.all(tgId) as Record<string, unknown>[],
     setSetting(tgId: number, key: SettingKey, value: string) {
       const col = SETTING_COLUMNS[key];
       if (!col) throw new Error(`unknown setting: ${String(key)}`);
@@ -331,8 +383,8 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
       q.cancelDraft.run(id);
     },
 
-    createTail: (t: { callId: number; tgId: number; mode: "tail" | "fade"; strategyId: string; size: string; notionalUsd: string; feeBps: number; createdAt: string }): number =>
-      Number(q.newTail.run(t).lastInsertRowid),
+    createTail: (t: { callId: number; tgId: number; mode: "tail" | "fade"; strategyId: string; size: string; notionalUsd: string; feeBps: number; builderCode?: string | null; createdAt: string }): number =>
+      Number(q.newTail.run({ ...t, builderCode: t.builderCode ?? null }).lastInsertRowid),
     getTail: (id: number): Tail | undefined => {
       const r = q.getTail.get(id);
       return r ? mapTail(r) : undefined;
@@ -367,13 +419,19 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     },
     countLiveTails: (tgId: number): number => (q.liveCount.get(tgId) as { n: number }).n,
 
-    createConnectToken(tgId: number, now: string): string {
+    /** `code` binds the link to a caller's builder code: the wallet it creates trades under that code. */
+    createConnectToken(tgId: number, now: string, code?: { code: string; feeBps: number }): string {
       const token = randomBytes(32).toString("base64url");
       db.transaction(() => {
         q.retireTokens.run(now, tgId);
-        q.newToken.run(token, tgId, new Date(Date.parse(now) + TOKEN_TTL_MS).toISOString());
+        q.newToken.run(token, tgId, new Date(Date.parse(now) + TOKEN_TTL_MS).toISOString(), code?.code ?? null, code?.feeBps ?? null);
       })();
       return token;
+    },
+    connectTokenCode(token: string, now: string): { code: string; feeBps: number } | null {
+      if (!TOKEN_RE.test(token)) return null;
+      const r = q.tokenCode.get(token, now) as { builder_code: string | null; fee_bps: number | null } | undefined;
+      return r?.builder_code && r.fee_bps !== null ? { code: r.builder_code, feeBps: r.fee_bps } : null;
     },
     peekConnectToken(token: string, now: string): number | undefined {
       if (!TOKEN_RE.test(token)) return undefined;

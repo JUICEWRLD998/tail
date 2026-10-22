@@ -439,3 +439,68 @@ describe("public channel pages", () => {
     expect(s.siteTotals()).toEqual({ channels: 1, calls: 1, tailsFilled: 1 });
   });
 });
+
+describe("caller builder codes (Strike pays the caller directly)", () => {
+  const reg = (s: Store) => s.registerChannel({ chatId: -1001, title: "Alpha", kind: "channel", callerTgId: 9, createdAt: T0 });
+
+  it("a channel has no code until its caller sets one, and can clear it", () => {
+    const s = fresh();
+    reg(s);
+    expect(s.getChannel(-1001)).toMatchObject({ builderCode: null, feeBps: null });
+    s.setChannelCode(-1001, { code: "alpha", feeBps: 25 });
+    expect(s.getChannel(-1001)).toMatchObject({ builderCode: "alpha", feeBps: 25 });
+    s.setChannelCode(-1001, null);
+    expect(s.getChannel(-1001)).toMatchObject({ builderCode: null, feeBps: null });
+  });
+
+  it("a connect token can be bound to a caller's code and rate", () => {
+    const s = fresh();
+    const plain = s.createConnectToken(111, T0);
+    const coded = s.createConnectToken(222, T0, { code: "alpha", feeBps: 25 });
+    expect(s.connectTokenCode(plain, at(1))).toBeNull();
+    expect(s.connectTokenCode(coded, at(1))).toEqual({ code: "alpha", feeBps: 25 });
+    expect(s.connectTokenCode("nope", at(1))).toBeNull();
+  });
+
+  it("stores one wallet per follower per code, and returns it as a trading user with the follower's settings", () => {
+    const s = fresh();
+    s.linkUser(user);
+    s.setSetting(111, "riskPct", "3");
+    s.saveWallet({ tgId: 111, builderCode: "alpha", feeBps: 25, chain: "solana", address: "SoLaddr", strikeAccountId: "acc-2", apiPub: "pub2", apiPrivEnc: "v1:x:y:z", linkedAt: T0 });
+    expect(s.walletFor(111, "alpha")).toMatchObject({ tgId: 111, apiPub: "pub2", apiPrivEnc: "v1:x:y:z", builderCode: "alpha", feeBps: 25, riskPct: "3", strikeAccountId: "acc-2" });
+    expect(s.walletFor(111, "beta")).toBeUndefined();
+  });
+
+  it("reconnecting under the same code replaces the wallet", () => {
+    const s = fresh();
+    s.linkUser(user);
+    const w = { tgId: 111, builderCode: "alpha", feeBps: 25, chain: "solana", address: "a", strikeAccountId: "acc-2", apiPub: "p1", apiPrivEnc: "v1:1:1:1", linkedAt: T0 };
+    s.saveWallet(w);
+    s.saveWallet({ ...w, apiPub: "p2", apiPrivEnc: "v1:2:2:2" });
+    expect(s.walletFor(111, "alpha")?.apiPub).toBe("p2");
+  });
+
+  it("revoking a user removes every wallet key too, not only the default one", () => {
+    const s = fresh();
+    s.linkUser(user);
+    s.saveWallet({ tgId: 111, builderCode: "alpha", feeBps: 25, chain: "solana", address: "a", strikeAccountId: "acc-2", apiPub: "p", apiPrivEnc: "v1:1:1:1", linkedAt: T0 });
+    s.revokeUser(111, at(1));
+    expect(s.walletFor(111, "alpha")).toBeUndefined();
+    expect(JSON.stringify(s.rawWalletRows(111))).not.toContain("v1:1:1:1");
+  });
+
+  it("a wallet without a default user row is still usable (the follower's first connect came from a caller's card)", () => {
+    const s = fresh();
+    s.saveWallet({ tgId: 333, builderCode: "alpha", feeBps: 25, chain: "solana", address: "a", strikeAccountId: "acc-3", apiPub: "p", apiPrivEnc: "v1:1:1:1", linkedAt: T0 });
+    expect(s.walletFor(333, "alpha")).toMatchObject({ riskPct: "1", maxLeverage: "5", maxNotionalUsd: "500" });
+  });
+
+  it("a tail records which code its order carried", () => {
+    const s = fresh();
+    const call = s.createDraftCall(callDraft);
+    const id = s.createTail({ callId: call, tgId: 111, mode: "tail", strategyId: "x", size: "1", notionalUsd: "1", feeBps: 25, builderCode: "alpha", createdAt: T0 });
+    expect(s.getTail(id)?.builderCode).toBe("alpha");
+    const id2 = s.createTail({ callId: call, tgId: 112, mode: "tail", strategyId: "y", size: "1", notionalUsd: "1", feeBps: 0, createdAt: T0 });
+    expect(s.getTail(id2)?.builderCode).toBeNull();
+  });
+});

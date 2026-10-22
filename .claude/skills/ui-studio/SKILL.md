@@ -227,6 +227,12 @@ If something could not be seen, say it was not verified.
 
 ## Pitfalls
 
+- `innerText` applies CSS `text-transform`: an uppercase kicker reads back as "BUILDER FEE" and a text probe for
+  "Builder fee" fails while the page is fine. Read page text with `textContent` and assert on what the DOM says.
+- A replay that reveals items one by one shows the empty state in between. If the empty state is a sentence ("No one has
+  taken this call yet"), it is false mid-replay. Drive empty-state copy from the real total, not from what is visible.
+- `[class*="chip"]` also matches the list `.chips`. Scope count probes to the element (`li[class*="chip"]`).
+
 - **One skill only** (2026-10-04, Hallmark retired 2026-10-17). One skill's checklist is one set of blind spots. Run the specialists in the table; never a stock theme.
 - **Committing to the first direction.** It is the modal one. Explore three before structure.
 - **Cloning a reference's grammar** instead of learning why it reads well. Derive from the subject.

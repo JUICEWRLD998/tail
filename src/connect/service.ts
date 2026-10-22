@@ -37,10 +37,13 @@ function strikeText(e: unknown): string {
 }
 
 export function createConnectService(d: ConnectDeps) {
+  // A link from a caller's card carries that caller's code: the wallet it creates trades under it, so Strike pays them.
+  const codeOf = (token: string) => d.store.connectTokenCode(token, d.now()) ?? { code: d.builderCode, feeBps: d.feeShareBps };
   return {
     info(token: string) {
       if (d.store.peekConnectToken(token, d.now()) === undefined) return { ok: false as const, error: INVALID };
-      return { ok: true as const, builderCode: d.builderCode, feeCapBps: d.feeShareBps, chains: CHAINS };
+      const c = codeOf(token);
+      return { ok: true as const, builderCode: c.code, feeCapBps: c.feeBps, chains: CHAINS };
     },
 
     async challenge(token: string, i: { address: string; chain: Chain }): Promise<{ ok: true; nonce: string; message: string } | { ok: false; error: string }> {
@@ -51,9 +54,10 @@ export function createConnectService(d: ConnectDeps) {
       }
       const priv = Buffer.from(generateKeyPairSync("ed25519").privateKey.export({ format: "jwk" }).d as string, "base64url").toString("hex");
       const pub = derivePublicKeyHex(priv);
+      const c = codeOf(token);
       try {
         const r = await d.strike.builderRequestSignature({
-          address: i.address, chain: i.chain, code: d.builderCode, feeShareBps: d.feeShareBps, publicKey: pub,
+          address: i.address, chain: i.chain, code: c.code, feeShareBps: c.feeBps, publicKey: pub,
         });
         d.store.savePending({
           nonce: r.nonce, token, tgId, address: i.address, chain: i.chain, apiPub: pub,
@@ -66,6 +70,8 @@ export function createConnectService(d: ConnectDeps) {
     },
 
     async complete(token: string, i: { nonce: string; signature: string }): Promise<{ ok: true; address: string } | { ok: false; error: string }> {
+      const c = codeOf(token);
+      const caller = d.store.connectTokenCode(token, d.now());
       const pending = d.store.takePending(i.nonce, token, d.now());
       if (!pending) return { ok: false, error: "That request expired. Reload the page and try again." };
       let res;
@@ -81,13 +87,22 @@ export function createConnectService(d: ConnectDeps) {
       if (d.store.consumeConnectToken(token, d.now()) === undefined) return { ok: false, error: INVALID };
       // The key was encrypted when generated; check it still opens before we rely on it.
       decryptSecret(d.kek, pending.apiPrivEnc);
-      d.store.linkUser({
+      const wallet = {
         tgId: pending.tgId, chain: pending.chain, address: pending.address, strikeAccountId: res.account_id,
-        apiPub: pending.apiPub, apiPrivEnc: pending.apiPrivEnc, builderCode: d.builderCode, linkedAt: d.now(),
-      });
+        apiPub: pending.apiPub, apiPrivEnc: pending.apiPrivEnc, builderCode: c.code, linkedAt: d.now(),
+      };
+      if (caller) {
+        d.store.saveWallet({ ...wallet, feeBps: c.feeBps });
+        // The first connect a follower ever makes may come from a caller's card; it then doubles as their default.
+        if (!d.store.getUser(pending.tgId)) d.store.linkUser(wallet);
+      } else {
+        d.store.linkUser(wallet);
+      }
       const address = short(pending.address);
       try {
-        await d.notify(pending.tgId, `✅ <b>Linked</b> ${address}\nTap <b>Tail</b> on a call card to trade.`);
+        await d.notify(pending.tgId, caller
+          ? `✅ <b>Linked</b> ${address}\nYou trade this caller's calls under their builder code <code>${escapeHtml(c.code)}</code>. Tap <b>Tail</b> again.`
+          : `✅ <b>Linked</b> ${address}\nTap <b>Tail</b> on a call card to trade.`);
       } catch {
         /* the link exists; a failed DM must not undo it */
       }

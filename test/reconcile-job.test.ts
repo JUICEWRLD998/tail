@@ -91,6 +91,18 @@ describe("runReconcile", () => {
     expect(dms.length).toBe(1);
   });
 
+  it("reads a caller-coded tail through the follower's wallet for that code", async () => {
+    const callId = seed();
+    store.saveWallet({ tgId: 5, builderCode: "alpha", feeBps: 25, chain: "solana", address: "a", strikeAccountId: "acc-9", apiPub: "coded", apiPrivEnc: "v1:c:o:d", linkedAt: "t" });
+    const id = store.createTail({ callId, tgId: 5, mode: "tail", strategyId: "s-coded", size: "0.009", notionalUsd: "22", feeBps: 25, builderCode: "alpha", createdAt: new Date(T0).toISOString() });
+    store.updateTail(id, { status: "placed", orderId: "100", primaryClientOrderId: `p-${id}` });
+    script.primary = { [`p-${id}`]: { ID: 100, Status: "open" } };
+    const seen: string[] = [];
+    await runReconcile(deps({ strikeFor: (u: any) => (seen.push(u.apiPub), strike()) }));
+    expect(seen).toContain("coded");
+    expect(seen).not.toContain("p");
+  });
+
   describe("a tail confirm already marked filled, without a fill price", () => {
     const filledTail = (o: Record<string, string> = {}) => tailFor(seed(), 5, { status: "filled", ...o });
     const primaryOf = (t: number) => ({ [`p-${t}`]: { ID: 100, Status: "filled" } });

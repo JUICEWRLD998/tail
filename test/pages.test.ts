@@ -53,7 +53,9 @@ describe("channel page data", () => {
     expect(p.record).toMatchObject({ calls: 3, open: 1, tpHit: 1, slHit: 1, decided: 2, hitRatePct: "50.0", followers: 2 });
     expect(p.earnings).toMatchObject({ basis: expect.stringContaining("estimate"), filled: 3, paying: 3, withoutRate: 0 });
     expect(Number(p.earnings.fee)).toBeCloseTo(0.009 * 2480 * 10 / 10000 * 2 + 0.009 * 60000 * 10 / 10000, 6);
-    expect(p.payout).toBe("not live");
+    expect(p.payout).toEqual({ to: "tail" });
+    store.setChannelCode(-1001, { code: "alpha", feeBps: 25 });
+    expect(createPages(store).channel(slug)!.payout).toEqual({ to: "caller", code: "alpha", feeBps: 25 });
   });
 
   it("lists calls newest first with per-call result, followers and fee, and no private fields", () => {

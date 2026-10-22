@@ -113,7 +113,10 @@ export function HomePage() {
             Add the bot to your channel as an admin and send it /addchannel. Every call gets a result from the market, not from you.
             /record shows your hit rate, /earnings the builder fee on your followers' fills, and /publish turns on a public page.
           </p>
-          <p className={`${styles.note} ${styles.warn}`}>The builder fee is an estimate from entry fills. Payout to callers is not live.</p>
+          <p className={styles.note}>
+            Get paid by Strike, not by us: register your own builder code on Strike and send the bot /setcode. Your followers' orders carry
+            your code, and Strike credits the fee to your account on every fill.
+          </p>
         </div>
         <div className={styles.section} aria-labelledby="measured">
           <h3 id="measured" className={styles.kicker}>Measured on this server</h3>
@@ -133,7 +136,7 @@ export function HomePage() {
       </section>
 
       <footer className={styles.foot}>
-        <span>Built for the Strike Hackathon by Mustapha Fadhlullah, independent security researcher.</span>
+        <span>Built for the Strike Hackathon.</span>
         <span>Testnet only.</span>
       </footer>
     </Shell>

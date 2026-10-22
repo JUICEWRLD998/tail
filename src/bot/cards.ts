@@ -70,6 +70,8 @@ export interface FollowerCardInput {
   levels: { side: Side; tp: string; sl: string };
   /** This follower's reward-to-risk, or null for a market entry. */
   rewardRisk: string | null;
+  /** The builder fee this order carries and who Strike pays it to. Omitted: not shown. */
+  fee?: { bps: 0 } | { bps: number; to: "caller"; code: string } | { bps: number; to: "tail" };
 }
 
 export function followerConfirmCard(i: FollowerCardInput): string {
@@ -89,6 +91,11 @@ export function followerConfirmCard(i: FollowerCardInput): string {
   }
   const cap = CAP_TEXT[i.sizing.binding];
   if (cap) lines.push(cap);
+  if (i.fee) {
+    lines.push(i.fee.bps === 0 ? "🏷️ No builder fee"
+      : "to" in i.fee && i.fee.to === "caller" ? `🏷️ Builder fee ${i.fee.bps} bps, paid by Strike to this caller's code <code>${escapeHtml(i.fee.code)}</code>`
+      : `🏷️ Builder fee ${i.fee.bps} bps, to Tail's code`);
+  }
   return lines.join("\n");
 }
 

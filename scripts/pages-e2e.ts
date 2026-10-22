@@ -29,7 +29,7 @@ const check = (name: string, pass: boolean, detail?: unknown) => {
 };
 
 async function boot(dbPath: string, port: number) {
-  const cfg = loadConfig({ TELEGRAM_BOT_TOKEN: "123:dummy", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: dbPath, TAIL_MODE: "dev", PORT: String(port), PUBLIC_URL: `http://localhost:${port}` });
+  const cfg = loadConfig({ TELEGRAM_BOT_TOKEN: "123:local-browser-check-no-telegram", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: dbPath, TAIL_MODE: "dev", PORT: String(port), PUBLIC_URL: `http://localhost:${port}` });
   const app = await createApp(cfg, { botInfo, staticDir: "web/dist" });
   await app.server.listen({ port, host: "127.0.0.1" });
   return { app, origin: `http://localhost:${port}` };
@@ -132,7 +132,8 @@ if (realSlug) {
   const t = await text(page);
   check("real page shows the call count from the API", t.includes(`${api.page.record.calls}`));
   check("real page says 'No tail has filled yet' when the fee is zero", api.page.earnings.filled === 0 ? t.includes("No tail has filled yet") : true, { filled: api.page.earnings.filled });
-  check("real page states that payout is not live", t.includes("Payout to callers is not live"));
+  const payout = (api.page as unknown as { payout: { to: string } }).payout;
+  check("real page says who Strike pays the fee to, matching the API", payout.to === "caller" ? t.includes("Paid by Strike straight to the account") : t.includes("these fees go to Tail's code"), payout);
   check("real page shows the heading with focus", (await page.evaluate("document.activeElement && document.activeElement.tagName")) === "H1");
   await ctx.close();
 }

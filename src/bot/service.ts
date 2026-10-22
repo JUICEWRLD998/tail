@@ -45,6 +45,8 @@ export interface ServiceDeps {
   limits?: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number };
   /** Optional fallback reader for calls the parser could not read. Its output is a proposal the caller must confirm. */
   ai?: AiReader;
+  /** Asks Strike whether a builder code exists. Unknown codes are refused before they reach a channel. */
+  checkBuilderCode?: (code: string, feeBps: number) => Promise<"ok" | "unknown" | "unreachable">;
   /** The builder fee rate sent with a builder wallet's orders (the same value the Strike client is given). */
   builderFeeBps?: number;
 }
@@ -72,6 +74,16 @@ function worthAReading(reason: string, text: string, markets: Readonly<Record<st
 
 export function createService(d: ServiceDeps) {
   const { store } = d;
+
+  /** Which wallet trades a call: the follower's wallet for the caller's own code when the channel has one, else the default. */
+  const traderFor = (tgId: number, chatId: number): { user: User | undefined } | { needs: { code: string; feeBps: number } } => {
+    const ch = store.getChannel(chatId);
+    if (ch?.builderCode && ch.feeBps !== null) {
+      const w = store.walletFor(tgId, ch.builderCode);
+      return w ? { user: w } : { needs: { code: ch.builderCode, feeBps: ch.feeBps } };
+    }
+    return { user: store.getUser(tgId) };
+  };
   const attempts = d.pollAttempts ?? 20;
   const maxOpenTails = d.limits?.maxOpenTails ?? 10;
   const maxCallsPerHour = d.limits?.maxCallsPerHour ?? 10;
@@ -189,10 +201,14 @@ export function createService(d: ServiceDeps) {
       return { text: "🗑️ Dropped." };
     },
 
-    async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string; needsLink?: true } | { ok: true; tailId: number; reply: Reply }> {
-      const user = store.getUser(i.tgId);
-      if (!user) return { ok: false, text: "Link your Strike account first with /link.", needsLink: true };
+    async quote(i: { tgId: number; callId: number; mode: "tail" | "fade" }): Promise<{ ok: false; text: string; needsLink?: true; connectCode?: { code: string; feeBps: number } } | { ok: true; tailId: number; reply: Reply }> {
       const call = store.getCall(i.callId);
+      const t = call ? traderFor(i.tgId, call.chatId) : { user: store.getUser(i.tgId) };
+      if ("needs" in t) {
+        return { ok: false, text: "🔗 This caller is paid through their own Strike builder code. Connect once for their calls with /connect.", needsLink: true, connectCode: t.needs };
+      }
+      const user = t.user;
+      if (!user) return { ok: false, text: "Link your Strike account first with /link.", needsLink: true };
       if (!call || call.status !== "open") return { ok: false, text: "This call is closed." };
       if (store.findLiveTail(call.id, i.tgId)) return { ok: false, text: "You already took this call." };
       if (store.countLiveTails(i.tgId) >= maxOpenTails) {
@@ -229,15 +245,20 @@ export function createService(d: ServiceDeps) {
       });
       if (!sizing.ok) return { ok: false, text: refusalText(sizing) };
 
+      const feeBps = user.feeBps ?? (user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0);
+      const fee = feeBps === 0 ? { bps: 0 as const }
+        : user.feeBps !== undefined ? { bps: feeBps, to: "caller" as const, code: user.builderCode as string } : { bps: feeBps, to: "tail" as const };
       const tailId = store.createTail({
         callId: call.id, tgId: i.tgId, mode: i.mode, strategyId: d.uuid(), size: sizing.size, notionalUsd: sizing.notional,
-        feeBps: user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0, createdAt: d.now(),
+        // A caller-code wallet carries that caller's rate; the default wallet carries the server's, if it is a builder wallet.
+        feeBps,
+        builderCode: user.feeBps !== undefined ? user.builderCode : null, createdAt: d.now(),
       });
       const rr = call.entry === null ? null : rewardRisk({ side: levels.side, entry: levels.entry, tp: levels.tp, sl: levels.sl });
       return {
         ok: true, tailId,
         reply: {
-          text: followerConfirmCard({ call, mode: i.mode, sizing, equity, riskPct: user.riskPct, levels, rewardRisk: rr }),
+          text: followerConfirmCard({ call, mode: i.mode, sizing, equity, riskPct: user.riskPct, levels, rewardRisk: rr, fee }),
           buttons: [
             { text: "Confirm", callback: callbackData("confirm", tailId) },
             { text: "Cancel", callback: callbackData("cancel", tailId) },
@@ -265,7 +286,8 @@ export function createService(d: ServiceDeps) {
       // Claim before any await: a double tap, or two taps in flight, can send at most one order.
       if (!store.claimTail(tail.id)) return { text: "Already placed." };
 
-      const user = store.getUser(i.tgId);
+      // The same wallet that was quoted: the caller's code if the tail carries one, else the default.
+      const user = tail.builderCode ? store.walletFor(i.tgId, tail.builderCode) : store.getUser(i.tgId);
       const call = store.getCall(tail.callId);
       if (!user || !call) {
         store.updateTail(tail.id, { status: "rejected", error: "unavailable" });
@@ -389,6 +411,28 @@ export function createService(d: ServiceDeps) {
       if (!valid) return { ok: false, text: `${l.label} must be a number above ${key === "maxLeverage" ? "0.99" : "0"} and at most ${l.max}.` };
       store.setSetting(tgId, key, v);
       return { ok: true, text: `${l.label} set to ${v}${l.unit}.` };
+    },
+
+    /** Sets (or with null, removes) a channel's own builder code, after Strike confirms the code exists. */
+    async setCode(chatId: number, c: { code: string; feeBps: number } | null): Promise<string> {
+      const ch = store.getChannel(chatId);
+      if (!ch) return "No channel yet. Use /addchannel.";
+      const title = escapeHtml(ch.title);
+      if (c === null) {
+        store.setChannelCode(chatId, null);
+        return `🗑️ <b>Builder code removed</b> for ${title}\nNew follows go through Tail's code again.`;
+      }
+      const check = d.checkBuilderCode ? await d.checkBuilderCode(c.code, c.feeBps) : "unreachable";
+      if (check === "unknown") return `❌ Strike does not know the builder code <code>${escapeHtml(c.code)}</code>. Register it at app.strikefinance.org/builder-codes first.`;
+      if (check !== "ok") return "⚠️ Could not reach Strike to check that code. Try again.";
+      store.setChannelCode(chatId, c);
+      return [
+        `✅ <b>Builder code set</b> for ${title}`,
+        `🏷️ <code>${escapeHtml(c.code)}</code> at ${c.feeBps} bps`,
+        "",
+        `Strike credits the builder fee on your followers' fills straight to the account that owns <code>${escapeHtml(c.code)}</code>.`,
+        "Followers connect once for your calls. Use the rate you registered with Strike.",
+      ].join("\n");
     },
 
     revoke(tgId: number): string {

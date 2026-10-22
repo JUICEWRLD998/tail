@@ -2,6 +2,25 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-22 P9: hardening checklist (each item run, with its result)
+
+| # | Item | Result |
+|---|---|---|
+| 1 | Byline removed from public pages (his call) | Home footer and README: removed. Internal notes keep it |
+| 2 | "Payout to callers is not live": what it meant | VERIFIED (`docs.strikefinance.org/api/builder-codes.md`): builder fees are "credited instantly to your account balance" of the code's owner. Every order carried `sigma`, so fees went to him, never to a caller |
+| 3 | Fix: callers' own builder codes | `/setcode CODE RATE`; Strike checks the code (live: `sigma` ok, unknown code 404 `builder code not found`). Follows from a coded channel connect once under the caller's code (one API wallet per follower per code, migration v5) and orders carry it, so Strike pays the caller directly. Tail never holds money |
+| 4 | Binding: the fee goes only to the caller of the call taken | Pinned: one follower with wallets for two codes; a call in channel B trades and reconciles only through B's wallet |
+| 5 | Followers see the fee before they confirm | Quote shows "Builder fee N bps, paid by Strike to this caller's code X", "to Tail's code", or "No builder fee" |
+| 6 | Key storage | AES-256-GCM, random 96-bit nonce per key; `/revoke` now deletes every wallet key in one transaction; no route returns a key; logs carry error messages only. Not done: binding ciphertext to the row (AAD), since it needs database write access to exploit |
+| 7 | Connect API | Token 256-bit, single use, 10 min, bound to one Telegram user; pending key 5 min; 20 attempts/min per token; Strike's returned key must equal ours. Pages: 120 reads/min per client |
+| 8 | Content-Security-Policy | Every HTML page: own scripts only, no framing, no plugins, no base or form targets. Control: an injected inline script is blocked and logged. Pages (115), replay (9) and wallet connect against live Strike (25/25) still pass under it |
+| 9 | Secret sweep, tree and history | `npm run check:push` clean. Full history: the bot token, KEK, API key and OpenRouter key values: 0 occurrences each. One 64-hex in history: the throwaway test key recorded on 2026-10-21 (never registered with Strike); history is not rewritten (no force-push on main) |
+| 10 | `mock/fake/dummy/lorem/example.com/TODO` sweep | `src/` and `web/`: 0. Tests: test doubles only. Local browser scripts: a placeholder bot token, renamed `123:local-browser-check-no-telegram` |
+| 11 | Real migration | A copy of the dev database went v4 to v5 with 3 calls, 3 tails, 1 user kept; the live database then migrated on restart (v5) |
+| 12 | One status vocabulary | A test fails any README status that is not LIVE, NEXT or NOT LIVE; it caught `LIVE (spike)` and `LIVE (local)`, now fixed |
+| 13 | Judge's path from zero, on the deployed bot | NOT RUN: needs the deploy (his step, `docs/DEPLOY.md`) |
+| 14 | A real fill under a caller's code | NOT RUN: needs a follower connected through the deployed page under a coded channel. UNVERIFIED: whether Strike refuses an order whose rate is above the code's registered rate |
+
 ## 2026-10-22 P8 built: ticket design, real-call replay, charts
 
 - **Direction: the call as a printed ticket.** Signal channels trade in call cards and receipts, so the card is a paper
