@@ -46,12 +46,13 @@ let n = 0;
 
 let ai: ServiceDeps["ai"];
 let builderFeeBps: number | undefined;
+let traders: any[] = [];
 
 function build(o: FakeOpts = {}, limits: { maxOpenTails?: number; maxCallsPerHour?: number; duplicateWindowMs?: number } = {}) {
   strike = fakeStrike(o);
   svc = createService({
     store, kek, botUsername: "tailbot",
-    publicStrike: strike, strikeFor: () => strike, clientForKey: () => strike,
+    publicStrike: strike, strikeFor: (u) => (traders.push(u), strike), clientForKey: () => strike,
     now: () => new Date(clock).toISOString(), uuid: () => `uuid-${++n}`, sleep: async () => {}, pollAttempts: 3, limits, ai, builderFeeBps,
   });
 }
@@ -696,5 +697,55 @@ describe("AI fallback (a proposal the caller must confirm; the model builds noth
     await post(NATURAL);
     const again = await post(NATURAL);
     expect(again).toMatchObject({ type: "dm", reply: { text: expect.stringContaining("already posted") } });
+  });
+});
+
+describe("caller builder codes: the follower trades a coded channel under the caller's code", () => {
+  const wallet = { tgId: FOLLOWER, builderCode: "alpha", feeBps: 25, chain: "solana", address: "SoL", strikeAccountId: "acc-9", apiPub: "coded-pub", apiPrivEnc: "v1:c:o:d", linkedAt: "t" };
+  beforeEach(() => {
+    traders = [];
+    store.setChannelCode(CHAT, { code: "alpha", feeBps: 25 });
+  });
+
+  it("a follower with no wallet for the code is asked to connect for this caller, even with a default wallet", async () => {
+    linkFollower();
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    expect(r).toMatchObject({ ok: false, needsLink: true, connectCode: { code: "alpha", feeBps: 25 } });
+    expect(traders).toEqual([]);
+  });
+
+  it("a follower who never linked anything is asked the same way", async () => {
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    expect(r).toMatchObject({ ok: false, needsLink: true, connectCode: { code: "alpha", feeBps: 25 } });
+  });
+
+  it("with the wallet, the quote sizes from it and the tail records the caller's code and rate", async () => {
+    linkFollower();
+    store.saveWallet(wallet);
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!r.ok) throw new Error(r.text);
+    expect(traders.at(-1)).toMatchObject({ apiPub: "coded-pub", feeBps: 25, riskPct: "3" });
+    expect(store.getTail(r.tailId)).toMatchObject({ feeBps: 25, builderCode: "alpha" });
+  });
+
+  it("confirm places the order through the same coded wallet", async () => {
+    linkFollower();
+    store.saveWallet(wallet);
+    const q = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!q.ok) throw new Error(q.text);
+    traders = [];
+    await svc.confirm({ tgId: FOLLOWER, tailId: q.tailId });
+    expect(traders.length).toBeGreaterThan(0);
+    for (const t of traders) expect(t.apiPub).toBe("coded-pub");
+    expect(strike.placed).toHaveLength(1);
+  });
+
+  it("a channel without a code still trades through the default wallet, with no code on the tail", async () => {
+    store.setChannelCode(CHAT, null);
+    linkFollower();
+    const r = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!r.ok) throw new Error(r.text);
+    expect(traders.at(-1)).toMatchObject({ apiPub: "pub" });
+    expect(store.getTail(r.tailId)?.builderCode).toBeNull();
   });
 });
