@@ -2,7 +2,7 @@
 // The model builds nothing here. Every order is parsed and sized by tested deterministic code.
 import { fadeOf, rewardRisk } from "../core/fade.js";
 import { bracketFromDraft } from "../core/order.js";
-import { parseCall } from "../core/parser.js";
+import { parseCall, type Hints, type ParseResult } from "../core/parser.js";
 import { sizeTail } from "../core/sizing.js";
 import { roundToTick } from "../core/tick.js";
 import { decryptSecret, encryptSecret } from "../db/crypto.js";
@@ -25,6 +25,8 @@ export interface Reply {
   text: string;
   buttons?: Button[];
 }
+
+export type CallerPostResult = { type: "ignore" } | { type: "dm"; tgId: number; reply: Reply };
 
 export interface ServiceDeps {
   store: Store;
@@ -57,6 +59,47 @@ export function createService(d: ServiceDeps) {
   const { store } = d;
   const attempts = d.pollAttempts ?? 20;
 
+  const FOLLOW_UP: Record<string, string> = {
+    sl: " Post the call again with it.", tp: " Post the call again with it.", entry: " Post the call again with it.",
+    levels: " Post the corrected call again.", symbol: " Post the call again with the market named.",
+  };
+
+  /** Parses a call and turns the result into what the caller sees: a confirm card, a question, or nothing. */
+  async function processCall(callerTgId: number, i: { chatId: number; messageId: number; text: string }, hints: Hints): Promise<CallerPostResult> {
+    const r: ParseResult = parseCall(i.text, { markets: await marketMap() }, hints);
+    if (!r.ok) {
+      if (r.reason === "not_a_call") return { type: "ignore" };
+      if (r.reason === "not_listed") {
+        store.recordMiss(r.base, i.chatId);
+        return { type: "dm", tgId: callerTgId, reply: { text: `Not on Strike yet: ${r.base}.` } };
+      }
+      const { question, options, field } = r.ask;
+      if (options && options.length > 0) {
+        const askId = store.createAsk({ tgId: callerTgId, chatId: i.chatId, messageId: i.messageId, rawText: i.text, field, options, createdAt: d.now() });
+        return {
+          type: "dm", tgId: callerTgId,
+          reply: { text: question, buttons: options.map((label, n) => ({ text: label, callback: callbackData("ask", askId, n) })) },
+        };
+      }
+      return { type: "dm", tgId: callerTgId, reply: { text: `${question}${FOLLOW_UP[field] ?? ""}` } };
+    }
+    const dr = r.draft;
+    const id = store.createDraftCall({
+      chatId: i.chatId, messageId: i.messageId, rawText: i.text, symbol: dr.symbol, side: dr.side, entryKind: dr.entryKind,
+      entry: dr.entry, tp: dr.tp, sl: dr.sl, leverageHint: dr.leverageHint, createdAt: d.now(),
+    });
+    return {
+      type: "dm", tgId: callerTgId,
+      reply: {
+        text: callerConfirmCard({ ...dr, extraTargets: dr.extraTargets }),
+        buttons: [
+          { text: "Post", callback: callbackData("post", id) },
+          { text: "Drop", callback: callbackData("drop", id) },
+        ],
+      },
+    };
+  }
+
   const marketMap = async () => {
     const m = await d.publicStrike.markets();
     return Object.fromEntries(Object.entries(m).map(([k, v]) => [k, { tickSize: v.tickSize }]));
@@ -68,31 +111,23 @@ export function createService(d: ServiceDeps) {
       const channel = store.getChannel(i.chatId);
       if (!channel) return { type: "ignore" as const };
       if (i.senderTgId !== undefined && i.senderTgId !== channel.callerTgId) return { type: "ignore" as const };
-      const r = parseCall(i.text, { markets: await marketMap() });
-      if (!r.ok) {
-        if (r.reason === "not_a_call") return { type: "ignore" as const };
-        if (r.reason === "not_listed") {
-          store.recordMiss(r.base, i.chatId);
-          return { type: "dm" as const, tgId: channel.callerTgId, reply: { text: `Not on Strike yet: ${r.base}.` } };
-        }
-        return { type: "dm" as const, tgId: channel.callerTgId, reply: { text: r.ask.question } };
-      }
-      const dr = r.draft;
-      const id = store.createDraftCall({
-        chatId: i.chatId, messageId: i.messageId, rawText: i.text, symbol: dr.symbol, side: dr.side, entryKind: dr.entryKind,
-        entry: dr.entry, tp: dr.tp, sl: dr.sl, leverageHint: dr.leverageHint, createdAt: d.now(),
-      });
-      return {
-        type: "dm" as const,
-        tgId: channel.callerTgId,
-        reply: {
-          text: callerConfirmCard({ ...dr, extraTargets: dr.extraTargets }),
-          buttons: [
-            { text: "Post", callback: callbackData("post", id) },
-            { text: "Drop", callback: callbackData("drop", id) },
-          ],
-        } as Reply,
-      };
+      return processCall(channel.callerTgId, i, {});
+    },
+
+    /** The caller tapped an answer to a question the parser asked. The answer fixes one field; every rule still applies. */
+    async answerAsk(i: { tgId: number; askId: number; option: number }): Promise<{ ok: false; text: string } | { ok: true; chosen: string; result: CallerPostResult }> {
+      const expired = { ok: false as const, text: "This question has expired. Post the call again." };
+      const pending = store.peekAsk(i.askId, i.tgId, d.now());
+      if (!pending || !Number.isInteger(i.option) || i.option < 0 || i.option >= pending.options.length) return expired;
+      if (!store.getChannel(pending.chatId)) return expired;
+      const taken = store.takeAsk(i.askId, i.tgId, d.now());
+      if (!taken) return expired;
+      const chosen = taken.options[i.option] as string;
+      const hints: Hints =
+        taken.field === "side" ? { side: chosen.toLowerCase() === "short" ? "short" : "long" } :
+        taken.field === "symbol" ? { symbol: chosen } :
+        taken.field === "entry" ? { entry: chosen } : {};
+      return { ok: true, chosen, result: await processCall(i.tgId, { chatId: taken.chatId, messageId: taken.messageId ?? 0, text: taken.rawText }, hints) };
     },
 
     postDraft(callId: number, byTgId: number) {

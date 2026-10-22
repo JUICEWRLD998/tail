@@ -391,6 +391,10 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
 
     createAsk: (a: { tgId: number; chatId: number; messageId: number | null; rawText: string; field: string; options: string[]; createdAt: string }): number =>
       Number(q.newAsk.run({ ...a, messageId: a.messageId ?? null, options: JSON.stringify(a.options) }).lastInsertRowid),
+    peekAsk(id: number, tgId: number, now: string) {
+      const r = q.getAsk.get(id, tgId, new Date(Date.parse(now) - ASK_TTL_MS).toISOString()) as any;
+      return r ? { chatId: r.chat_id as number, messageId: r.message_id as number | null, rawText: r.raw_text as string, field: r.field as string, options: JSON.parse(r.options) as string[] } : undefined;
+    },
     /** Returns a pending question once, only to the caller it was asked of; a wrong caller does not burn it. */
     takeAsk(id: number, tgId: number, now: string) {
       return db.transaction(() => {

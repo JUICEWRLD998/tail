@@ -346,6 +346,15 @@ describe("pending questions (asks)", () => {
     expect(s.takeAsk(id, 111, at(16))).toBeUndefined();
   });
 
+  it("peekAsk reads a question without using it", () => {
+    const s = fresh();
+    const id = s.createAsk(ask());
+    expect(s.peekAsk(id, 111, at(1))?.options).toEqual(["Long", "Short"]);
+    expect(s.peekAsk(id, 222, at(1))).toBeUndefined();
+    expect(s.takeAsk(id, 111, at(2))).toBeDefined();
+    expect(s.peekAsk(id, 111, at(3))).toBeUndefined();
+  });
+
   it("keeps the original text and options exactly, including newlines and unicode", () => {
     const s = fresh();
     const raw = "ETH long\nEntry Targets:\n1) 2480\n2) 2470 🔴";
