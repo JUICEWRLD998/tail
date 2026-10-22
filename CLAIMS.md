@@ -33,6 +33,9 @@ Each claim in the README, and the command that reproduces it. If a command does 
 | The home page replay is a real call, plays in order, and respects reduced motion | `npm run web:build && npx tsx scripts/replay-probe.ts` | all pass; frames in `docs/proof/pages/replay/` |
 | Builder-fee earnings are an estimate, floored, entry fills only | `npx vitest run test/earnings.test.ts` | pass; Strike's fill has no builder-share field (`user-api.yaml` 868-884) |
 | A page is opt-in, and private, unknown and malformed slugs look alike | `npx vitest run test/store.test.ts test/pages.test.ts test/server.test.ts -t "public"` | pass |
+| A caller's own code is checked with Strike and their followers' orders carry it | `npx vitest run test/code-check.test.ts test/connect-service.test.ts test/service.test.ts -t "code"` | pass; live check: `sigma` ok, unknown code 404 |
+| Pages run under a strict CSP | `npx vitest run test/server.test.ts -t "Content-Security-Policy"` | pass |
+| README uses one status vocabulary | `npx vitest run test/readme-status.test.ts` | pass |
 | Core coverage | `npm run test:cov` | `src/core` above 90% statements |
 
 ## SQL behind the caller page (run against `data/tail.db`; `?` is the channel's chat id)
