@@ -749,3 +749,49 @@ describe("caller builder codes: the follower trades a coded channel under the ca
     expect(store.getTail(r.tailId)?.builderCode).toBeNull();
   });
 });
+
+describe("binding: one follower, two coded channels, each call pays only its own caller", () => {
+  it("a call in channel B trades under B's code even when the follower also holds A's wallet", async () => {
+    traders = [];
+    const B = -2002;
+    store.registerChannel({ chatId: B, title: "Beta", kind: "channel", callerTgId: 901, createdAt: new Date(clock).toISOString() });
+    store.setChannelCode(CHAT, { code: "alpha", feeBps: 25 });
+    store.setChannelCode(B, { code: "beta", feeBps: 40 });
+    linkFollower();
+    const w = { tgId: FOLLOWER, chain: "solana", address: "SoL", strikeAccountId: "acc-9", linkedAt: "t" };
+    store.saveWallet({ ...w, builderCode: "alpha", feeBps: 25, apiPub: "pub-alpha", apiPrivEnc: "v1:a:a:a" });
+    store.saveWallet({ ...w, builderCode: "beta", feeBps: 40, apiPub: "pub-beta", apiPrivEnc: "v1:b:b:b" });
+    const inB = openCall({ chatId: B });
+    const q = await svc.quote({ tgId: FOLLOWER, callId: inB, mode: "tail" });
+    if (!q.ok) throw new Error(q.text);
+    await svc.confirm({ tgId: FOLLOWER, tailId: q.tailId });
+    expect(store.getTail(q.tailId)).toMatchObject({ builderCode: "beta", feeBps: 40 });
+    expect(new Set(traders.map((t) => t.apiPub))).toEqual(new Set(["pub-beta"]));
+  });
+
+  it("the quote tells the follower the builder fee and who receives it", async () => {
+    store.setChannelCode(CHAT, { code: "alpha", feeBps: 25 });
+    linkFollower();
+    store.saveWallet({ tgId: FOLLOWER, chain: "solana", address: "SoL", strikeAccountId: "acc-9", linkedAt: "t", builderCode: "alpha", feeBps: 25, apiPub: "pub-alpha", apiPrivEnc: "v1:a:a:a" });
+    const q = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!q.ok) throw new Error(q.text);
+    expect(q.reply.text).toContain("🏷️ Builder fee 25 bps, paid by Strike to this caller's code <code>alpha</code>");
+  });
+
+  it("a personal wallet's quote says there is no builder fee", async () => {
+    linkFollower();
+    const q = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    if (!q.ok) throw new Error(q.text);
+    expect(q.reply.text).toContain("🏷️ No builder fee");
+  });
+
+  it("a builder wallet on Tail's code says so", async () => {
+    builderFeeBps = 10;
+    build();
+    linkFollower({ builderCode: "sigma" });
+    const q = await svc.quote({ tgId: FOLLOWER, callId: openCall(), mode: "tail" });
+    builderFeeBps = undefined;
+    if (!q.ok) throw new Error(q.text);
+    expect(q.reply.text).toContain("🏷️ Builder fee 10 bps, to Tail's code");
+  });
+});

@@ -22,6 +22,10 @@ export interface ServerOptions {
   pageRateLimit?: { max: number; windowMs: number };
 }
 
+const CSP = [
+  "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data:", "font-src 'self'",
+  "connect-src 'self'", "object-src 'none'", "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'",
+].join("; ");
 const TOKEN_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
 const challengeSchema = {
@@ -64,6 +68,8 @@ export function buildServer(o: ServerOptions): FastifyInstance {
     reply.header("X-Content-Type-Options", "nosniff");
     reply.header("X-Frame-Options", "DENY");
     if (req.url.startsWith("/api/") || req.url === "/health") reply.header("Cache-Control", "no-store");
+    // Pages run only their own bundled scripts. Inline style attributes are allowed: the animation library sets them.
+    if (String(reply.getHeader("content-type") ?? "").startsWith("text/html")) reply.header("Content-Security-Policy", CSP);
   });
 
   app.setErrorHandler((err, _req, reply) => {

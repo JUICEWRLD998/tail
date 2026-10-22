@@ -15,7 +15,7 @@ const src = new Database("data/tail.db", { readonly: true });
 await src.backup(db);
 src.close();
 const port = 3931;
-const cfg = loadConfig({ TELEGRAM_BOT_TOKEN: "123:dummy", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: db, TAIL_MODE: "dev", PORT: String(port) });
+const cfg = loadConfig({ TELEGRAM_BOT_TOKEN: "123:local-browser-check-no-telegram", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: db, TAIL_MODE: "dev", PORT: String(port) });
 const app = await createApp(cfg, { botInfo: { id: 1, is_bot: true, first_name: "Tail", username: "lidevbot" } as never, staticDir: "web/dist" });
 await app.server.listen({ port, host: "127.0.0.1" });
 

@@ -236,3 +236,29 @@ describe("public page API", () => {
     }
   });
 });
+
+describe("Content-Security-Policy on the web app", () => {
+  it("every HTML page is served with a strict policy: own scripts only, no framing, no plugins", async () => {
+    const { mkdtempSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "tail-csp-"));
+    writeFileSync(join(dir, "index.html"), "<!doctype html><title>x</title>");
+    const a = app({ staticDir: dir, pages: { channel: () => undefined, site: () => ({}) as never } });
+    for (const url of ["/", "/connect", "/c/abcdefghij"]) {
+      const r = await a.inject({ method: "GET", url });
+      const csp = String(r.headers["content-security-policy"] ?? "");
+      expect(csp, url).toContain("default-src 'self'");
+      expect(csp, url).toContain("script-src 'self'");
+      expect(csp, url).not.toMatch(/script-src[^;]*unsafe/);
+      expect(csp, url).toContain("frame-ancestors 'none'");
+      expect(csp, url).toContain("object-src 'none'");
+      expect(csp, url).toContain("base-uri 'none'");
+    }
+  });
+
+  it("API responses are JSON and carry no page policy they do not need", async () => {
+    const r = await app().inject({ method: "GET", url: "/health" });
+    expect(r.headers["content-security-policy"]).toBeUndefined();
+  });
+});

@@ -245,17 +245,20 @@ export function createService(d: ServiceDeps) {
       });
       if (!sizing.ok) return { ok: false, text: refusalText(sizing) };
 
+      const feeBps = user.feeBps ?? (user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0);
+      const fee = feeBps === 0 ? { bps: 0 as const }
+        : user.feeBps !== undefined ? { bps: feeBps, to: "caller" as const, code: user.builderCode as string } : { bps: feeBps, to: "tail" as const };
       const tailId = store.createTail({
         callId: call.id, tgId: i.tgId, mode: i.mode, strategyId: d.uuid(), size: sizing.size, notionalUsd: sizing.notional,
         // A caller-code wallet carries that caller's rate; the default wallet carries the server's, if it is a builder wallet.
-        feeBps: user.feeBps ?? (user.builderCode && d.builderFeeBps ? d.builderFeeBps : 0),
+        feeBps,
         builderCode: user.feeBps !== undefined ? user.builderCode : null, createdAt: d.now(),
       });
       const rr = call.entry === null ? null : rewardRisk({ side: levels.side, entry: levels.entry, tp: levels.tp, sl: levels.sl });
       return {
         ok: true, tailId,
         reply: {
-          text: followerConfirmCard({ call, mode: i.mode, sizing, equity, riskPct: user.riskPct, levels, rewardRisk: rr }),
+          text: followerConfirmCard({ call, mode: i.mode, sizing, equity, riskPct: user.riskPct, levels, rewardRisk: rr, fee }),
           buttons: [
             { text: "Confirm", callback: callbackData("confirm", tailId) },
             { text: "Cancel", callback: callbackData("cancel", tailId) },

@@ -29,7 +29,7 @@ const check = (name: string, pass: boolean, detail?: unknown) => {
 };
 
 async function boot(dbPath: string, port: number) {
-  const cfg = loadConfig({ TELEGRAM_BOT_TOKEN: "123:dummy", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: dbPath, TAIL_MODE: "dev", PORT: String(port), PUBLIC_URL: `http://localhost:${port}` });
+  const cfg = loadConfig({ TELEGRAM_BOT_TOKEN: "123:local-browser-check-no-telegram", TAIL_KEK: randomBytes(32).toString("base64"), TAIL_DB: dbPath, TAIL_MODE: "dev", PORT: String(port), PUBLIC_URL: `http://localhost:${port}` });
   const app = await createApp(cfg, { botInfo, staticDir: "web/dist" });
   await app.server.listen({ port, host: "127.0.0.1" });
   return { app, origin: `http://localhost:${port}` };

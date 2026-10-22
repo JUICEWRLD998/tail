@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-21T22:19:09.171Z",
+  "checkedAt": "2026-10-22T19:34:55.065Z",
   "network": "testnet",
   "checks": [
     {
@@ -27,7 +27,7 @@
       "name": "A5 the new API wallet signs a real Strike request (GET /v2/account 200)",
       "pass": true,
       "detail": {
-        "account_id": "01a1608c-0271-7953-93a0-61f98c5793e0"
+        "account_id": "01a1651c-0274-78d1-adfb-1809629e615c"
       }
     },
     {
