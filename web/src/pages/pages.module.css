@@ -253,9 +253,6 @@
   max-width: 62ch;
 }
 
-.warn {
-  color: var(--warn);
-}
 
 /* A Telegram-ish message bubble, built from the featured call's own fields. */
 .bubble {
