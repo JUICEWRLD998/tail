@@ -31,7 +31,7 @@ function fakeStrike(o: FakeOpts = {}) {
     placeBracket: async (b) => {
       if (o.throwOnPlace) throw o.throwOnPlace;
       placed.push(b);
-      return { primary_client_order_id: "pc-1", strategy_id: b.strategyId };
+      return { primary_client_order_id: "pc-1", tp_client_order_id: "tp-1", sl_client_order_id: "sl-1", strategy_id: b.strategyId };
     },
     order: async () => o.order ?? { ID: 243140841, Status: "open", CloseReason: "" },
   };
@@ -265,6 +265,12 @@ describe("confirm", () => {
       { symbol: "ETH-USD", side: "buy", type: "limit", size: "0.009", price: "2480.00", tp: "2560.00", sl: "2420.00", strategyId: store.getTail(tailId)?.strategyId },
     ]);
     expect(store.getTail(tailId)).toMatchObject({ status: "placed", orderId: "243140841", primaryClientOrderId: "pc-1" });
+  });
+
+  it("stores the TP and SL leg order ids so a closed position can be recognised later", async () => {
+    const { tailId } = await quoted();
+    await svc.confirm({ tgId: FOLLOWER, tailId });
+    expect(store.getTail(tailId)).toMatchObject({ primaryClientOrderId: "pc-1", tpClientOrderId: "tp-1", slClientOrderId: "sl-1" });
   });
 
   it("a fade places a sell with swapped legs", async () => {
