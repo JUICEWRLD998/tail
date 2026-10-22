@@ -9,6 +9,16 @@
   showed no order, position or history. The dev bot had hit its 2-hour background cap and stopped. Restarted (new 2 h).
 - My own probe first used the repo `.env` keys and got 401; the bot's environment key works (`GET /v2/account` 200, equity
   19.92). Lesson written into `product-hardening` Pitfalls with the `|| true` and bot-cap lessons.
+- **Second attempt, live (testnet): a real tap placed a real order.** Call 3 (`ETH-USD LONG NOW`, TP 2380, SL 2365, 5x) was
+  tailed from Telegram: Strike order 243144232, market buy 0.041 ETH, status `filled`, fill 2380.31 (taker, fee 0.0488),
+  position 0.041 at 2380.31, take-profit and stop legs `untriggered` on Strike. `docs/proof/p6-live-tail-3.json`.
+- **Bug found by that run:** a market order fills while Confirm waits, so the reconcile step that records the fill price never
+  ran: `fill_price` stayed null and the earnings estimate could not count the tail. Fixed (reconcile backfills the size-weighted
+  price from Strike's fills, silently, never a guess); live, the tail got 2380.31, equal to Strike's fill.
+- **Plainly:** the testnet market fill (2380.31) landed above the call's own target (2380) because the testnet book is thin;
+  a market call with a target this close to the mark can fill past it. The call is judged from polled marks, so the call
+  and the follower's position can disagree. Not a Tail logic fault, but worth saying in the demo notes.
+- This tail used his personal API wallet (no builder code): `fee_bps` 0, so it earns the caller nothing, as the page says.
 - Still open for P6: Fade end to end and a real fill from a follower tap (his taps).
 
 ## 2026-10-22 P7 built (795 tests + 115 browser checks); not deployed
