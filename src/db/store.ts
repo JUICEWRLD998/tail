@@ -32,6 +32,10 @@ export interface Channel {
   builderCode: string | null;
   feeBps: number | null;
   createdAt: string;
+  /** Public page link segment, set the first time the caller publishes. */
+  slug: string | null;
+  /** The public page is visible only while this is true. */
+  isPublic: boolean;
 }
 
 export type CallStatus = "draft" | "open" | "tp_hit" | "sl_hit" | "expired" | "cancelled";
@@ -104,7 +108,7 @@ const mapUser = (r: any): User => ({
 
 const mapChannel = (r: any): Channel => ({
   chatId: r.chat_id, title: r.title, kind: r.kind, callerTgId: r.caller_tg_id, builderCode: r.builder_code,
-  feeBps: r.fee_bps, createdAt: r.created_at,
+  feeBps: r.fee_bps, createdAt: r.created_at, slug: r.slug ?? null, isPublic: r.is_public === 1,
 });
 
 const mapCall = (r: any): Call => ({
@@ -150,7 +154,13 @@ const MIGRATIONS: string[] = [
      created_at  TEXT NOT NULL,
      used_at     TEXT
    );`,
+  // v4 (P7): a channel's public record page is opt-in and lives at an unguessable slug.
+  `ALTER TABLE channels ADD COLUMN slug TEXT;
+   ALTER TABLE channels ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
+   CREATE UNIQUE INDEX IF NOT EXISTS channels_slug ON channels(slug) WHERE slug IS NOT NULL;`,
 ];
+const SLUG_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+const newSlug = (): string => Array.from(randomBytes(10), (b) => SLUG_ALPHABET[b % SLUG_ALPHABET.length]).join("");
 const ASK_TTL_MS = 15 * 60_000;
 
 export function openStore(path: string, opts: { extraMigrations?: string[] } = {}) {
@@ -231,6 +241,17 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     followersIn: db.prepare(`
       SELECT COUNT(DISTINCT t.tg_id) n FROM tails t JOIN calls c ON c.id = t.call_id
       WHERE c.chat_id = ? AND t.status IN ('placed','filled','closed')`),
+    tailsOfChat: db.prepare(`
+      SELECT t.* FROM tails t JOIN calls c ON c.id = t.call_id
+      WHERE c.chat_id = ? AND c.status NOT IN ('draft','cancelled') ORDER BY t.id`),
+    channelBySlug: db.prepare("SELECT * FROM channels WHERE slug = ? AND is_public = 1"),
+    slugOf: db.prepare("SELECT slug FROM channels WHERE chat_id = ?"),
+    publish: db.prepare("UPDATE channels SET slug = ?, is_public = 1 WHERE chat_id = ?"),
+    unpublish: db.prepare("UPDATE channels SET is_public = 0 WHERE chat_id = ?"),
+    totals: db.prepare(`
+      SELECT (SELECT COUNT(*) FROM channels) channels,
+             (SELECT COUNT(*) FROM calls WHERE status NOT IN ('draft','cancelled')) calls,
+             (SELECT COUNT(*) FROM tails WHERE status IN ('filled','closed')) tails_filled`),
     newAsk: db.prepare("INSERT INTO asks (tg_id, chat_id, message_id, raw_text, field, options, created_at) VALUES (@tgId, @chatId, @messageId, @rawText, @field, @options, @createdAt)"),
     getAsk: db.prepare("SELECT * FROM asks WHERE id = ? AND tg_id = ? AND used_at IS NULL AND created_at > ?"),
     useAsk: db.prepare("UPDATE asks SET used_at = ? WHERE id = ? AND used_at IS NULL"),
@@ -388,6 +409,26 @@ export function openStore(path: string, opts: { extraMigrations?: string[] } = {
     callsMissingReceipt: (nowIso: string, windowMs: number, graceMs: number): Call[] =>
       q.missingReceipt.all(new Date(Date.parse(nowIso) - windowMs).toISOString(), new Date(Date.parse(nowIso) - graceMs).toISOString()).map(mapCall),
     activeTails: (): Tail[] => q.activeTails.all().map(mapTail),
+    tailsOfChat: (chatId: number): Tail[] => q.tailsOfChat.all(chatId).map(mapTail),
+    channelBySlug: (slug: string): Channel | undefined => {
+      const r = typeof slug === "string" ? q.channelBySlug.get(slug) : undefined;
+      return r ? mapChannel(r) : undefined;
+    },
+    /** Makes the channel's page public and returns its link segment (kept stable across unpublish and publish). */
+    publishChannel(chatId: number): string {
+      const row = q.slugOf.get(chatId) as { slug: string | null } | undefined;
+      if (!row) throw new Error("channel is not registered");
+      const slug = row.slug ?? newSlug();
+      q.publish.run(slug, chatId);
+      return slug;
+    },
+    unpublishChannel(chatId: number) {
+      q.unpublish.run(chatId);
+    },
+    siteTotals: (): { channels: number; calls: number; tailsFilled: number } => {
+      const r = q.totals.get() as { channels: number; calls: number; tails_filled: number };
+      return { channels: r.channels, calls: r.calls, tailsFilled: r.tails_filled };
+    },
     callsOfChat: (chatId: number): Call[] => q.callsOfChat.all(chatId).map(mapCall),
     followersIn: (chatId: number): number => (q.followersIn.get(chatId) as { n: number }).n,
 

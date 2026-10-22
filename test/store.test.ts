@@ -420,6 +420,8 @@ describe("public channel pages", () => {
     reg(s, -2);
     const a = s.createDraftCall({ ...callDraft, chatId: -1 });
     const b = s.createDraftCall({ ...callDraft, chatId: -2 });
+    s.openCall(a, 1);
+    s.openCall(b, 2);
     s.createTail({ callId: a, tgId: 1, mode: "tail", strategyId: "x", size: "1", notionalUsd: "1", feeBps: 10, createdAt: T0 });
     s.createTail({ callId: b, tgId: 2, mode: "tail", strategyId: "y", size: "1", notionalUsd: "1", feeBps: 10, createdAt: T0 });
     expect(s.tailsOfChat(-1).map((t) => t.tgId)).toEqual([1]);
