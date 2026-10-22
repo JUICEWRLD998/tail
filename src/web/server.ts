@@ -18,6 +18,8 @@ export interface ServerOptions {
   staticDir?: string;
   /** Public record pages. Routes are mounted only when given. */
   pages?: Pages;
+  /** Page reads per client. Default 120 per minute: a shared address behind a link in a channel must not lock out readers. */
+  pageRateLimit?: { max: number; windowMs: number };
 }
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -40,20 +42,22 @@ function sameSecret(a: string, b: string): boolean {
 
 export function buildServer(o: ServerOptions): FastifyInstance {
   // Ajv coerces types by default (a number would pass as a string); input here must be exactly what the schema says.
-  const app = Fastify({ logger: false, bodyLimit: 16 * 1024, maxParamLength: 256, ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
+  const app = Fastify({ logger: false, bodyLimit: 16 * 1024, routerOptions: { maxParamLength: 256 }, ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
   const limit = o.rateLimit ?? { max: 20, windowMs: 60_000 };
+  const pageLimit = o.pageRateLimit ?? { max: 120, windowMs: 60_000 };
   const hits = new Map<string, { count: number; resetAt: number }>();
 
-  const allowed = (key: string): boolean => {
+  const within = (key: string, lim: { max: number; windowMs: number }): boolean => {
     const now = o.now();
     const h = hits.get(key);
     if (!h || now >= h.resetAt) {
-      hits.set(key, { count: 1, resetAt: now + limit.windowMs });
+      hits.set(key, { count: 1, resetAt: now + lim.windowMs });
       return true;
     }
     h.count += 1;
-    return h.count <= limit.max;
+    return h.count <= lim.max;
   };
+  const allowed = (key: string): boolean => within(key, limit);
 
   app.addHook("onSend", async (req, reply) => {
     reply.header("Referrer-Policy", "no-referrer");
@@ -106,12 +110,12 @@ export function buildServer(o: ServerOptions): FastifyInstance {
     const pages = o.pages;
     const NOT_FOUND = { ok: false, error: "This page does not exist or is not public." };
     app.get<{ Params: { slug: string } }>("/api/channel/:slug", async (req, reply) => {
-      if (!allowed(`page:${req.ip}`)) return reply.code(429).send({ ok: false, error: "Too many requests. Wait a minute." });
+      if (!within(`page:${req.ip}`, pageLimit)) return reply.code(429).send({ ok: false, error: "Too many requests. Wait a minute." });
       const page = pages.channel(req.params.slug);
       return page ? { ok: true, page } : reply.code(404).send(NOT_FOUND);
     });
     app.get("/api/site", async (req, reply) => {
-      if (!allowed(`page:${req.ip}`)) return reply.code(429).send({ ok: false, error: "Too many requests. Wait a minute." });
+      if (!within(`page:${req.ip}`, pageLimit)) return reply.code(429).send({ ok: false, error: "Too many requests. Wait a minute." });
       return { ok: true, site: pages.site() };
     });
   }

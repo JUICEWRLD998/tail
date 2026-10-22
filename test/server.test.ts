@@ -209,12 +209,19 @@ describe("public page API", () => {
     expect(r.json()).toEqual({ ok: true, site: { network: "testnet", channels: 1, calls: 2, tailsFilled: 3, note: "test activity" } });
   });
 
+  it("page reads have their own, roomier limit than the connect flow", async () => {
+    const a = app({ pages, rateLimit: { max: 2, windowMs: 60_000 } });
+    const codes = [];
+    for (let i = 0; i < 10; i++) codes.push((await a.inject({ method: "GET", url: "/api/site" })).statusCode);
+    expect(codes.every((c) => c === 200)).toBe(true);
+  });
+
   it("is not mounted when no pages service is given", async () => {
     expect((await app().inject({ method: "GET", url: "/api/site" })).statusCode).toBe(404);
   });
 
   it("rate-limits one client across the page routes", async () => {
-    const a = app({ pages, rateLimit: { max: 3, windowMs: 60_000 } });
+    const a = app({ pages, pageRateLimit: { max: 3, windowMs: 60_000 } });
     const codes = [];
     for (let i = 0; i < 5; i++) codes.push((await a.inject({ method: "GET", url: "/api/site" })).statusCode);
     expect(codes).toEqual([200, 200, 200, 429, 429]);
