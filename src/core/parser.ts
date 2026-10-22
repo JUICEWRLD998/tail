@@ -54,16 +54,23 @@ function consume(work: string, m: RegExpMatchArray): string {
   return work.slice(0, start) + " ".repeat(m[0].length) + work.slice(start + m[0].length);
 }
 
-export function parseCall(text: string, ctx: ParseContext): ParseResult {
+/** An answer to a question the parser asked. It fixes one field; every other rule still applies. */
+export interface Hints {
+  side?: Side;
+  symbol?: string;
+  entry?: string;
+}
+
+export function parseCall(text: string, ctx: ParseContext, hints: Hints = {}): ParseResult {
   try {
-    return parse(text, ctx);
+    return parse(text, ctx, hints);
   } catch {
     // A parser bug must never become an order or a crash in the channel handler.
     return { ok: false, reason: "not_a_call" };
   }
 }
 
-function parse(text: string, ctx: ParseContext): ParseResult {
+function parse(text: string, ctx: ParseContext, hints: Hints): ParseResult {
   const clean = text
     .replace(/[\u2010-\u2015\u2212]/g, "-")
     .replace(/[^\x00-\x7F]/g, " ")
@@ -160,6 +167,11 @@ function parse(text: string, ctx: ParseContext): ParseResult {
       if (strong && strongUnlisted === undefined) strongUnlisted = r.base;
     }
   }
+  if (hints.symbol !== undefined) {
+    if (ctx.markets[hints.symbol] === undefined) return { ok: false, reason: "not_listed", base: hints.symbol.replace(/-USD$/, "") };
+    found.clear();
+    found.add(hints.symbol);
+  }
   if (found.size > 1) {
     return ask("ambiguous", { field: "symbol", question: "Which market is this call for?", options: [...found] });
   }
@@ -175,14 +187,20 @@ function parse(text: string, ctx: ParseContext): ParseResult {
   const fmt = (s: string) => formatToTick(D.of(s), tick, decimals);
 
   // Side.
-  if (hasLong === hasShort) {
+  if (hints.side !== undefined) {
+    // the answer decides the side, whatever the text said
+  } else if (hasLong === hasShort) {
     return ask("ambiguous", { field: "side", question: `Long or short on ${symbol}?`, options: ["Long", "Short"] });
   }
-  const side: Side = hasLong ? "long" : "short";
+  const side: Side = hints.side ?? (hasLong ? "long" : "short");
 
   // Entry.
   let entryKind: "limit" | "market" = "limit";
   let entry: string | null = null;
+  if (hints.entry !== undefined) {
+    entryNums = [hints.entry];
+    entryList = [];
+  }
   if (entryNums.length > 0 && entryList.length > 0) {
     return ask("ambiguous", { field: "entry", question: "Which entry should Tail use?", options: [...entryNums, ...entryList] });
   } else if (entryNums.length > 0) {
