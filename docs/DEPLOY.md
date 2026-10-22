@@ -20,9 +20,11 @@ Never reuse `TAIL_KEK`, the bot token or any key between dev and prod, and never
 
 ## 1. Render
 
-1. New, then Blueprint, pick this repository. `render.yaml` creates the web service and a 1 GB disk at `/data`.
-   A disk needs a paid instance (`starter`). Without a disk the database is wiped on every deploy and every follower has to
-   connect again.
+1. New, then Blueprint, pick this repository. `render.yaml` creates a **free** web service (no card needed). A free service
+   has no persistent disk: the database is wiped on every deploy, restart and spin-down, and every caller and follower has to
+   register and connect again. Free services also sleep after 15 minutes without traffic.
+   To keep it awake while you demo, point a free uptime monitor (for example UptimeRobot, HTTP check every 5 minutes) at
+   `https://<your-host>/health`. Do the whole demo in one sitting. For anything longer, use `plan: starter` and add the disk.
 2. Set the three secrets it asks for: `TELEGRAM_BOT_TOKEN` (prod bot), `TAIL_KEK`, `WEBHOOK_SECRET`.
 3. Deploy. `PUBLIC_URL` is taken from Render's `RENDER_EXTERNAL_URL`; set it yourself only for a custom domain.
 
@@ -55,7 +57,9 @@ Then, in Telegram with the prod bot:
 
 ## 3. Things that will bite
 
-- **Free instances sleep.** The first tap after idle is slow and Telegram may retry. Use a paid instance while judges look.
+- **Free instances sleep, and forget.** After 15 idle minutes the first tap is slow (about a minute) and Telegram retries; if the
+  container restarts, the database is gone: channels, wallets and call cards. Keep it awake with an uptime monitor on
+  `/health`, and re-run `/addchannel` and the wallet connect if it ever restarts. Use a paid instance with a disk while judges look.
 - **Testnet books:** only `ETH-USD` has a usable order book on testnet. Use it for demos.
 - **Never run prod with the dev bot's token.** Prod sets a webhook; the dev bot uses long polling.
 - `TAIL_OWNER_TG_ID` and `SPIKE_API_PRIV` are ignored in prod on purpose: `/link` is a dev-only shortcut.

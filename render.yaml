@@ -1,15 +1,14 @@
 # Render blueprint. Secrets are set in the dashboard (sync: false), never in this file.
-# A persistent disk needs a paid instance; without it the SQLite file (and every linked key) is lost on each deploy.
+# FREE plan (no card): no persistent disk, so the SQLite file lives in the container and is wiped on every deploy, restart
+# and spin-down. Fine for a one-sitting demo; for anything longer switch to `plan: starter` and re-add the disk below.
 services:
   - type: web
     name: tail
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /health
-    disk:
-      name: tail-data
-      mountPath: /data
-      sizeGB: 1
+    # disk (paid plans only):
+    #   disk: { name: tail-data, mountPath: /data, sizeGB: 1 }
     envVars:
       - { key: TAIL_MODE, value: prod }
       - { key: STRIKE_NETWORK, value: testnet }
