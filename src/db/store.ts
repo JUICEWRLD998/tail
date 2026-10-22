@@ -52,6 +52,13 @@ export interface Call {
   status: CallStatus;
   createdAt: string;
   closedAt: string | null;
+  /** When the price first reached the call's entry (or the first sample, for a market call). */
+  enteredAt: string | null;
+  enteredPrice: string | null;
+  /** The mark price that ended the call (tp_hit, sl_hit, expired). */
+  resultPrice: string | null;
+  /** The receipt message posted as a reply to the card. */
+  receiptMessageId: number | null;
 }
 
 export type TailStatus = "quoted" | "placed" | "filled" | "rejected" | "cancelled" | "closed";
@@ -72,6 +79,12 @@ export interface Tail {
   error: string | null;
   createdAt: string;
   filledAt: string | null;
+  tpClientOrderId: string | null;
+  slClientOrderId: string | null;
+  closedAt: string | null;
+  realizedPnl: string | null;
+  /** "tp" or "sl" when a protective leg closed the position. */
+  closeReason: string | null;
 }
 
 const SETTING_COLUMNS = { riskPct: "risk_pct", maxLeverage: "max_leverage", maxNotionalUsd: "max_notional_usd" } as const;
@@ -79,7 +92,8 @@ export type SettingKey = keyof typeof SETTING_COLUMNS;
 
 const TAIL_PATCH_COLUMNS = {
   status: "status", orderId: "order_id", primaryClientOrderId: "primary_client_order_id", fillPrice: "fill_price",
-  error: "error", filledAt: "filled_at",
+  error: "error", filledAt: "filled_at", tpClientOrderId: "tp_client_order_id", slClientOrderId: "sl_client_order_id",
+  closedAt: "closed_at", realizedPnl: "realized_pnl", closeReason: "close_reason",
 } as const;
 
 const mapUser = (r: any): User => ({
@@ -97,19 +111,59 @@ const mapCall = (r: any): Call => ({
   id: r.id, chatId: r.chat_id, messageId: r.message_id, cardMessageId: r.card_message_id, rawText: r.raw_text,
   symbol: r.symbol, side: r.side, entryKind: r.entry_kind, entry: r.entry, tp: r.tp, sl: r.sl,
   leverageHint: r.leverage_hint, status: r.status, createdAt: r.created_at, closedAt: r.closed_at,
+  enteredAt: r.entered_at ?? null, enteredPrice: r.entered_price ?? null, resultPrice: r.result_price ?? null,
+  receiptMessageId: r.receipt_message_id ?? null,
 });
 
 const mapTail = (r: any): Tail => ({
   id: r.id, callId: r.call_id, tgId: r.tg_id, mode: r.mode, strategyId: r.strategy_id,
   primaryClientOrderId: r.primary_client_order_id, orderId: r.order_id, size: r.size, notionalUsd: r.notional_usd,
   feeBps: r.fee_bps, status: r.status, fillPrice: r.fill_price, error: r.error, createdAt: r.created_at, filledAt: r.filled_at,
+  tpClientOrderId: r.tp_client_order_id ?? null, slClientOrderId: r.sl_client_order_id ?? null, closedAt: r.closed_at ?? null,
+  realizedPnl: r.realized_pnl ?? null, closeReason: r.close_reason ?? null,
 });
 
-export function openStore(path: string) {
+/**
+ * schema.sql is version 1 (the baseline P3/P4 shipped). Each entry below upgrades by one version, in a transaction,
+ * and the same list builds a fresh database, so a fresh and a migrated database cannot drift apart.
+ */
+const MIGRATIONS: string[] = [
+  // v2 (P5): live state. Leg order ids for reconciliation, close details, and call outcome tracking.
+  `ALTER TABLE tails ADD COLUMN tp_client_order_id TEXT;
+   ALTER TABLE tails ADD COLUMN sl_client_order_id TEXT;
+   ALTER TABLE tails ADD COLUMN closed_at TEXT;
+   ALTER TABLE tails ADD COLUMN realized_pnl TEXT;
+   ALTER TABLE tails ADD COLUMN close_reason TEXT;
+   ALTER TABLE calls ADD COLUMN entered_at TEXT;
+   ALTER TABLE calls ADD COLUMN entered_price TEXT;
+   ALTER TABLE calls ADD COLUMN result_price TEXT;
+   ALTER TABLE calls ADD COLUMN receipt_message_id INTEGER;`,
+];
+
+export function openStore(path: string, opts: { extraMigrations?: string[] } = {}) {
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+
+  const migrations = [...MIGRATIONS, ...(opts.extraMigrations ?? [])];
+  const stored = db.pragma("user_version", { simple: true }) as number;
+  const version = Math.max(stored, 1); // a database from before migrations existed (0) is the v1 baseline
+  if (version > migrations.length + 1) {
+    db.close();
+    throw new Error("this database was written by a newer version of Tail");
+  }
+  try {
+    for (let v = version; v <= migrations.length; v++) {
+      db.transaction(() => {
+        db.exec(migrations[v - 1] as string);
+        db.pragma(`user_version = ${v + 1}`);
+      })();
+    }
+  } catch (e) {
+    db.close();
+    throw e;
+  }
 
   const q = {
     getUser: db.prepare("SELECT * FROM users WHERE tg_id = ? AND revoked_at IS NULL AND api_priv_enc IS NOT NULL"),
@@ -208,7 +262,7 @@ export function openStore(path: string) {
     },
     channelsOf: (tgId: number): Channel[] => q.channelsOf.all(tgId).map(mapChannel),
 
-    createDraftCall: (c: Omit<Call, "id" | "cardMessageId" | "status" | "closedAt">): number =>
+    createDraftCall: (c: Omit<Call, "id" | "cardMessageId" | "status" | "closedAt" | "enteredAt" | "enteredPrice" | "resultPrice" | "receiptMessageId">): number =>
       Number(q.newCall.run({ ...c, messageId: c.messageId ?? null }).lastInsertRowid),
     getCall: (id: number): Call | undefined => {
       const r = q.getCall.get(id);
