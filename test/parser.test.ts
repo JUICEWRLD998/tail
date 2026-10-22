@@ -207,3 +207,45 @@ describe("formats found in public examples (P6)", () => {
     });
   });
 });
+
+describe("Cornix-style blocks and misspelt labels (fragments reported by a public parser project; messages composed from them)", () => {
+  const ctx2 = { markets: { "ETH-USD": { tickSize: "0.01" }, "ADA-USD": { tickSize: "0.0001" }, "BTC-USD": { tickSize: "0.1" } } };
+  const draft = (t: string) => {
+    const r = parseCall(t, ctx2);
+    if (!r.ok) throw new Error(`not a draft: ${JSON.stringify(r)}`);
+    return r.draft;
+  };
+
+  it("'Entry Targets' is the entry, not a take-profit list", () => {
+    const d = draft("#ETH/USDT\nLong\nEntry Targets:\n1) 2480\nTake-Profit Targets:\n1) 2560\n2) 2600\nStop Targets:\n1) 2420\nLeverage: Cross (10x)");
+    expect(d).toMatchObject({ symbol: "ETH-USD", side: "long", entry: "2480.00", tp: "2560.00", sl: "2420.00", extraTargets: ["2600.00"], leverageHint: 10 });
+  });
+
+  it("a numbered entry list is a question, not a guess", () => {
+    const r = parseCall("#ETH/USDT\nLong\nEntry Targets:\n1) 2480\n2) 2470\nTake-Profit Targets:\n1) 2560\nStop Targets:\n1) 2420", ctx2);
+    expect(r).toMatchObject({ ok: false, reason: "ambiguous", ask: { field: "entry", options: ["2480", "2470"] } });
+  });
+
+  it("an explicit entry range with numbered markers is its midpoint", () => {
+    const d = draft("ETH long\nEntries: 2470 - 2490\nTP 2560\nSL 2420");
+    expect(d.entry).toBe("2480.00");
+  });
+
+  it.each(["ENTERY PRICE: 2480", "Entry price: 2480", "ENTRY ZONE 2480"])("reads the entry label %j", (label) => {
+    expect(draft(`ETH long\n${label}\nTP 2560\nSL 2420`).entry).toBe("2480.00");
+  });
+
+  it("reads 'STOPP LOSS'", () => {
+    expect(draft("ETH long 2480\nSTOPP LOSS: 2420\nTP 2560").sl).toBe("2420.00");
+  });
+
+  it("a list marker such as '1) ' is not a price", () => {
+    const d = draft("ETH long 2480\nSL 2420\nTake-Profit Targets:\n1) 2560\n2) 2580\n3) 2600");
+    expect(d).toMatchObject({ tp: "2560.00", extraTargets: ["2580.00", "2600.00"] });
+  });
+
+  it("a hashtag direction with an emoji still works: '#SHORT 🔴'", () => {
+    const d = draft("#SHORT 🔴\nETH/USDT\nEntry: 2480\nTP 2400\nSL 2540");
+    expect(d).toMatchObject({ side: "short", entry: "2480.00" });
+  });
+});
