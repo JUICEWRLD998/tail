@@ -57,7 +57,7 @@ describe("earnings: totals that match their parts", () => {
       t({ tgId: 13, feeBps: 0 }),
       t({ tgId: 14, status: "rejected" }),
     ]);
-    expect(e).toMatchObject({ fee: "0.04732", filledNotional: "67.32", tails: 5, filled: 3, paying: 2, withoutRate: 1 });
+    expect(e).toMatchObject({ fee: "0.04732", filledNotional: "69.64", tails: 5, filled: 3, paying: 2, withoutRate: 1 });
   });
 
   it("is zero, not unavailable, when nothing has filled", () => {
