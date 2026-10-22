@@ -1,7 +1,8 @@
 // Reconciliation: Strike is the source of truth for an order's state, not our row. Each run reads the real status of
 // every live tail, records fills, rejections and cancellations, notices a closed position, recovers an order whose
 // creation was never confirmed, then edits each affected card once. One bad tail never stops the others.
-import { callCard, escapeHtml, rejectionText, tailButtons } from "../bot/cards.js";
+import { callCard, escapeHtml, tailButtons } from "../bot/cards.js";
+import { reasonClause } from "../core/reasons.js";
 import { D } from "../core/dec.js";
 import type { Call, Store, Tail, User } from "../db/store.js";
 import type { StrikeClient } from "../strike/client.js";
@@ -74,7 +75,7 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
             const code = (history.close_reason as string) || "rejected";
             d.store.updateTail(tail.id, { status: "rejected", error: code, primaryClientOrderId: history.client_order_id, orderId: String(history.ID) });
             countersChanged.add(tail.callId);
-            await tell(tail.tgId, `Strike rejected your ${call.symbol} order: ${escapeHtml(code)}.`);
+            await tell(tail.tgId, `Strike rejected your ${call.symbol} order: ${reasonClause(code, escapeHtml)}`);
             return true;
           }
           if (CANCELLED.has(hs)) {
@@ -115,7 +116,7 @@ export async function runReconcile(d: ReconcileDeps): Promise<{ checked: number;
         const code = (primary.CloseReason as string) || "rejected";
         d.store.updateTail(tail.id, { status: "rejected", error: code });
         countersChanged.add(tail.callId);
-        await tell(tail.tgId, `Strike rejected your ${call.symbol} order: ${escapeHtml(code)}.`);
+        await tell(tail.tgId, `Strike rejected your ${call.symbol} order: ${reasonClause(code, escapeHtml)}`);
         return true;
       } else if (CANCELLED.has(status)) {
         d.store.updateTail(tail.id, { status: "cancelled" });

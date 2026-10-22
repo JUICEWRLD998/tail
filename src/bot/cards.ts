@@ -1,6 +1,7 @@
 // Telegram message text and callback encoding. Pure functions: every string a user reads is pinned by tests.
 // Copy rules: short lines, plain words, no emoji. HTML parse mode, so dynamic text is always escaped.
 import { rewardRisk, type Side } from "../core/fade.js";
+import { reasonClause } from "../core/reasons.js";
 import type { Binding, SizingResult } from "../core/sizing.js";
 
 export function escapeHtml(s: string): string {
@@ -97,7 +98,7 @@ export function refusalText(r: Extract<SizingResult, { ok: false }>): string {
 }
 
 export function rejectionText(code: string): string {
-  return `Strike rejected the order: ${escapeHtml(code)}.`;
+  return `Strike rejected the order: ${reasonClause(code, escapeHtml)}`;
 }
 
 export function parseStartPayload(p: string): { mode: "tail" | "fade"; callId: number } | undefined {
