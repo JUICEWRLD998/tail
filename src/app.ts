@@ -5,6 +5,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { Api, InlineKeyboard, type Bot } from "grammy";
 import type { Update, UserFromGetMe } from "grammy/types";
+import { createAiReader } from "./ai/openrouter.js";
 import { createBot } from "./bot/bot.js";
 import { createEditQueue } from "./bot/edit-queue.js";
 import { createService, type StrikeLike } from "./bot/service.js";
@@ -69,6 +70,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
   const service = createService({
     store, kek: cfg.kek, botUsername: me.username as string, publicStrike, strikeFor, clientForKey,
     now, uuid: randomUUID, sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+    ai: cfg.aiApiKey ? createAiReader({ apiKey: cfg.aiApiKey, model: cfg.aiModel }) : undefined,
   });
 
   // Wallet connect needs a builder code, its fee, and a URL the browser can reach.

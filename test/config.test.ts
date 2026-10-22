@@ -117,3 +117,22 @@ describe("loadConfig: PUBLIC_URL falls back to the host's own variable", () => {
     expect(() => loadConfig({ ...base, RENDER_EXTERNAL_URL: "http://tail.onrender.com" })).toThrow(/PUBLIC_URL/);
   });
 });
+
+describe("AI reader settings", () => {
+  it("is off without a key, and the model defaults to the light one", () => {
+    const c = loadConfig({ ...base });
+    expect(c.aiApiKey).toBeUndefined();
+    expect(c.aiModel).toBe("google/gemini-2.5-flash");
+  });
+
+  it("reads the key and an optional model override", () => {
+    const c = loadConfig({ ...base, OPENROUTER_API_KEY: "sk-or-test", OPENROUTER_MODEL: "google/gemini-2.5-flash-lite" });
+    expect(c.aiApiKey).toBe("sk-or-test");
+    expect(c.aiModel).toBe("google/gemini-2.5-flash-lite");
+  });
+
+  it("rejects a model name that is not provider/model, without echoing the value", () => {
+    expect(() => loadConfig({ ...base, OPENROUTER_API_KEY: "k", OPENROUTER_MODEL: "bad model;" })).toThrow(/OPENROUTER_MODEL/);
+    try { loadConfig({ ...base, OPENROUTER_API_KEY: "k", OPENROUTER_MODEL: "bad model;" }); } catch (e) { expect(String(e)).not.toContain("bad model;"); }
+  });
+});
