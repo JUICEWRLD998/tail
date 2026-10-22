@@ -2,6 +2,7 @@
 import { Bot, InlineKeyboard } from "grammy";
 import type { UserFromGetMe } from "grammy/types";
 import type { Store } from "../db/store.js";
+import { recordText, summarize, type RecordCall } from "../core/record.js";
 import { escapeHtml, parseCallbackData, parseStartPayload } from "./cards.js";
 import type { Button, Reply, Service } from "./service.js";
 
@@ -35,6 +36,7 @@ const HELP = [
   "Callers",
   "/addchannel  register a channel or group",
   "/call ETH long 2480 tp 2560 sl 2420  draft a call",
+  "/record  your calls, hit rate and followers",
 ].join("\n");
 const CONNECT_TEXT = "Connect your wallet once to trade. It signs one message and cannot withdraw funds.";
 const WELCOME = "Tail turns a channel call into a Strike order in one tap.\nTap Tail or Fade on a call card to start.\n/me shows your account. /link connects it.";
@@ -129,6 +131,20 @@ export function createBot(o: BotOptions): Bot {
     const r = await service.onCallerPost({ chatId: channels[0]!.chatId, messageId: 0, text: ctx.match });
     if (r.type === "dm") await dmUser(r.tgId, r.reply);
     else await ctx.reply("That does not look like a call.");
+  });
+
+  bot.command("record", async (ctx) => {
+    if (ctx.chat.type !== "private") return;
+    const channels = store.channelsOf(ctx.from!.id);
+    if (channels.length === 0) return void (await ctx.reply("No channel yet. Use /addchannel."));
+    const blocks = channels.map((c) => {
+      const rows: RecordCall[] = store.callsOfChat(c.chatId).map((x) => ({
+        symbol: x.symbol, side: x.side, entryKind: x.entryKind, entry: x.entry, tp: x.tp, sl: x.sl, enteredPrice: x.enteredPrice,
+        status: x.status as RecordCall["status"],
+      }));
+      return recordText(escapeHtml(c.title), summarize(rows, store.followersIn(c.chatId)));
+    });
+    await ctx.reply(blocks.join("\n\n"), HTML);
   });
 
   bot.command("link", async (ctx) => {
