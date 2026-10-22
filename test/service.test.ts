@@ -260,6 +260,15 @@ describe("guard rails", () => {
     expect(store.getCall(2)).toBeDefined();
   });
 
+  it("re-posting a call the caller dropped is allowed straight away", async () => {
+    build({}, { duplicateWindowMs: 2 * 60_000 });
+    await post(callN(0));
+    expect(svc.dropDraft(1, CALLER).text).toBe("Dropped.");
+    const again = await post(callN(0));
+    if (again.type !== "dm") throw new Error();
+    expect(again.reply.text).toContain("Post this call?");
+  });
+
   it("caps a follower's open tails", async () => {
     build({}, { maxOpenTails: 2 });
     linkFollower();
