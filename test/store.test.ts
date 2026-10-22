@@ -301,3 +301,21 @@ describe("queries for the live-state jobs", () => {
     expect(s.followersIn(-1001)).toBe(2);
   });
 });
+
+describe("receipts that failed to post", () => {
+  it("callsMissingReceipt lists finished calls with a card but no receipt, newest window only", () => {
+    const s = fresh();
+    const mk = () => {
+      const id = s.createDraftCall({ chatId: -1001, messageId: 1, rawText: "x", symbol: "ETH-USD", side: "long", entryKind: "limit", entry: "2480.00", tp: "2560.00", sl: "2420.00", leverageHint: null, createdAt: T0 });
+      s.openCall(id, 40 + id);
+      return id;
+    };
+    const a = mk(), b = mk(), c = mk(), d = mk();
+    s.finishCall(a, { status: "tp_hit", resultPrice: "2561.00", closedAt: at(1) });
+    s.finishCall(b, { status: "sl_hit", resultPrice: "2419.00", closedAt: at(1) });
+    s.setReceipt(b, 9); // already has one
+    s.finishCall(c, { status: "expired", resultPrice: null, closedAt: at(-60 * 30) }); // closed long ago
+    expect(s.callsMissingReceipt(at(5), 24 * 60 * 60_000).map((x) => x.id)).toEqual([a]);
+    expect(d).toBeGreaterThan(0); // still open: never listed
+  });
+});
