@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-22T19:33:57.116Z",
+  "checkedAt": "2026-10-22T19:43:47.952Z",
   "checks": [
     {
       "name": "CONTROL overflow detector flags a 3000px element",
@@ -445,11 +445,15 @@
       }
     },
     {
-      "name": "real page says who Strike pays the fee to, matching the API",
+      "name": "real page names the caller's code only when one is set, matching the API",
       "pass": true,
       "detail": {
         "to": "tail"
       }
+    },
+    {
+      "name": "real page carries no yellow notice text (his call)",
+      "pass": true
     },
     {
       "name": "real page shows the heading with focus",

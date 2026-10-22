@@ -133,7 +133,8 @@ if (realSlug) {
   check("real page shows the call count from the API", t.includes(`${api.page.record.calls}`));
   check("real page says 'No tail has filled yet' when the fee is zero", api.page.earnings.filled === 0 ? t.includes("No tail has filled yet") : true, { filled: api.page.earnings.filled });
   const payout = (api.page as unknown as { payout: { to: string } }).payout;
-  check("real page says who Strike pays the fee to, matching the API", payout.to === "caller" ? t.includes("Paid by Strike straight to the account") : t.includes("these fees go to Tail's code"), payout);
+  check("real page names the caller's code only when one is set, matching the API", payout.to === "caller" ? t.includes("Paid by Strike straight to the account") : !t.includes("Paid by Strike straight"), payout);
+  check("real page carries no yellow notice text (his call)", !/builder-share field|not live|go to Tail's code/.test(t));
   check("real page shows the heading with focus", (await page.evaluate("document.activeElement && document.activeElement.tagName")) === "H1");
   await ctx.close();
 }

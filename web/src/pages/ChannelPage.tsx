@@ -84,12 +84,9 @@ export function ChannelPage({ slug }: { slug: string }) {
                 : `${e.filled} filled ${e.filled === 1 ? "tail" : "tails"}, ${usdLabel(e.filledNotional)} of entry fills.`}
               {e.withoutRate > 0 && ` ${e.withoutRate} used a personal wallet and add nothing.`}
             </p>
-            {page.payout.to === "caller" ? (
-              <p className={styles.note}>Paid by Strike straight to the account that owns the builder code <code>{page.payout.code}</code> ({page.payout.feeBps} bps). Tail never holds it.</p>
-            ) : (
-              <p className={`${styles.note} ${styles.warn}`}>This caller has not set their own builder code, so these fees go to Tail's code. With /setcode, Strike pays the caller directly.</p>
+            {page.payout.to === "caller" && (
+              <p className={styles.note}>Paid by Strike straight to the account that owns the builder code <code>{page.payout.code}</code> ({page.payout.feeBps} bps).</p>
             )}
-            <p className={styles.note}>Strike's fill record has no builder-share field, so this is an estimate, and exit fills are not counted.</p>
           </div>
         </div>
       </section>
