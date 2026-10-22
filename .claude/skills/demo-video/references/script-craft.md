@@ -40,6 +40,31 @@ the word share of each beat; aim for roughly hook 8%, problem 15%, solution 8%, 
   live product. Sponsor tech named here, once.
 - **Close:** name, the solution line again in fewer words, the link.
 
+## The deck act (problem and solution as slides)
+
+The first third of a great demo is a short pitch deck, then the product takes over. It is the part judges
+remember the problem from, so it must read with the sound off and land with it on.
+
+- **3 to 5 slides, under 40% of the words.** Title, then problem, (quote), before/after, how it works. Then the
+  live product for the rest.
+- **One idea per slide.** Headline 12 words or fewer, written as the conclusion, not the topic: "Followers
+  copy calls by hand, and lose the trade", not "The problem with signal channels".
+- **Evidence, not adjectives.** A problem slide carries up to three rows: a number with its source on screen
+  ("6 steps · counted in the app, Oct 2026"), or a plain fact without a number. No source, no number.
+  `story.mjs` fails a numbered row with no source and a quote with no `who`/`source`.
+- **Before/after shows the cost.** List the old way's steps as people really do them; they are struck out one
+  by one as the voice says them, and the new path lights up. End on a tally line in the accent ("One tap, sized
+  to *your* risk").
+- **How it works is a flow, and the flow is the demo's table of contents.** Three or four steps, each a verb
+  and an object ("Snap the receipt", "Tap who had what", "Send one link"). The demo beats follow in the same
+  order and the same words, so the viewer already knows where the demo is going.
+- **Every point lands on its word.** Put `onWord` on each row, step and list item, so the slide is "presented",
+  not dumped. The default stagger is a fallback, not the goal.
+- **Quotes are real.** From a user interview, a public post, a support thread, the event's own Discord. Who and
+  where, on screen. Never write a quote.
+- **The deck never shows the product working.** The product's result is shown live in the demo. A screenshot
+  may sit on a title or solution card; a slide may not claim an outcome the live product does not then show.
+
 ## Hooks that work in 8 seconds
 
 Lead with the name, then pick one:

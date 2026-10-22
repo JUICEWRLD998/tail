@@ -17,6 +17,7 @@ One file drives voice, recording and the edit. Re-running any step reads it fres
   "voice": { "edgeVoice": "en-US-AvaMultilingualNeural", "rate": "-4%", "lead": 0.6, "tail": 0.5 },
   "transition": 0.5,                           // crossfade seconds between scenes
   "transitionStyle": "fade",                   // any ffmpeg xfade name; per scene: "transition"
+  "deck": true,                                // chapter rail + progress line on deck slides (not title/end)
   "captions": true,
   "captionStyle": { "font": "Segoe UI Semibold", "size": 46 },
   "chapters": true,                            // chapter label on the first scene of each new beat; false hides them
@@ -70,6 +71,31 @@ Scene length = lead + voice + tail + hold, or longer if the actions run long (ve
 ```
 
 On problem, solution and proof cards with no `kicker`, the chapter label becomes the kicker (sentence case).
+### Deck slides
+
+Every item below (a row, a step, a list entry) may carry `"onWord": "word"` (and `"occurrence": 1`): it then
+appears while the narrator says that word. `tallyOnWord` times the compare tally. Unknown words fall back to
+the default stagger and `record.mjs` warns.
+
+```jsonc
+{ "type": "card", "template": "problem", "head": "Followers copy calls by hand, and lose the trade",
+  "rows": [ { "value": "6 steps", "text": "from a call to a placed order", "source": "Counted in the app, Oct 2026", "onWord": "six" },
+            { "text": "Callers earn nothing when people follow them", "onWord": "earn" } ] }   // 3 rows max
+
+{ "type": "card", "template": "quote", "text": "By the time I've typed it in, the entry is gone.",
+  "who": "A channel follower", "source": "Public post, 12 Oct 2026" }                       // who + source required
+
+{ "type": "card", "template": "compare", "head": "Six steps become one tap",
+  "before": { "label": "Today", "cost": "6 steps", "steps": [ { "text": "Read the call", "onWord": "read" }, "Open the exchange" ] },
+  "after":  { "label": "With Tail", "cost": "1 tap", "steps": [ { "text": "Tap Tail", "onWord": "tap" } ] },
+  "tally": "One tap, sized to *your* risk", "tallyOnWord": "risk" }
+
+{ "type": "card", "template": "flow", "head": "How Tail works",
+  "steps": [ { "label": "Caller posts", "sub": "any common format", "onWord": "posts" },
+             { "label": "You tap", "sub": "sized to your risk", "onWord": "tap" },
+             { "label": "Strike holds it", "sub": "entry, target, stop", "onWord": "Strike" } ] }   // 2-4 steps
+```
+
 `*word*` paints a word in the accent colour. `image` paths are relative to the demo folder. Stat values count up
 from zero, keeping a prefix or suffix (`$4.2M`, `73%`, `4 days`). Only use a stat that has a source.
 

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { launch, newPage, sleep } from './lib/cdp.mjs';
 import { CHAPTERS } from './lib/story.mjs';
+import { deckProgress, resolveCues } from './lib/deck.mjs';
 import { demoDir, ffmpeg, loadPlan, loadTimeline, saveTimeline } from './lib/util.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -244,8 +245,14 @@ async function resetZoom() {
 }
 
 // ---------- run ----------
+// Scene start times as assemble.mjs will cut them (each scene starts where the last ends, minus the crossfade):
+// the deck progress line on each card spans exactly that card's share of the video.
+const XF = plan.transition ?? 0.5;
+const starts = [0];
+for (const sc of plan.scenes) starts.push(starts.at(-1) + (tl.scenes[sc.id]?.target ?? 0) - XF);
+const runtime = starts.at(-1) + XF;
 const failures = [];
-for (const s of plan.scenes) {
+for (const [index, s] of plan.scenes.entries()) {
   const chapter = chapterFor(s); // before --only, so beat changes are tracked across skipped scenes
   if (only && !only.has(s.id)) continue;
   const entry = tl.scenes[s.id];
@@ -257,9 +264,13 @@ for (const s of plan.scenes) {
     await (v.type === 'card' ? card : app).send('Page.bringToFront');
     if (v.type === 'card') {
       await card.goto(cardUrl);
-      const data = { ...v, theme: { ...theme, ...(v.theme || {}) } };
-      // On a card the chapter is the kicker, unless the card already has one.
-      if (chapter && data.kicker == null && data.template !== 'title' && data.template !== 'end') data.kicker = chapter;
+      const resolved = resolveCues({ ...v, theme: { ...theme, ...(v.theme || {}) } }, entry);
+      for (const w of resolved.missed) console.warn(`  ! ${s.id}: onWord "${w}" is not in the voice-over; default timing`);
+      const data = resolved.data;
+      const deckCard = plan.deck && data.template !== 'title' && data.template !== 'end';
+      // On a deck slide the chapter rail names the chapter; otherwise the chapter is the kicker, unless the card has one.
+      if (deckCard) data.deck = deckProgress(plan, index, starts, runtime);
+      else if (chapter && data.kicker == null && data.template !== 'title' && data.template !== 'end') data.kicker = chapter;
       if (data.image) data.image = pathToFileURL(path.resolve(dir, data.image)).href;
       await card.eval(`render(${JSON.stringify(data)})`);
       await sleep(250);

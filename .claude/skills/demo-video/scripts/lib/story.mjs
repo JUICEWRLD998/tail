@@ -45,8 +45,9 @@ export function checkStory(plan) {
 
   // ---- problem: shown on screen as a statement, short, one person in one moment
   if (by.problem.length) {
+    const onScreen = by.problem.filter((s) => s.visual?.type === 'card' && ['statement', 'problem', 'quote', 'compare'].includes(s.visual.template));
+    if (!onScreen.length) warns.push('no problem slide: put the problem on screen (a statement, problem, quote or compare card), not only in the voice-over');
     const cards = by.problem.filter((s) => s.visual?.type === 'card' && s.visual.template === 'statement');
-    if (!cards.length) warns.push('no problem statement card: put the problem on screen in one or two short lines, not only in the voice-over');
     for (const c of cards) {
       const lines = c.visual.lines || [];
       if (lines.length > 2) warns.push(`${c.id}: problem statement has ${lines.length} lines; keep it to two`);
@@ -64,8 +65,8 @@ export function checkStory(plan) {
     if (nameWord && !first.toLowerCase().includes(nameWord)) warns.push(`${s.id}: the solution's first sentence should name the product ("${plan.product.name} lets you ...")`);
     if (wordCount(first) > 20) fails.push(`${s.id}: the solution sentence is ${wordCount(first)} words; say it in 20 or fewer`);
     if (by.solution.length > 2) warns.push(`${by.solution.length} solution scenes; one sentence and straight into the product`);
-    const onScreen = s.visual?.type === 'page' || (s.visual?.type === 'card' && s.visual.template === 'solution');
-    if (!onScreen) warns.push(`${s.id}: show the solution as the product itself or a "solution" card, not a plain statement`);
+    const onScreen = s.visual?.type === 'page' || (s.visual?.type === 'card' && ['solution', 'flow', 'compare'].includes(s.visual.template));
+    if (!onScreen) warns.push(`${s.id}: show the solution as the product itself, a "solution" card or a "flow" card, not a plain statement`);
   }
 
   // ---- demo: the live product, with the cursor on the word and one signature moment
@@ -89,6 +90,38 @@ export function checkStory(plan) {
     if (!zooms && !focuses) fails.push('no signature moment: zoom or focus on the result once, on the word that names it');
     const sig = by.demo.filter((s) => s.signature);
     if (sig.length > 1) warns.push(`${sig.length} scenes marked signature; there is one`);
+  }
+
+  // ---- pitch-deck slides: sourced, short, and never standing in for the product
+  const deckBeats = ['hook', 'problem', 'solution'];
+  const slides = scenes.filter((s) => deckBeats.includes(s.beat) && s.visual?.type === 'card');
+  if (slides.length > 5) warns.push(`${slides.length} slides before the demo; a deck act of 3 to 5 keeps the product on screen sooner`);
+  const deckShare = words(scenes.filter((s) => deckBeats.includes(s.beat))) / total;
+  if (deckShare > 0.4) warns.push(`hook, problem and solution take ${Math.round(deckShare * 100)}% of the words; keep the deck act under 40% so the live demo leads`);
+  for (const s of scenes) {
+    const v = s.visual || {};
+    if (v.type !== 'card') continue;
+    if (v.template === 'problem') {
+      if (!v.head) fails.push(`${s.id}: a problem slide needs a "head" (the pain in one line)`);
+      else if (wordCount(String(v.head).replace(/\*/g, '')) > 12) warns.push(`${s.id}: problem head is ${wordCount(v.head)} words; 12 max reads at a glance`);
+      if ((v.rows || []).length > 3) warns.push(`${s.id}: ${v.rows.length} evidence rows; three at most`);
+      for (const [i, row] of (v.rows || []).entries()) {
+        if (/\d/.test(`${row.value || ''} ${row.text || ''}`) && !row.source) fails.push(`${s.id}: evidence row ${i + 1} has a number and no source; add "source" or cut the number`);
+      }
+    }
+    if (v.template === 'quote') {
+      if (!v.source || !v.who) fails.push(`${s.id}: a quote needs "who" and "source": real words from a real place, or no quote`);
+      if (s.beat !== 'problem') warns.push(`${s.id}: a quote belongs in the problem beat`);
+    }
+    if (v.template === 'compare') {
+      if (!['problem', 'solution'].includes(s.beat)) warns.push(`${s.id}: a compare slide belongs in the problem or solution beat`);
+      if (!(v.before?.steps?.length && v.after?.steps?.length)) fails.push(`${s.id}: a compare slide needs before.steps and after.steps`);
+    }
+    if (v.template === 'flow') {
+      if (s.beat !== 'solution') warns.push(`${s.id}: a flow slide (how it works) belongs in the solution beat`);
+      const n = (v.steps || []).length;
+      if (n < 2 || n > 4) fails.push(`${s.id}: a flow slide has 2 to 4 steps (got ${n})`);
+    }
   }
 
   // ---- close: name, link
