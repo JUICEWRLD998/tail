@@ -34,6 +34,10 @@ export function ConnectPage() {
   const [info, setInfo] = useState<Extract<Info, { ok: true }> | undefined>(undefined);
   const [wallets, setWallets] = useState<WalletOption[]>([]);
 
+  useEffect(() => {
+    document.title = "Connect wallet · Tail";
+  }, []);
+
   // Read the token once, then ask the server whether it is still good.
   useEffect(() => {
     token.current = takeToken(window.location, window.history, window.sessionStorage);

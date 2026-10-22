@@ -13,16 +13,90 @@
         "danger": "oklch(0.76 0.14 25)"
       },
       "pairs": [
-        { "fg": "text", "bg": "bg", "min": 4.5, "use": "body text" },
-        { "fg": "muted", "bg": "bg", "min": 4.5, "use": "secondary text" },
-        { "fg": "text", "bg": "surface", "min": 4.5, "use": "text on panel" },
-        { "fg": "muted", "bg": "surface", "min": 4.5, "use": "secondary text on panel" },
-        { "fg": "onAccent", "bg": "accent", "min": 4.5, "use": "primary button label" },
-        { "fg": "accent", "bg": "bg", "min": 3, "use": "focus ring, active step" },
-        { "fg": "line", "bg": "bg", "min": 3, "use": "control border" },
-        { "fg": "line", "bg": "surface", "min": 3, "use": "control border on panel" },
-        { "fg": "warn", "bg": "surface", "min": 4.5, "use": "notice text" },
-        { "fg": "danger", "bg": "surface", "min": 4.5, "use": "error text" }
+        {
+          "fg": "text",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "body text"
+        },
+        {
+          "fg": "muted",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "secondary text"
+        },
+        {
+          "fg": "text",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "text on panel"
+        },
+        {
+          "fg": "muted",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "secondary text on panel"
+        },
+        {
+          "fg": "onAccent",
+          "bg": "accent",
+          "min": 4.5,
+          "use": "primary button label"
+        },
+        {
+          "fg": "accent",
+          "bg": "bg",
+          "min": 3,
+          "use": "focus ring, active step"
+        },
+        {
+          "fg": "line",
+          "bg": "bg",
+          "min": 3,
+          "use": "control border"
+        },
+        {
+          "fg": "line",
+          "bg": "surface",
+          "min": 3,
+          "use": "control border on panel"
+        },
+        {
+          "fg": "warn",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "notice text"
+        },
+        {
+          "fg": "danger",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "error text"
+        },
+        {
+          "fg": "accent",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "fee figure, target result"
+        },
+        {
+          "fg": "warn",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "testnet tag, page notice"
+        },
+        {
+          "fg": "danger",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "page error text"
+        },
+        {
+          "fg": "accent",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "page figures on the page background"
+        }
       ]
     },
     "light": {
@@ -38,16 +112,90 @@
         "danger": "oklch(0.5 0.17 25)"
       },
       "pairs": [
-        { "fg": "text", "bg": "bg", "min": 4.5, "use": "body text" },
-        { "fg": "muted", "bg": "bg", "min": 4.5, "use": "secondary text" },
-        { "fg": "text", "bg": "surface", "min": 4.5, "use": "text on panel" },
-        { "fg": "muted", "bg": "surface", "min": 4.5, "use": "secondary text on panel" },
-        { "fg": "onAccent", "bg": "accent", "min": 4.5, "use": "primary button label" },
-        { "fg": "accent", "bg": "bg", "min": 3, "use": "focus ring, active step" },
-        { "fg": "line", "bg": "bg", "min": 3, "use": "control border" },
-        { "fg": "line", "bg": "surface", "min": 3, "use": "control border on panel" },
-        { "fg": "warn", "bg": "surface", "min": 4.5, "use": "notice text" },
-        { "fg": "danger", "bg": "surface", "min": 4.5, "use": "error text" }
+        {
+          "fg": "text",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "body text"
+        },
+        {
+          "fg": "muted",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "secondary text"
+        },
+        {
+          "fg": "text",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "text on panel"
+        },
+        {
+          "fg": "muted",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "secondary text on panel"
+        },
+        {
+          "fg": "onAccent",
+          "bg": "accent",
+          "min": 4.5,
+          "use": "primary button label"
+        },
+        {
+          "fg": "accent",
+          "bg": "bg",
+          "min": 3,
+          "use": "focus ring, active step"
+        },
+        {
+          "fg": "line",
+          "bg": "bg",
+          "min": 3,
+          "use": "control border"
+        },
+        {
+          "fg": "line",
+          "bg": "surface",
+          "min": 3,
+          "use": "control border on panel"
+        },
+        {
+          "fg": "warn",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "notice text"
+        },
+        {
+          "fg": "danger",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "error text"
+        },
+        {
+          "fg": "accent",
+          "bg": "surface",
+          "min": 4.5,
+          "use": "fee figure, target result"
+        },
+        {
+          "fg": "warn",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "testnet tag, page notice"
+        },
+        {
+          "fg": "danger",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "page error text"
+        },
+        {
+          "fg": "accent",
+          "bg": "bg",
+          "min": 4.5,
+          "use": "page figures on the page background"
+        }
       ]
     }
   }
