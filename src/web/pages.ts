@@ -23,6 +23,9 @@ export interface PageCall {
   /** Followers with an entry fill on this call. */
   followers: number;
   tails: number;
+  /** Live follows by kind (placed, filled or closed), as on the channel card's counter. */
+  tailed: number;
+  faded: number;
   /** Estimated builder fee from this call's entry fills, USD. */
   fee: string;
 }
@@ -101,7 +104,7 @@ export function createPages(store: Store, o: { botUsername?: string } = {}): Pag
         id: c.id, symbol: c.symbol, side: c.side, entry: c.entry, entryKind: c.entryKind, tp: c.tp, sl: c.sl, status: c.status,
         createdAt: c.createdAt, closedAt: c.closedAt,
         resultR: c.status === "tp_hit" || c.status === "sl_hit" ? resultR(c, c.status) : null,
-        followers: followersOf(c.id), tails: tails.filter((t) => t.callId === c.id).length,
+        followers: followersOf(c.id), tails: tails.filter((t) => t.callId === c.id).length, ...store.tailCounts(c.id),
         fee: e.byCall.get(c.id)?.fee ?? "0",
       }));
       return {

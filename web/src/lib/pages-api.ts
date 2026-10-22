@@ -13,6 +13,8 @@ export interface PageCall {
   resultR: string | null;
   followers: number;
   tails: number;
+  tailed: number;
+  faded: number;
   fee: string;
 }
 

@@ -62,7 +62,7 @@ describe("channel page data", () => {
     const p = createPages(store).channel(slug)!;
     expect(p.calls.map((c) => c.symbol)).toEqual(["ETH-USD", "BTC-USD", "ETH-USD"]);
     const first = p.calls.find((c) => c.id === a)!;
-    expect(first).toMatchObject({ status: "tp_hit", followers: 2, tails: 2 });
+    expect(first).toMatchObject({ status: "tp_hit", followers: 2, tails: 2, tailed: 2, faded: 0 });
     expect(first.fee).toBe("0.04464");
     const json = JSON.stringify(p);
     for (const secret of ["9001", "5001", "5002", "-1001", "PRIVATE-RAW", "s1", "strategy"]) expect(json).not.toContain(secret);
