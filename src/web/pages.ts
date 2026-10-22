@@ -43,6 +43,8 @@ export interface SitePage {
   channels: number;
   calls: number;
   tailsFilled: number;
+  /** The bot to open in Telegram, if known. */
+  bot: string | null;
   note: string;
 }
 
@@ -51,7 +53,7 @@ export interface Pages {
   site(): SitePage;
 }
 
-export function createPages(store: Store): Pages {
+export function createPages(store: Store, o: { botUsername?: string } = {}): Pages {
   return {
     channel(slug) {
       if (!SLUG_RE.test(slug)) return undefined;
@@ -81,7 +83,7 @@ export function createPages(store: Store): Pages {
     },
     site() {
       return {
-        network: "testnet", ...store.siteTotals(),
+        network: "testnet", ...store.siteTotals(), bot: o.botUsername ?? null,
         note: "Measured from this server's own database. All of it is test activity on Strike testnet, not adoption.",
       };
     },

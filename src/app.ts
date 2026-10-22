@@ -128,7 +128,7 @@ export async function createApp(cfg: Config, deps: AppDeps = {}) {
   );
 
   const server = buildServer({
-    connect, now: Date.now, staticDir: deps.staticDir ?? "web/dist", pages: createPages(store),
+    connect, now: Date.now, staticDir: deps.staticDir ?? "web/dist", pages: createPages(store, { botUsername: me.username as string }),
     ...(cfg.mode === "prod" && cfg.webhookPath && cfg.webhookSecret
       ? { webhook: { path: cfg.webhookPath, secretToken: cfg.webhookSecret, handle: (u: unknown) => bot.handleUpdate(u as Update) } }
       : {}),

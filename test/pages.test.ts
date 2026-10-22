@@ -92,12 +92,12 @@ describe("channel page data", () => {
 describe("site data", () => {
   it("reports measured totals and labels them as test activity", () => {
     seed();
-    const s = createPages(store).site();
-    expect(s).toMatchObject({ network: "testnet", channels: 1, calls: 3, tailsFilled: 3 });
+    const s = createPages(store, { botUsername: "lidevbot" }).site();
+    expect(s).toMatchObject({ network: "testnet", channels: 1, calls: 3, tailsFilled: 3, bot: "lidevbot" });
     expect(s.note).toMatch(/test activity/i);
   });
 
   it("is all zeros on an empty database, not hidden", () => {
-    expect(createPages(store).site()).toMatchObject({ channels: 0, calls: 0, tailsFilled: 0 });
+    expect(createPages(store).site()).toMatchObject({ channels: 0, calls: 0, tailsFilled: 0, bot: null });
   });
 });
