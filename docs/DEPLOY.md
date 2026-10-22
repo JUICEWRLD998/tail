@@ -71,6 +71,6 @@ Then, in Telegram with the prod bot:
 | Prod wiring (webhook route, secret check, connect over HTTP, static page) | tested in code (`test/app.test.ts`, `test/server.test.ts`) |
 | The image layout (`npm ci --omit=dev`, same start command, `/health`, `/connect`, assets) | reproduced and run in a clean directory |
 | The connect page in a real browser against real Strike testnet (Ethereum wallet) | `npx tsx scripts/e2e-connect.ts`, 25 checks |
-| `docker build` and the entrypoint's privilege drop | **UNVERIFIED**: no Docker daemon was available |
+| `docker build` and the entrypoint's privilege drop | **First Render build failed** (2026-10-22): `better-sqlite3` had to compile and the slim image had no Python or compiler (`node-gyp` "Could not find any Python"). Fixed in the Dockerfile (build tools installed for that step only, a load check in the same step, web stage skips install scripts). The web stage was checked in a clean directory; the fixed image is **UNVERIFIED** until Render builds it |
 | Webhook registration against Telegram with the prod token | **UNVERIFIED**: needs the prod token |
 | Cardano (Lace, Eternl) and Phantom signatures in a real wallet | **UNVERIFIED**: needs a real wallet |
