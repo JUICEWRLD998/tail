@@ -15,7 +15,7 @@ order. If a step fails, do not fake it. Tell me what happened and re-shoot it.
 |---|---|
 | The service is awake | Open `https://<your-service>.onrender.com/health`. It must say `{"ok":true}`. Keep an uptime monitor pinging it every 5 minutes while you shoot, or the free plan sleeps and the database is wiped. |
 | The production bot is in your test channel | Channel, Administrators, add the production bot, allow posting, editing and deleting messages. |
-| Your follower wallet has testnet funds | Use the MetaMask account that holds your Strike testnet deposit (the one that starts `0x0C3a`). The bot sizes the trade from that account's Strike equity. With zero margin it refuses, and that is not a demo. |
+| A **second** MetaMask account with testnet funds (**correction, 2026-10-23**) | The follower wallet must **not** be the account that owns the builder code `sigma` (your `0x0C3a` account). Strike answers "cannot connect an account to its own builder code". In MetaMask make **Account 2**, connect it to Strike's testnet app, and claim the test-USD faucet there (the same faucet you used to register `sigma`). The bot sizes the trade from Account 2's Strike equity; with zero margin it refuses. Keep your `0x0C3a` account for the caller side only. |
 | One Telegram account is enough | The same account can be the caller and the follower. That worked in testing. Two accounts (a second one on your phone) make a clearer story but are optional. |
 | You know the live price | Run this in PowerShell, right before each call: `(Invoke-RestMethod "https://api-v2-testnet.strikefinance.org/price/v2/premiumIndex?symbol=ETH-USD").markPrice` |
 
@@ -112,7 +112,7 @@ it, then tap **Drop**.
 Use the quick-finish call from C2 (or post a fresh one). Tap **Tail** on its card. Then:
 
 1. The bot opens. **First time only:** it sends a **Connect wallet** button. Tap it. The web page opens.
-2. Choose MetaMask, sign the one message, and wait for the page to say **Linked**. Go back to Telegram.
+2. In MetaMask, switch to **Account 2** (not `0x0C3a`). Choose MetaMask on the page, sign the one message, and wait for the page to say **Linked**. Go back to Telegram.
    (If you are already linked, skip steps 1 and 2.)
 3. Tap **Tail** on the card again. The bot sends the quote. Pause 3 seconds so it can be read: entry, target, stop, the size,
    the risk in USD against your own equity, R:R, and the builder fee line.
@@ -149,7 +149,7 @@ In the private chat with the bot, send these one at a time and pause on each rep
 1. `/record`: calls, hit rate, average result, followers in.
 2. `/earnings`: the estimated builder fee.
 3. `/setcode sigma 10`: the bot checks the code with Strike, then confirms that Strike pays the owner of the code directly.
-   (You own `sigma`, so this is truthful.) Send `/earnings` again: it now says who gets paid.
+   (You own `sigma`, so this is truthful. This is also why the follower must be a different wallet.) Send `/earnings` again: it now says who gets paid.
 4. `/publish`: the bot replies with a public page link. Copy it.
 
 *Shows: the caller's record and earnings, computed from real fills, and a caller paid by Strike through their own code.*
@@ -163,7 +163,7 @@ ticket, the builder fee and the calls table. Record the browser window.
 
 ### C10. Proof on Strike (about 20 s) `c10-strike.mp4`
 
-Open Strike's testnet app (`testnet.strikefinance.org`) with your account. Show the open **position** and its **take-profit
+Open Strike's testnet app (`testnet.strikefinance.org`) with **Account 2**, the follower. Show the open **position** and its **take-profit
 and stop** orders from your Tail order, so it is clear the bracket is real and sits on Strike. Do not show any menu with
 keys or settings.
 

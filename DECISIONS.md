@@ -2,6 +2,16 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-23 Correction (marked): the demo guide told him to follow with the wallet that owns `sigma`
+
+- `docs/demo/telegram.md` said to connect the MetaMask account that holds the Strike testnet deposit (`0x0C3a`). That account
+  registered the builder code `sigma`. Strike refuses to connect an account under its own builder code: `Strike said: cannot
+  connect an account to its own builder code` (live, via the connect page). The guide now says to use a second MetaMask account
+  funded from Strike's test-USD faucet. The default path hits the same rule, since orders carry `sigma` when a channel has no
+  code of its own: **the owner of a builder code can never follow through Builder Connect under it.** Not a Tail bug; a Strike rule.
+- Earlier live tails (orders 243140879 and 243144232) used the dev-only `/link` personal key, which has no builder code, so
+  they never met this rule.
+
 ## 2026-10-22 Correction in the README (marked): "API wallets cannot withdraw"
 
 - The README said Strike API wallets cannot withdraw. Strike's builder-code docs (VERIFIED, `api/builder-codes/withdraw.md`) say
