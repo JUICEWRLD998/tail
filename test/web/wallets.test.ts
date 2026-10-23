@@ -59,6 +59,57 @@ describe("EVM (MetaMask, Rabby): EIP-191 personal_sign", () => {
     expect(sign.params).toEqual(["0x" + Buffer.from(MESSAGE, "utf8").toString("hex"), ETH]);
   });
 
+  describe("choosing which account to connect (the site stays connected to the first account otherwise)", () => {
+    const ETH2 = "0x1111111111111111111111111111111111111111";
+
+    it("asks the wallet to show its account chooser, then reads the chosen account", async () => {
+      const calls: string[] = [];
+      let chosen = ETH;
+      const eth = evmStub({
+        request: async (r: { method: string }) => {
+          calls.push(r.method);
+          if (r.method === "wallet_requestPermissions") { chosen = ETH2; return [{ parentCapability: "eth_accounts" }]; }
+          if (r.method === "eth_requestAccounts") return [chosen];
+          throw new Error("unexpected " + r.method);
+        },
+      });
+      const c = await connectWallet({ ethereum: eth }, "evm");
+      expect(calls).toEqual(["wallet_requestPermissions", "eth_requestAccounts"]);
+      expect(c.address).toBe(ETH2);
+    });
+
+    it("sends the account-permissions request first, with eth_accounts", async () => {
+      const eth = evmStub();
+      const orig = eth.request;
+      eth.request = async (r: { method: string; params?: unknown[] }) => (r.method === "wallet_requestPermissions" ? [] : orig(r));
+      await connectWallet({ ethereum: eth }, "evm");
+      expect(eth.calls.find((x) => x.method === "wallet_requestPermissions")?.params).toEqual([{ eth_accounts: {} }]);
+    });
+
+    it.each([[-32601], [4200], [-32602]])("falls back to the plain connect when the wallet does not support the chooser (code %i)", async (code) => {
+      const eth = evmStub({
+        request: async (r: { method: string }) => {
+          if (r.method === "wallet_requestPermissions") throw Object.assign(new Error("nope"), { code });
+          if (r.method === "eth_requestAccounts") return [ETH];
+          throw new Error("unexpected " + r.method);
+        },
+      });
+      expect((await connectWallet({ ethereum: eth }, "evm")).address).toBe(ETH);
+    });
+
+    it("a refusal in the chooser is a refusal: it does not fall through to connecting anyway", async () => {
+      const calls: string[] = [];
+      const eth = evmStub({
+        request: async (r: { method: string }) => {
+          calls.push(r.method);
+          throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+        },
+      });
+      await expect(connectWallet({ ethereum: eth }, "evm")).rejects.toMatchObject({ code: 4001 });
+      expect(calls).toEqual(["wallet_requestPermissions"]);
+    });
+  });
+
   it("rejects a signature that is not 65 bytes of hex", async () => {
     const c = await connectWallet({ ethereum: evmStub({ request: async (r: { method: string }) => (r.method === "eth_requestAccounts" ? [ETH] : "0x1234") }) }, "evm");
     await expect(c.sign(MESSAGE)).rejects.toThrow(/signature/);

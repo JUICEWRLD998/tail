@@ -188,6 +188,27 @@ describe("complete", () => {
   });
 });
 
+describe("Strike refuses an account under its own builder code", () => {
+  it("says so in plain words and tells the user what to do, instead of Strike's raw sentence", async () => {
+    failRequest = new StrikeError(400, "POST", "/auth/builder/request-signature", "cannot connect an account to its own builder code");
+    const r = await svc.challenge(token, { address: ETH, chain: "ethereum" });
+    expect(r).toEqual({ ok: false, error: "This wallet account owns the builder code Tail uses, and Strike will not connect an account to its own code. Choose a different account in your wallet and try again." });
+  });
+
+  it("the same message when it is refused at the verify step", async () => {
+    const c = await svc.challenge(token, { address: ETH, chain: "ethereum" });
+    if (!c.ok) throw new Error(c.error);
+    failVerify = new StrikeError(400, "POST", "/auth/builder/verify-signature", "cannot connect an account to its own builder code");
+    const r = await svc.complete(token, { nonce: c.nonce, signature: "0xsig" });
+    expect(r).toMatchObject({ ok: false, error: expect.stringContaining("owns the builder code") });
+  });
+
+  it("other Strike errors keep their own text", async () => {
+    failRequest = new StrikeError(400, "POST", "/p", "invalid chain");
+    expect(await svc.challenge(token, { address: ETH, chain: "ethereum" })).toEqual({ ok: false, error: "Strike said: invalid chain." });
+  });
+});
+
 describe("a connect link bound to a caller's builder code", () => {
   let coded: string;
   beforeEach(() => {
