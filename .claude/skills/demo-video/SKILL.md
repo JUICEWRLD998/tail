@@ -99,6 +99,21 @@ With no track the cut has voice only; say so in the delivery note.
 - The deployed link is down or shows a different build than the folder.
 - The event's video rules conflict with the brief (for example a 60-second cap or a required face cam).
 
+## Recorded clips and an offline voice
+
+- **A clip of the product (a Telegram screen recording) is a `video` scene**, a first-class demo scene. It sits under the
+  voice, trimmed to the moments that matter, cropped to the product only, and sped to fit the voice (never below 1x; more
+  than 2.4x is reported, so keep less footage or say more). Schema: `references/plan-schema.md`. Steps for the person
+  recording: `docs/demo/telegram.md` in the Tail repo is a worked example of a shoot list.
+- **Cut the footage by looking at it**, not by guessing. Sheet the source every 2 s with timestamps, find the clean
+  continuous run for each beat (a call posted, the quote, the confirm), note where the person switched to an editor or
+  another app (the segments to drop), and write the segments into the plan. Crop to the chat pane so other chats,
+  tabs and the address bar never appear.
+- **An OS watermark ("Activate Windows") over a UI cannot be removed cleanly.** `delogo` smears whatever is under it,
+  here the send button. Crop above the bar it sits on instead.
+- **No Edge voice on a Linux host?** `lib/piper-tts.mjs` runs Piper offline (`PIPER_PY`, `PIPER_MODEL`); word times are
+  estimated from phoneme counts per sentence. Speak at `piperLengthScale` 1.2 for a natural pace.
+
 ## Pitfalls (each one cost time once)
 
 - **A slide that looks fine in one card can break in another.** Before recording, render each new slide at
@@ -118,7 +133,7 @@ With no track the cut has voice only; say so in the delivery note.
   `Page.captureScreenshot` in a loop gives only 7–16 fps; do not use it for motion.
 - **A background tab gets no animation frames.** rAF stalls, the cursor never moves, the recorder hangs.
   `capture()` calls `Page.bringToFront` first and has a watchdog of target + 30 s.
-- **ffmpeg 9 removed `-filter_complex_script`.** Use `-/filter_complex graph.txt`.
+- **The graph-file flag depends on the ffmpeg version.** ffmpeg 7+ is `-/filter_complex file`; 6 and older is `-filter_complex_script file` (ffmpeg 9 removed it). `lib/util.mjs` `filterFile()` picks the right one; never hard-code either.
 - **freezedetect and silencedetect print no `_end` for a span that runs to end of file.** `verify.mjs`
   closes open spans at the file end and runs every detector on a planted control clip first. If a detector
   is blind on the control, verify exits 1. Never trust a clean result from a detector that has not fired on the control.
