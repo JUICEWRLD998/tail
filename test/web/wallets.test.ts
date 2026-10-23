@@ -81,7 +81,7 @@ describe("EVM (MetaMask, Rabby): EIP-191 personal_sign", () => {
     it("sends the account-permissions request first, with eth_accounts", async () => {
       const eth = evmStub();
       const orig = eth.request;
-      eth.request = async (r: { method: string; params?: unknown[] }) => (r.method === "wallet_requestPermissions" ? [] : orig(r));
+      eth.request = async (r: { method: string; params?: unknown[] }) => (r.method === "wallet_requestPermissions" ? (eth.calls.push(r), []) : orig(r));
       await connectWallet({ ethereum: eth }, "evm");
       expect(eth.calls.find((x) => x.method === "wallet_requestPermissions")?.params).toEqual([{ eth_accounts: {} }]);
     });

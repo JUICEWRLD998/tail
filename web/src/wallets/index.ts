@@ -43,6 +43,14 @@ export function detectWallets(w: WindowLike): WalletOption[] {
 
 async function connectEvm(w: WindowLike): Promise<Connected> {
   const eth = w.ethereum;
+  // A site stays connected to the account it was first given, and switching account in the wallet does not change that.
+  // Ask the wallet to show its account chooser first so the user picks the account on purpose. A wallet that does not
+  // support the request falls back to the plain connect; a refusal (4001) is a refusal and stops here.
+  try {
+    await eth.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+  } catch (e) {
+    if ((e as { code?: number })?.code === 4001) throw e;
+  }
   const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
   const address = accounts?.[0];
   if (!address) throw new WalletError("The wallet did not share an account.");

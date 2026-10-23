@@ -2,6 +2,15 @@
 
 **Mustapha Fadhlullah — independent security researcher**
 
+## 2026-10-23 Connect: pick the account on purpose; explain the own-code refusal
+
+- After funding a second MetaMask account he still got "cannot connect an account to its own builder code". Cause: the connect
+  page used the first account from `eth_requestAccounts`, and a site stays connected to the account it was first given, so
+  switching the active account in MetaMask changed nothing. Fix: the page first sends `wallet_requestPermissions` (the wallet's
+  account chooser); a wallet without it falls back to the plain connect; a refusal (4001) stops. Tested with stubs, and the 25
+  live-Strike connect checks still pass. UNVERIFIED in a real MetaMask: the chooser itself.
+- Strike's own sentence is now a plain message: the account owns the builder code Tail uses; choose a different account.
+
 ## 2026-10-23 Correction (marked): the demo guide told him to follow with the wallet that owns `sigma`
 
 - `docs/demo/telegram.md` said to connect the MetaMask account that holds the Strike testnet deposit (`0x0C3a`). That account

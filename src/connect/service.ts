@@ -32,7 +32,10 @@ export interface ConnectDeps {
 const INVALID = "This link is not valid. Send /connect to the bot for a new one.";
 const short = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a);
 
+const OWN_CODE = "This wallet account owns the builder code Tail uses, and Strike will not connect an account to its own code. Choose a different account in your wallet and try again.";
+
 function strikeText(e: unknown): string {
+  if (e instanceof StrikeError && /own builder code/i.test(e.strikeError)) return OWN_CODE;
   return e instanceof StrikeError ? `Strike said: ${escapeHtml(e.strikeError)}.` : "Could not reach Strike. Try again.";
 }
 

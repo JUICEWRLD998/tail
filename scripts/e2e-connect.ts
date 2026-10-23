@@ -55,6 +55,7 @@ async function newPage(opts: { signer?: Signer; wallet?: "evm" | "none" | "refus
       window.ethereum = {
         isMetaMask: true,
         request: async ({ method, params }) => {
+          if (method === "wallet_requestPermissions") return [{ parentCapability: "eth_accounts" }];
           if (method === "eth_requestAccounts") return [address];
           if (method === "personal_sign") {
             if (refuse) { const e = new Error("User rejected the request."); e.code = 4001; throw e; }
