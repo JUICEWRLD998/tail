@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { demoDir, duration, ffmpeg, loadPlan, loadTimeline, slug } from './lib/util.mjs';
+import { demoDir, duration, ffmpeg, filterFile, loadPlan, loadTimeline, slug } from './lib/util.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dir = demoDir(process.argv.slice(2).find((a) => !a.startsWith('--')));
@@ -128,8 +128,8 @@ fs.writeFileSync(path.join(build, 'graph.txt'), f.join(';\n'));
 
 const out = path.join(outDir, `${name}-demo.mp4`);
 console.log(`assembling ${scenes.length} scenes, ${total.toFixed(1)}s, music: ${music ? path.basename(music) : 'none'}, captions: ${captionsOn ? cueTimes.length : 0}`);
-// ffmpeg 7+ reads an option value from a file with the "-/" prefix (-filter_complex_script is gone in 9).
-ffmpeg([...args, '-/filter_complex', 'graph.txt', '-map', '[vout]', '-map', '[aout]',
+// The graph is read from a file; the flag is -/filter_complex on ffmpeg 7+ and -filter_complex_script before (see filterFile).
+ffmpeg([...args, ...filterFile('graph.txt'), '-map', '[vout]', '-map', '[aout]',
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', '30',
   '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', total.toFixed(3), out], { cwd: build });
 

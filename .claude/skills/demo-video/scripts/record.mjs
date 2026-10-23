@@ -9,7 +9,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { launch, newPage, sleep } from './lib/cdp.mjs';
 import { CHAPTERS } from './lib/story.mjs';
 import { deckProgress, resolveCues } from './lib/deck.mjs';
-import { demoDir, ffmpeg, loadPlan, loadTimeline, saveTimeline } from './lib/util.mjs';
+import { demoDir, duration, ffmpeg, filterFile, loadPlan, loadTimeline, saveTimeline } from './lib/util.mjs';
+import { videoPlan } from './lib/video-scene.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dir = demoDir(process.argv.slice(2).find((a) => !a.startsWith('--')));
@@ -262,6 +263,22 @@ for (const [index, s] of plan.scenes.entries()) {
     // Front the tab BEFORE navigating: a background tab never resolves document.fonts.ready or rAF,
     // so goto/prep hang outside the capture watchdog (cost a 10-minute stall on the first real run).
     await (v.type === 'card' ? card : app).send('Page.bringToFront');
+    if (v.type === 'video') {
+      // A recorded clip (for example a screen recording of Telegram): trimmed, sped to fit the voice, framed. No browser.
+      const vp = videoPlan(v, entry.target, { dir, theme, font: plan.labelFont });
+      for (const w of vp.warnings) console.warn(`  ! ${s.id}: ${w}`);
+      fs.mkdirSync(path.join(build, 'clips'), { recursive: true });
+      const clip = path.join(build, 'clips', `${s.id}.mp4`);
+      fs.writeFileSync(path.join(build, `${s.id}.vgraph.txt`), vp.graph);
+      ffmpeg([...vp.inputs, ...filterFile(`${s.id}.vgraph.txt`), '-map', '[v]', '-an', '-t', entry.target.toFixed(3),
+        '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-pix_fmt', 'yuv420p', '-r', '30', clip], { cwd: build });
+      entry.dur = +duration(clip).toFixed(3);
+      entry.recordedTarget = entry.target;
+      entry.clip = `build/clips/${s.id}.mp4`;
+      console.log(`  rec ${s.id.padEnd(18)} ${entry.dur.toFixed(2)}s  clip x${vp.speed.toFixed(2)} from ${vp.sourceSeconds.toFixed(1)}s of footage`);
+      saveTimeline(dir, tl);
+      continue;
+    }
     if (v.type === 'card') {
       await card.goto(cardUrl);
       const resolved = resolveCues({ ...v, theme: { ...theme, ...(v.theme || {}) } }, entry);
@@ -295,6 +312,7 @@ for (const [index, s] of plan.scenes.entries()) {
       });
     }
     entry.dur = +res.total.toFixed(3);
+    entry.recordedTarget = entry.target;
     entry.clip = `build/clips/${s.id}.mp4`;
     const over = entry.dur - entry.target;
     console.log(`  rec ${s.id.padEnd(18)} ${entry.dur.toFixed(2)}s  ${String(res.frames).padStart(4)} frames${over > 0.3 ? `  (+${over.toFixed(1)}s past voice: actions ran long)` : ''}`);

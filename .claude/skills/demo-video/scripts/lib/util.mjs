@@ -38,6 +38,17 @@ export function run(cmd, args, { cwd, quiet = true } = {}) {
   return r;
 }
 
+/** The ffmpeg arguments that read a filter graph from a file. ffmpeg 7+ spells it `-/filter_complex file`; 6 and older
+ *  use `-filter_complex_script file` (which ffmpeg 9 removed). Detected once from `ffmpeg -version`. */
+let graphFlag;
+export function filterFile(file) {
+  if (!graphFlag) {
+    const major = Number(/version\s+n?(\d+)/.exec(run('ffmpeg', ['-version']).stdout)?.[1] ?? 7);
+    graphFlag = major >= 7 ? '-/filter_complex' : '-filter_complex_script';
+  }
+  return [graphFlag, file];
+}
+
 export const ffmpeg = (args, opts) => run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...args], opts);
 
 export function duration(file) {

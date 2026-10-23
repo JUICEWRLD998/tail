@@ -1,0 +1,421 @@
+{
+  "product": {
+    "name": "Tail",
+    "tagline": "Tap the call. Strike does the rest.",
+    "url": "tail-pu7t.onrender.com"
+  },
+  "url": "http://127.0.0.1:3951",
+  "targetSeconds": 175,
+  "colorScheme": "dark",
+  "theme": {
+    "bg": "#0b121b",
+    "surface": "#141c27",
+    "fg": "#e9eff7",
+    "muted": "#a5b2c4",
+    "accent": "#6adcc4",
+    "accent2": "#f99b7e",
+    "line": "#5a6a80",
+    "font": "\"Schibsted Grotesk\", \"Inter\", system-ui, sans-serif",
+    "display": "\"Schibsted Grotesk\", \"Inter\", system-ui, sans-serif",
+    "fontUrl": "file:///home/user/tail/demo/assets/fonts.css"
+  },
+  "deck": true,
+  "labelFont": "/usr/share/fonts/opentype/inter/Inter-SemiBold.otf",
+  "voice": {
+    "lead": 0.5,
+    "tail": 0.45,
+    "piperLengthScale": 1.22
+  },
+  "transition": 0.5,
+  "transitionStyle": "fade",
+  "captions": true,
+  "captionStyle": {
+    "font": "Inter SemiBold",
+    "size": 44
+  },
+  "music": false,
+  "thumbnailAt": 3.2,
+  "scenes": [
+    {
+      "id": "s01-hook",
+      "beat": "hook",
+      "vo": "This is Tail. Tap a trading call in Telegram, and Strike places the trade.",
+      "visual": {
+        "type": "card",
+        "template": "title",
+        "kicker": "Strike Hackathon",
+        "name": "Tail",
+        "tagline": "Tap the call. Strike does the rest.",
+        "image": "assets/home.png"
+      }
+    },
+    {
+      "id": "s02-problem",
+      "beat": "problem",
+      "transition": "smoothleft",
+      "vo": "Someone posts a call in a channel. You read it. You open an exchange. You type the entry, the target and the stop, and work out your size. By then, the price has moved. And the caller earns nothing.",
+      "visual": {
+        "type": "card",
+        "template": "problem",
+        "head": "By the time you've typed the trade, the price has moved",
+        "rows": [
+          {
+            "text": "Reading a call takes a second. Placing it by hand does not.",
+            "onWord": "exchange"
+          },
+          {
+            "text": "The caller whose call moved the money earns nothing.",
+            "onWord": "nothing"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s03-compare",
+      "beat": "problem",
+      "transition": "smoothleft",
+      "vo": "By hand, that's six steps. With Tail, it's one tap, sized to your own risk.",
+      "visual": {
+        "type": "card",
+        "template": "compare",
+        "head": "Six steps become one tap",
+        "before": {
+          "label": "By hand",
+          "cost": "six steps",
+          "steps": [
+            "Read the call",
+            "Open the exchange",
+            "Pick the market",
+            "Type the entry",
+            "Set target and stop",
+            "Work out your size"
+          ]
+        },
+        "after": {
+          "label": "With Tail",
+          "cost": "one tap",
+          "steps": [
+            {
+              "text": "Tap Tail",
+              "onWord": "one"
+            },
+            {
+              "text": "Confirm the size",
+              "onWord": "risk"
+            }
+          ]
+        },
+        "tally": "Sized to *your* risk",
+        "tallyOnWord": "risk"
+      }
+    },
+    {
+      "id": "s04-solution",
+      "beat": "solution",
+      "transition": "smoothleft",
+      "vo": "Tail turns a channel call into a Strike order. The caller posts. Tail reads it. You tap. Strike holds the entry, the target and the stop.",
+      "visual": {
+        "type": "card",
+        "template": "flow",
+        "head": "How Tail works",
+        "steps": [
+          {
+            "label": "Caller posts",
+            "sub": "in a Telegram channel",
+            "onWord": "posts"
+          },
+          {
+            "label": "Tail reads it",
+            "sub": "or asks one question",
+            "onWord": "reads"
+          },
+          {
+            "label": "You tap",
+            "sub": "sized to your own risk",
+            "onWord": "tap"
+          },
+          {
+            "label": "Strike holds it",
+            "sub": "entry, target, stop",
+            "onWord": "Strike"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s05-call",
+      "beat": "demo",
+      "vo": "Here's a real call. The caller pastes it, and Tail turns it into a card with Tail and Fade buttons. Nothing is posted until the caller confirms.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            37.5,
+            46.0
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "1  The caller posts a call",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      }
+    },
+    {
+      "id": "s06-tail",
+      "beat": "demo",
+      "vo": "Tap Tail, and the bot sizes the trade from your own equity and risk. Confirm, and Strike places the order. The order number is right there.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            46.0,
+            57.4
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "2  A follower taps Tail",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      },
+      "signature": true
+    },
+    {
+      "id": "s07-ask",
+      "beat": "demo",
+      "vo": "If a call is unclear, Tail doesn't guess. It asks one question. Long or short? One tap, and it carries on.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            90.5,
+            100.5
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "3  An unclear call becomes a question",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      }
+    },
+    {
+      "id": "s08-fade",
+      "beat": "demo",
+      "vo": "Or take the other side. Fade flips the trade, swaps the target and the stop, and shows the new risk before you confirm.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            103.0,
+            117.3
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "4  Fade takes the other side",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      }
+    },
+    {
+      "id": "s09-ai",
+      "beat": "demo",
+      "vo": "Messages written in plain English get an AI reading, clearly labelled. The caller still checks every price and confirms.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            132.0,
+            142.5
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "5  Plain English gets an AI reading",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      }
+    },
+    {
+      "id": "s10-result",
+      "beat": "demo",
+      "vo": "When the market reaches the target, the result is posted under the card. It comes from the price, not from the caller.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            171.8,
+            176.5
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "6  The result comes from the market",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      }
+    },
+    {
+      "id": "s11-record",
+      "beat": "demo",
+      "vo": "Callers get their record, and an estimated builder fee. Set your own builder code, and Strike pays you directly.",
+      "visual": {
+        "type": "video",
+        "src": "assets/tg-demo.mp4",
+        "segments": [
+          [
+            178.5,
+            181.5
+          ],
+          [
+            189.0,
+            192.8
+          ]
+        ],
+        "crop": {
+          "x": 345,
+          "y": 92,
+          "w": 1021,
+          "h": 556
+        },
+        "boxW": 1500,
+        "boxY": 84,
+        "label": "7  The caller's record and earnings",
+        "source": "Recorded live on Strike testnet, Telegram Web"
+      }
+    },
+    {
+      "id": "s12-web-home",
+      "beat": "demo",
+      "vo": "Every call also gets a public page. The home page replays a real call: the tail lands, then the result is stamped.",
+      "visual": {
+        "type": "page",
+        "url": "/",
+        "settle": 600,
+        "prep": [
+          {
+            "do": "eval",
+            "js": "(()=>{const d=document.createElement('div');d.id='demo-badge';d.textContent='Real calls and fills from the development bot \\u00b7 Strike testnet \\u00b7 22 Oct 2026';d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99999;padding:7px 14px;border-radius:999px;background:#141c27;color:#a5b2c4;border:1px solid #5a6a80;font:600 14px \"Schibsted Grotesk\",system-ui,sans-serif;white-space:nowrap';document.body.appendChild(d);})()"
+          }
+        ],
+        "actions": [
+          {
+            "do": "wait",
+            "ms": 300
+          },
+          {
+            "do": "click",
+            "text": "Replay",
+            "onWord": "tail",
+            "move": 900
+          },
+          {
+            "do": "wait",
+            "ms": 900
+          }
+        ]
+      }
+    },
+    {
+      "id": "s13-web-record",
+      "beat": "demo",
+      "vo": "A caller's page shows their record, their running result, and every call. All of it is computed from real fills.",
+      "visual": {
+        "type": "page",
+        "url": "/c/tailsample",
+        "settle": 600,
+        "prep": [
+          {
+            "do": "eval",
+            "js": "(()=>{const d=document.createElement('div');d.id='demo-badge';d.textContent='Real calls and fills from the development bot \\u00b7 Strike testnet \\u00b7 22 Oct 2026';d.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99999;padding:7px 14px;border-radius:999px;background:#141c27;color:#a5b2c4;border:1px solid #5a6a80;font:600 14px \"Schibsted Grotesk\",system-ui,sans-serif;white-space:nowrap';document.body.appendChild(d);})()"
+          }
+        ],
+        "actions": [
+          {
+            "do": "scroll",
+            "selector": "#record",
+            "block": 0.08,
+            "ms": 1300,
+            "onWord": "record"
+          },
+          {
+            "do": "scroll",
+            "selector": "#calls",
+            "block": 0.06,
+            "ms": 1500,
+            "onWord": "every"
+          }
+        ]
+      }
+    },
+    {
+      "id": "s14-proof",
+      "beat": "proof",
+      "vo": "Everything you saw ran on Strike's testnet, with real orders and real order numbers. Tail never holds your money.",
+      "visual": {
+        "type": "card",
+        "template": "statement",
+        "kicker": "What's real",
+        "lines": [
+          "Real orders on Strike's testnet.",
+          {
+            "text": "Real order numbers, on screen.",
+            "dim": true
+          }
+        ],
+        "sub": "Tail never holds your funds."
+      }
+    },
+    {
+      "id": "s15-close",
+      "beat": "close",
+      "vo": "That's Tail. Tap the call, and Strike does the rest.",
+      "visual": {
+        "type": "card",
+        "template": "end",
+        "name": "Tail",
+        "tagline": "Tap the call. Strike does the rest.",
+        "url": "tail-pu7t.onrender.com",
+        "credit": "Telegram bot @tailstrikebot · Strike testnet · Strike Hackathon 2026"
+      }
+    }
+  ]
+}

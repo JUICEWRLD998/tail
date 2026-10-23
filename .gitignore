@@ -13,3 +13,6 @@ docs/proof/*.raw
 *.db-wal
 data/
 web/dist/
+demo/build/
+demo/out/
+demo/assets/*.mp4

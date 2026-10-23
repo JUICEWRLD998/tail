@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // Step 1 of the pipeline: synthesise the voice-over per scene and fix the timeline.
 // usage: node tts.mjs [demoDir] [--force] [--skip-story]
-// Provider: plan.voice.provider = "edge" (default, free) | "elevenlabs" (needs ELEVENLABS_API_KEY).
+// Provider: plan.voice.provider = "edge" (default, free) | "elevenlabs" (needs ELEVENLABS_API_KEY) | "piper" (offline; needs
+// PIPER_PY and PIPER_MODEL, see lib/piper-tts.mjs). Without a key, piper is used when it is set up, else edge.
 // Writes build/audio/<id>.mp3 + <id>.words.json and timeline.json { voDur, lead, target }.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { edgeSpeak } from './lib/edge-tts.mjs';
+import { piperAvailable, piperSpeak } from './lib/piper-tts.mjs';
 import { checkStory, printStory } from './lib/story.mjs';
 import { demoDir, duration, loadPlan, loadTimeline, readJSON, saveTimeline, wordCount, writeJSON } from './lib/util.mjs';
 
@@ -20,7 +22,8 @@ if (!process.argv.includes('--skip-story')) {
   if (story.fails.length) { console.log('\nfix the story in plan.json first (or pass --skip-story to voice it anyway)'); process.exit(1); }
 }
 const voice = {
-  provider: process.env.ELEVENLABS_API_KEY ? 'elevenlabs' : 'edge',
+  provider: process.env.ELEVENLABS_API_KEY ? 'elevenlabs' : piperAvailable() ? 'piper' : 'edge',
+  piperLengthScale: 1.12,
   edgeVoice: 'en-US-AvaMultilingualNeural', rate: '-4%', pitch: '+0Hz',
   elevenVoice: '21m00Tcm4TlvDq8ikWAM', elevenModel: 'eleven_multilingual_v2',
   lead: 0.6, tail: 0.5,
@@ -61,13 +64,15 @@ for (const s of plan.scenes) {
   if (!text) {
     Object.assign(entry, { voFile: null, voDur: 0, lead: 0, words: [], target: s.hold ?? 2 });
   } else {
-    const key = crypto.createHash('sha1').update(JSON.stringify([text, voice.provider, voice.edgeVoice, voice.rate, s.rate, voice.pitch, voice.elevenVoice])).digest('hex').slice(0, 12);
+    const key = crypto.createHash('sha1').update(JSON.stringify([text, voice.provider, voice.edgeVoice, voice.rate, s.rate, voice.pitch, voice.elevenVoice, voice.piperLengthScale, process.env.PIPER_MODEL])).digest('hex').slice(0, 12);
     const mp3 = path.join(audioDir, `${s.id}.mp3`);
     const wj = path.join(audioDir, `${s.id}.words.json`);
     if (force || entry.key !== key || !fs.existsSync(mp3)) {
       const r = voice.provider === 'elevenlabs'
         ? await eleven(text)
-        : await edgeSpeak(text, { voice: voice.edgeVoice, rate: s.rate || voice.rate, pitch: voice.pitch });
+        : voice.provider === 'piper'
+          ? await piperSpeak(text, { lengthScale: s.lengthScale ?? voice.piperLengthScale })
+          : await edgeSpeak(text, { voice: voice.edgeVoice, rate: s.rate || voice.rate, pitch: voice.pitch });
       fs.writeFileSync(mp3, r.audio);
       writeJSON(wj, r.words);
       process.stdout.write(`  voiced ${s.id}\n`);
@@ -75,7 +80,8 @@ for (const s of plan.scenes) {
     const voDur = duration(mp3);
     Object.assign(entry, { key, voFile: path.relative(dir, mp3).replaceAll('\\', '/'), voDur, lead, words: readJSON(wj, []), target: +(lead + voDur + tail + (s.hold || 0)).toFixed(3) });
   }
-  delete entry.dur; // recording must be redone against the new target
+  // A scene only needs re-recording when its length changed (new words or a new voice). Unchanged scenes keep their clip.
+  if (entry.recordedTarget !== entry.target) delete entry.dur;
   total += entry.target;
   words += wordCount(s.vo);
 }

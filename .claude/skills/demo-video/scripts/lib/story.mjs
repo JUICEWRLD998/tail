@@ -71,7 +71,8 @@ export function checkStory(plan) {
 
   // ---- demo: the live product, with the cursor on the word and one signature moment
   if (by.demo.length) {
-    const cardsInDemo = by.demo.filter((s) => s.visual?.type !== 'page');
+    // The demo is the product itself: a live page, or a real recording of it (a "video" scene, for example Telegram).
+    const cardsInDemo = by.demo.filter((s) => !['page', 'video'].includes(s.visual?.type));
     for (const s of cardsInDemo) fails.push(`${s.id}: the demo is the live product; a card cannot stand in for it`);
     if (by.demo.length < 2) fails.push(`only ${by.demo.length} demo scene; show at least two beats (three is the target)`);
     else if (by.demo.length < 3) warns.push('two demo beats; three (action, result, why it matters) is the target');
@@ -87,7 +88,8 @@ export function checkStory(plan) {
       if (acts.length && !acts.some((a) => a.onWord || a.at != null)) warns.push(`${s.id}: no action is timed with onWord; the click should land on the word that names it`);
       if (!acts.length && s.visual?.type === 'page') warns.push(`${s.id}: a demo scene with no actions is a static screen; move the cursor to what the voice names`);
     }
-    if (!zooms && !focuses) fails.push('no signature moment: zoom or focus on the result once, on the word that names it');
+    const marked = by.demo.filter((s) => s.signature).length;
+    if (!zooms && !focuses && !marked) fails.push('no signature moment: zoom or focus on the result once, or mark the scene that lands it with "signature": true');
     const sig = by.demo.filter((s) => s.signature);
     if (sig.length > 1) warns.push(`${sig.length} scenes marked signature; there is one`);
   }

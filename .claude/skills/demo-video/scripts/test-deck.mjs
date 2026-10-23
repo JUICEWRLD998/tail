@@ -93,3 +93,23 @@ t('a problem shown on a problem slide counts as on screen', () => {
   assert.ok(!has(r, /no problem slide/));
 });
 console.log(`${n} checks passed in total`);
+
+// ---- video scenes (a recording of the product) are demo scenes
+t('a video scene counts as the live product in the demo, and "signature" marks the moment', () => {
+  const r = checkStory(base([]));
+  const plan = base([]);
+  plan.scenes = plan.scenes.map((s) => (s.beat === 'demo' ? { ...s, visual: { type: 'video', src: 'x.mp4', start: 0, end: 5 } } : s));
+  const bad = checkStory(plan);
+  assert.ok(!bad.fails.some((m) => /card cannot stand in/.test(m)), bad.fails.join('\n'));
+  assert.ok(bad.fails.some((m) => /no signature moment/.test(m)), 'without a signature the gate fails');
+  plan.scenes[3].signature = true;
+  const ok = checkStory(plan);
+  assert.ok(!ok.fails.some((m) => /no signature moment/.test(m)), ok.fails.join('\n'));
+  assert.ok(r);
+});
+t('a card in the demo still fails', () => {
+  const plan = base([]);
+  plan.scenes[3].visual = { type: 'card', template: 'statement', lines: ['x'] };
+  assert.ok(checkStory(plan).fails.some((m) => /card cannot stand in/.test(m)));
+});
+console.log(`${n} checks passed in total (with video scenes)`);
