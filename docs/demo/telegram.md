@@ -35,7 +35,8 @@ order. If a step fails, do not fake it. Tell me what happened and re-shoot it.
 
 ### Compute your levels (every call)
 
-Read the live ETH-USD mark price with the command above, then:
+The copy-ready messages below use the live testnet mark observed when this guide was updated (2401). Prices move, so
+check the current mark using the command above before recording and adjust the levels if it has changed:
 
 - A call that will **finish quickly** (use this one when you want the receipt): `TP = mark + 3`, `SL = mark - 12`
 - A call that will **stay open** (use this for the ask flow or the Fade quote): `TP = mark + 30`, `SL = mark - 20`
@@ -66,14 +67,9 @@ Skip this if you already registered the channel with the production bot.
 
 ### C2. Post a call (about 25 s) `c2-post-call.mp4`
 
-1. Read the mark price. Compute a quick-finish call, then paste it into the channel (replace the numbers):
+1. Copy this message into the channel:
 
-   ```
-   ETH-USD LONG NOW
-   TP <mark+3>
-   SL <mark-12>
-   5x
-   ```
+   `ETH-USD LONG NOW / TP 2404 / SL 2389 / 5x`
 
 2. Within a second the bot sends you a private **Post this call?** card with the entry, target, stop and R:R. Pause on it.
 3. Tap **Post**.
@@ -83,11 +79,9 @@ Skip this if you already registered the channel with the production bot.
 
 ### C3. The parser asks instead of guessing (about 20 s) `c3-ask.mp4`
 
-1. Paste a call with no direction (use levels around the live price):
+1. Paste this message. It leaves out the direction so the bot asks:
 
-   ```
-   ETH-USD 2400 TP 2430 SL 2380
-   ```
+   `ETH-USD 2401 TP 2431 SL 2381`
 
 2. The bot DMs a question: **Long or short on ETH-USD?** with two buttons. Pause on it.
 3. Tap **Long**. The confirm card appears. Tap **Drop**, so the channel stays clean.
@@ -96,11 +90,9 @@ Skip this if you already registered the channel with the production bot.
 
 ### C4. Optional: the AI reader (about 20 s) `c4-ai.mp4`
 
-Only if you set `OPENROUTER_API_KEY` on Render. Use a message in plain English, with levels around the live price:
+Only if you set `OPENROUTER_API_KEY` on Render. Paste this message:
 
-```
-ETH is going up from here, I am long at <mark> targeting <mark+30>, protect at <mark-20>
-```
+`ETH is going up from here, I am long at 2401 targeting 2431, protect at 2381`
 
 The bot DMs a confirm card with the line **Read by AI from your message. Check every price before you post.** Pause on
 it, then tap **Drop**.

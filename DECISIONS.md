@@ -21,6 +21,10 @@
 - Earlier live tails (orders 243140879 and 243144232) used the dev-only `/link` personal key, which has no builder code, so
   they never met this rule.
 
+## 2026-10-23 Demo guide: paste-ready live-price calls
+
+- Replaced the PowerShell snippets in `docs/demo/telegram.md` C2, C3 and C4 with literal, copy-ready messages derived from the live testnet ETH-USD mark (2401). The guide identifies them as a time-sensitive snapshot and tells the recorder to check the mark before recording.
+
 ## 2026-10-22 Correction in the README (marked): "API wallets cannot withdraw"
 
 - The README said Strike API wallets cannot withdraw. Strike's builder-code docs (VERIFIED, `api/builder-codes/withdraw.md`) say
