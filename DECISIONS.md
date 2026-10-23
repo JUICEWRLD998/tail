@@ -1,8 +1,8 @@
 # DECISIONS (newest first)
 
-The working log of the Tail build: decisions, spikes, corrections (marked) and checklists, each with its evidence. Files it
-mentions that are no longer in the tree (`implementation.md`, `docs/demo/telegram.md`) were build scaffolding, removed for
-the submission; they are in git history.
+The working log of the Tail build: decisions, spikes, corrections (marked) and checklists, each with its evidence.
+`implementation.md` was build scaffolding removed for the submission and remains in git history. The Telegram recording
+guide was restored on 2026-10-23 with updated paste-ready examples.
 
 ## 2026-10-23 Connect: pick the account on purpose; explain the own-code refusal
 
