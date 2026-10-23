@@ -9,7 +9,16 @@ the builder fee on their followers' fills, by Strike, through their own builder 
 Built for the Strike Hackathon (2026-10-21 to 2026-10-23). **Strike testnet only.** Decisions and spike results are in
 [DECISIONS.md](DECISIONS.md); every claim on this page maps to a command in [CLAIMS.md](CLAIMS.md).
 
-<p align="center"><img src="docs/img/home.png" alt="Tail home page: a call ticket replayed from a real call" width="900"></p>
+| | |
+|---|---|
+| **Try it** | Telegram bot [@tailstrikebot](https://t.me/tailstrikebot) · site [tail-pu7t.onrender.com](https://tail-pu7t.onrender.com) |
+| **Demo video** | [2 minutes, 1080p](docs/demo/tail-demo.mp4) |
+| **Network** | Strike testnet. No real funds. Only ETH-USD has a usable testnet order book |
+
+> The site runs on Render's free plan, which has no persistent disk: its data resets whenever the service restarts or
+> sleeps, so the home page can be empty. It then says so instead of showing anything made up.
+
+[![Watch the demo](docs/img/demo-thumb.png)](docs/demo/tail-demo.mp4)
 
 ## The problem
 
@@ -29,8 +38,10 @@ and risk limit, and Strike holds the entry, target and stop as one bracket.
 *The images above are the bot's real message builders rendered with sample numbers in a chat-style frame. They are not
 Telegram screenshots.*
 
-**On the web.** The home page replays the newest call that real followers took: the follows land in the order they came,
+**On the web.** The home page (shown below from a real call) replays the newest call that real followers took: the follows land in the order they came,
 then the result is stamped. Nothing is staged; with no call it says so.
+
+<p align="center"><img src="docs/img/home.png" alt="Tail home page: a call ticket replayed from a real call" width="900"></p>
 
 <p align="center"><img src="docs/img/replay.png" alt="A call ticket before and after its replay" width="900"></p>
 
@@ -52,15 +63,15 @@ Each line says LIVE, NEXT or NOT LIVE. Nothing is marked LIVE until it has been 
 | Strike request signing (Ed25519) | LIVE | `npm test` (RFC 8032 vector); Strike accepted a signed `GET /v2/account` on testnet, `docs/proof/spike-a.json` |
 | Strike client, bracket order from the CLI | LIVE | `scripts/tail-once.ts`, testnet, ETH-USD. Proof: `docs/proof/p2-tail-once.txt` |
 | Telegram: read channel posts, post cards with deep-link buttons, edit them | LIVE | Spike D: `docs/proof/spike-d.json` |
-| Telegram bot: register a channel, confirm a call, post the card, Tail and Fade quotes, place a bracket | LIVE | Ran end to end on testnet from real taps: Strike order 243140879. `docs/proof/p3-live.json` |
+| Telegram bot: register a channel, confirm a call, post the card, Tail and Fade quotes, place a bracket | LIVE | Ran end to end on testnet from real taps: Strike orders 243140879 and 243144232 (`docs/proof/p3-live.json`, `docs/proof/p6-live-tail-3.json`). A Fade tap placed order 243165317 and a Tail through the deployed bot placed 243165302 (both on screen in the demo video) |
 | Builder Connect from a script (Solana wallet) | LIVE | `scripts/scripted-follower.ts`, testnet. Fees on orders: NEXT |
-| Connect page: one wallet signature links a follower (MetaMask, Rabby, Phantom, Lace, Eternl) | NEXT | Built; browser-tested locally against real Strike testnet with a scripted Ethereum wallet (`scripts/e2e-connect.ts`). Not deployed |
-| Deployment (Docker, Render free plan, `docs/DEPLOY.md`), with a strict Content-Security-Policy | NEXT | Deployed by the owner on Render's free plan. Not yet checked end to end: the webhook, the live pages and a real order from a second account |
+| Connect page: one wallet signature links a follower (MetaMask, Rabby, Phantom, Lace, Eternl) | LIVE | Ran on the deployed service with a real MetaMask account, and 25 browser checks against Strike testnet (`scripts/e2e-connect.ts`). Phantom, Lace and Eternl are untested in a real wallet |
+| Deployment (Docker, Render free plan, `docs/DEPLOY.md`), with a strict Content-Security-Policy | LIVE | https://tail-pu7t.onrender.com answers `/health`; the production bot ran the demo recording. Free plan: no disk, data resets on restart |
 | Live card state: counters from Strike's real order status, call results with a receipt, caller record (`/record`) | LIVE | Ran on testnet against the real dev database: `docs/proof/p5-live.json`. A fresh fill-to-close run with a follower is still to do |
 | Builder fee on orders | NEXT | Sent for builder wallets (Tail's code, or the caller's own); the quote shows it. Not yet seen on a fill |
-| Guard rails (rate limits, duplicate window, open-tail cap), ask flow, plain rejection reasons | LIVE | `npm test`. Reasons come from Strike strings seen live. A follower tap on this build placed Strike order 243144232 (`docs/proof/p6-live-tail-3.json`). Fade: unit-tested, not run live |
+| Guard rails (rate limits, duplicate window, open-tail cap), ask flow, plain rejection reasons | LIVE | `npm test`. Reasons come from Strike strings seen live. The ask flow and a Fade ran live (demo video) |
 | AI fallback for unreadable calls (OpenRouter, caller must confirm) | LIVE | Off without `OPENROUTER_API_KEY`. `docs/proof/p6-ai-live.json`. Numbers in a message are trusted by design; the caller's tap is the gate |
-| Caller earnings estimate (`/earnings`) and public record page (`/publish`, `/c/<slug>`), home page | LIVE | Run locally against the real dev data (not deployed): 8 widths, both themes, numbers equal the SQL in `CLAIMS.md`, a real-call replay with charts (`scripts/replay-probe.ts`). The fee is an estimate: Strike's fill has no builder-share field |
+| Caller earnings estimate (`/earnings`) and public record page (`/publish`, `/c/<slug>`), home page | LIVE | `/earnings` ran in Telegram; the pages were checked at 8 widths in both themes against real dev data, numbers equal the SQL in `CLAIMS.md`, with a real-call replay (`scripts/replay-probe.ts`). The fee is an estimate: Strike's fill has no builder-share field |
 | Caller payout: a caller sets their own Strike builder code (`/setcode`); follows from their card trade under it, so Strike credits the fee to them directly | NEXT | Built and tested; code check live (`sigma` ok, unknown 404). Not yet seen on a real fill under a caller code |
 
 ## How it works
@@ -157,6 +168,9 @@ npx tsx scripts/contrast.ts       # WCAG contrast of every colour pair, both the
 | `docs/` | deploy guide, proofs and screenshots |
 
 ## Testnet notes
+
+The deployed service is on Render's free plan: no persistent disk, so channels, wallets and calls reset when it restarts
+or sleeps. A paid plan with a disk (`render.yaml`) removes that.
 
 Testnet order books are thin. Only ETH-USD has a book that agrees with its mark price; limit orders on ADA-USD, SOL-USD
 and BTC-USD were rejected as `order_price_out_of_limit` (details in [DECISIONS.md](DECISIONS.md)). Market fills on a thin

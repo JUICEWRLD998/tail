@@ -1,6 +1,8 @@
 # DECISIONS (newest first)
 
-**Mustapha Fadhlullah — independent security researcher**
+The working log of the Tail build: decisions, spikes, corrections (marked) and checklists, each with its evidence. Files it
+mentions that are no longer in the tree (`implementation.md`, `docs/demo/telegram.md`) were build scaffolding, removed for
+the submission; they are in git history.
 
 ## 2026-10-23 Connect: pick the account on purpose; explain the own-code refusal
 

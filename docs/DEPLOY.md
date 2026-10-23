@@ -1,6 +1,6 @@
 # Deploying Tail
 
-Written for Mustapha Fadhlullah. Deploying is your step: it needs your host account and the production bot token, and
+Written for the project owner. Deploying is the owner's step: it needs their host account and the production bot token, and
 neither belongs in a cloud coding session. Testnet only (`STRIKE_NETWORK=testnet`).
 
 ## What runs

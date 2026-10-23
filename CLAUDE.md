@@ -1,10 +1,11 @@
 # Tail: working rules for Claude sessions
 
-Owner: Mustapha Fadhlullah. Byline on anything a stranger reads: `Mustapha Fadhlullah — independent security
-researcher`. First person singular in his voice; impersonal in report prose.
+Owner: Mustapha Fadhlullah. **No byline or personal name on the public pages or in the README** (his call, 2026-10-22);
+internal notes may name him. First person singular in his voice; impersonal in report prose.
 
-**Start here:** `implementation.md` is the build order (phases P0-P10, each with an exit check). Read it fully, then
-continue from the first phase whose exit check has not passed. Record progress in `DECISIONS.md`.
+**Start here:** `DECISIONS.md` is the log (newest first) and `README.md` the status table (LIVE, NEXT, NOT LIVE). The build
+plan (phases P0-P10) was removed from the submission; it is in git history (`git show 5dc8e3b:implementation.md`). Continue
+from the first item still NEXT or NOT LIVE. Record progress in `DECISIONS.md`.
 
 ## Standing rules (from him; not negotiable)
 - **No subagents** unless he says "fan out" in that session. Do the work inline, in sequence.
